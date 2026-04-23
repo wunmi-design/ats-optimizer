@@ -599,7 +599,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
     </div>
     <div class="topbar-right">
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 1.0.6</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 1.0.7</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -4631,21 +4631,19 @@ function updateSuggestionCounts(){
   // Update improvements count - find the label containing improvements-select-all
   const impCheckbox = document.getElementById('improvements-select-all');
   if (impCheckbox && impCheckbox.parentElement) {
-    impCheckbox.parentElement.textContent = '';
-    impCheckbox.parentElement.innerHTML = `<input type="checkbox" id="improvements-select-all" onchange="toggleAllImprovements(this.checked)" style="accent-color:var(--teal);">Select all (${nonAppliedFixes})`;
+    impCheckbox.parentElement.innerHTML = `<input type="checkbox" id="improvements-select-all" onchange="toggleAllImprovements(this.checked)" style="accent-color:var(--teal);width:18px;height:18px;cursor:pointer;"><span>Select all (${nonAppliedFixes})</span>`;
   }
   
   // Update keywords count
   const kwCheckbox = document.getElementById('mkw-all');
   if (kwCheckbox && kwCheckbox.parentElement) {
-    kwCheckbox.parentElement.innerHTML = `<input type="checkbox" id="mkw-all" style="accent-color:var(--teal);">Select all (${allKwCbs})`;
+    kwCheckbox.parentElement.innerHTML = `<input type="checkbox" id="mkw-all" onchange="toggleAllMissingKw(this.checked)" style="accent-color:var(--teal);width:18px;height:18px;cursor:pointer;"><span>Select all (${allKwCbs})</span>`;
   }
   
   // Update top-level count
   const topCheckbox = document.getElementById('fix-select-all');
   if (topCheckbox && topCheckbox.parentElement) {
-    topCheckbox.parentElement.textContent = '';
-    topCheckbox.parentElement.innerHTML = `<input type="checkbox" id="fix-select-all" onchange="toggleAllFixes(this.checked)" style="accent-color:var(--teal);">Select all (${nonAppliedFixes + allKwCbs})`;
+    topCheckbox.parentElement.innerHTML = `<input type="checkbox" id="fix-select-all" onchange="toggleAllFixes(this.checked)" style="accent-color:var(--teal);width:18px;height:18px;cursor:pointer;"><span>Select all (${nonAppliedFixes + allKwCbs})</span>`;
   }
   } catch(e) {
     console.error('updateSuggestionCounts error:', e);
