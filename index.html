@@ -2064,21 +2064,24 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
               <span class="card-title">Suggestions</span>
             </div>
             <label class="flex-c gap-1 text-xs text-muted" style="cursor:pointer;font-weight:400;margin-bottom:12px;">
-              <input type="checkbox" id="fix-select-all" onchange="toggleAllFixes(this.checked)" style="accent-color:var(--teal);">Select all
+              <input type="checkbox" id="fix-select-all" onchange="toggleAllFixes(this.checked)" style="accent-color:var(--teal);width:18px;height:18px;cursor:pointer;"><span id="select-all-text">Select all (0)</span>
             </label>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;">
               <!-- Left: fixes (summary, bullets, skills, weak, impact, gap) -->
               <div>
-                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:12px;">Improvements</div>
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:12px;">Content Improvements</div>
                 <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink2);cursor:pointer;margin-bottom:12px;font-weight:500;padding:6px 0;border-bottom:1px solid var(--border);">
-                  <input type="checkbox" id="improvements-select-all" onchange="toggleAllImprovements(this.checked)" style="accent-color:var(--teal);width:18px;height:18px;cursor:pointer;">Select all improvements
+                  <input type="checkbox" id="improvements-select-all" onchange="toggleAllImprovements(this.checked)" style="accent-color:var(--teal);width:18px;height:18px;cursor:pointer;"><span id="select-all-improvements-text">Select all (0)</span>
                 </label>
                 <div id="top-fixes"></div>
                 <div id="deep-fix-items"></div>
               </div>
               <!-- Right: keyword coverage -->
               <div>
-                
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:12px;">Keywords to Add</div>
+                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink2);cursor:pointer;margin-bottom:12px;font-weight:500;padding:6px 0;border-bottom:1px solid var(--border);">
+                  <input type="checkbox" id="mkw-all" onchange="toggleAllMissingKw(this.checked)" style="accent-color:var(--teal);width:18px;height:18px;cursor:pointer;"><span id="select-all-keywords-text">Select all (0)</span>
+                </label>
                 <div id="keyword-coverage"></div>
               </div>
             </div>
