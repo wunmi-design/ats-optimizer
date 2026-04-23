@@ -3118,6 +3118,19 @@ function loadProject(id) {
   } catch(e) {
     console.error('loadProject showResume error:', e);
   }
+  // Restore applied fixes visual state if they exist
+  if (proj.appliedFixes && proj.appliedFixes.length > 0) {
+    setTimeout(() => {
+      proj.appliedFixes.forEach(fixText => {
+        const items = document.querySelectorAll('.fix-item, .kw-item');
+        items.forEach(item => {
+          if (item.textContent.includes(fixText)) {
+            item.classList.add('applied');
+          }
+        });
+      });
+    }, 100);
+  }
   // Only render the stored score if it matches the current resume + JD content.
   // Otherwise the suggestions will be from a stale analysis.
   const score = proj.scores?.[proj.scores.length-1];
@@ -3211,6 +3224,10 @@ function saveProject() {
   // Collect brain dump
   const braindump = document.getElementById('ws-braindump');
   if (braindump && proj.ws) proj.ws.braindump = braindump.value || '';
+  // Save applied fixes state
+  if (!proj.appliedFixes) proj.appliedFixes = [];
+  const appliedItems = document.querySelectorAll('.fix-item.applied, .kw-item.applied');
+  proj.appliedFixes = Array.from(appliedItems).map(item => item.textContent).filter(Boolean);
   console.log('saveProject: saving', proj.id, 'with', proj.drafts?.length || 0, 'drafts');
   ProjectStore.save(proj);
   // Don't toast autosave — only show user feedback on manual save/export
