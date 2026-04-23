@@ -4587,7 +4587,7 @@ function updateSuggestionCounts(){
   // Update keywords count
   const kwCheckbox = document.getElementById('mkw-all');
   if (kwCheckbox && kwCheckbox.parentElement) {
-    kwCheckbox.parentElement.textContent = `Select all (${allKwCbs})`;
+    kwCheckbox.parentElement.innerHTML = `<input type="checkbox" id="mkw-all" style="accent-color:var(--teal);">Select all (${allKwCbs})`;
   }
   
   // Update top-level count
