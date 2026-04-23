@@ -599,7 +599,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
     </div>
     <div class="topbar-right">
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 1.0.11</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 1.0.12</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -4886,8 +4886,12 @@ async function applySelectedFixes(){
     updateFixBar();
     const totalApplied = selectedFixes.length + selectedKws.length;
     toast(`${totalApplied} fix${totalApplied>1?'es':''} applied`);
-    // Do NOT auto-analyze after applying — user must click Analyze button explicitly
-    // setTimeout(runFullAnalysis, 8000);
+    // Auto-analyze after applying suggestions to show updated score
+    console.log('applySelectedFixes: scheduling auto-analysis in 2 seconds');
+    setTimeout(() => {
+      console.log('applySelectedFixes: running auto-analysis');
+      runFullAnalysis();
+    }, 2000);
   } catch(e){
     let msg;
     if (e.message === 'RATE_LIMIT') msg = 'Rate limit reached — try again in 1 minute';
