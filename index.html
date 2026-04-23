@@ -5,9 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ATS Resume</title>
 <link href="./ATS Resume_files/css2" rel="stylesheet">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
 /* ── RESET & TOKENS ───────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -2068,9 +2065,9 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;">
               <!-- Left: fixes (summary, bullets, skills, weak, impact, gap) -->
               <div>
-                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:8px;">Improvements</div>
-                <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);cursor:pointer;margin-bottom:8px;">
-                  <input type="checkbox" id="improvements-select-all" onchange="toggleAllImprovements(this.checked)" style="accent-color:var(--teal);">Select all
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:12px;">Improvements</div>
+                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink2);cursor:pointer;margin-bottom:12px;font-weight:500;padding:6px 0;border-bottom:1px solid var(--border);">
+                  <input type="checkbox" id="improvements-select-all" onchange="toggleAllImprovements(this.checked)" style="accent-color:var(--teal);width:18px;height:18px;cursor:pointer;">Select all improvements
                 </label>
                 <div id="top-fixes"></div>
                 <div id="deep-fix-items"></div>
