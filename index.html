@@ -580,13 +580,24 @@
     }
 
     async function signInWithGoogle() {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.href
+      try {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: `${window.location.origin}${window.location.pathname}`
+          }
+        });
+        
+        if (error) {
+          console.error('Sign in error:', error);
+          showStatus('Error: ' + error.message, false);
+        } else {
+          console.log('OAuth sign in initiated:', data);
         }
-      });
-      if (error) console.error('Sign in error:', error);
+      } catch (err) {
+        console.error('Unexpected error:', err);
+        showStatus('Unexpected error: ' + err.message, false);
+      }
     }
 
     async function signOut() {
@@ -812,7 +823,18 @@
     // ============================================
     // INIT
     // ============================================
-    document.addEventListener('DOMContentLoaded', initAuth);
+    async function initApp() {
+      // Handle OAuth callback
+      const hash = window.location.hash;
+      if (hash.includes('access_token') || hash.includes('error_code')) {
+        console.log('OAuth callback detected');
+        // Supabase will handle this automatically via the onAuthStateChange listener
+      }
+      
+      await initAuth();
+    }
+
+    document.addEventListener('DOMContentLoaded', initApp);
 
     // Listen for auth changes
     supabase.auth.onAuthStateChange((event, session) => {
