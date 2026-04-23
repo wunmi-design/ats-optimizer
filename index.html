@@ -599,7 +599,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
     </div>
     <div class="topbar-right">
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 1.0.10</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 1.0.11</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -4843,13 +4843,18 @@ async function applySelectedFixes(){
       4000
     );
     const cleaned = result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim();
-    proj.drafts.push(cleaned);
+    // Replace the latest draft instead of pushing a new one to avoid draft accumulation
+    if (proj.drafts.length > 0) {
+      proj.drafts[proj.drafts.length - 1] = cleaned;
+    } else {
+      proj.drafts.push(cleaned);
+    }
     proj._redoStack = [];
     proj._aiApplied = true;  // mark that AI has modified the resume text
     proj._cachedScore = null;  // Clear cached score so next analysis rescores from scratch
     proj._analysisHash = null; // Force fresh analysis to pick up the changes
-    console.log('DEBUG applySelectedFixes: PUSHED draft v' + proj.drafts.length + ', length: ' + cleaned.length);
-    console.log('DEBUG applySelectedFixes: proj.drafts.length after push:', proj.drafts.length);
+    console.log('DEBUG applySelectedFixes: Updated draft v' + proj.drafts.length + ', length: ' + cleaned.length);
+    console.log('DEBUG applySelectedFixes: proj.drafts.length after update:', proj.drafts.length);
     autoSave();
     showResume(cleaned, proj.drafts.length);
     console.log('applySelectedFixes: displayed draft v' + proj.drafts.length);
