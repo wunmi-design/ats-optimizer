@@ -599,7 +599,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
     </div>
     <div class="topbar-right">
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 1.0.7</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 1.0.8</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -4853,10 +4853,7 @@ async function applySelectedFixes(){
     autoSave();
     showResume(cleaned, proj.drafts.length);
     console.log('applySelectedFixes: displayed draft v' + proj.drafts.length);
-    // CRITICAL: Auto-save immediately after showing so drafts are persisted
-    autoSave();
-    console.log('applySelectedFixes: auto-saved draft');
-    // CRITICAL: Update the live preview AFTER saving to ensure it has latest data
+    // Update live preview AFTER saving
     console.log('applySelectedFixes: about to updateLivePreview, proj.drafts.length:', proj.drafts.length);
     updateLivePreview();
     console.log('applySelectedFixes: updateLivePreview complete');
