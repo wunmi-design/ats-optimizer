@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.0.4</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.0.5</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -2529,7 +2529,7 @@ NY Top Creative Winner · WIx and Vitamin T · 2014</div>
       <div class="spin" style="width:24px;height:24px;"></div>
       <span id="overlay-msg" style="font-size:16px;font-weight:500;">Applying changes...</span>
     </div>
-    <div style="font-size:13px;color:var(--muted);">Please wait while we update your resume</div>
+    <div id="overlay-sub" style="font-size:13px;color:var(--muted);">Please wait while we update your resume</div>
   </div>
 </div>
 
@@ -2549,9 +2549,9 @@ NY Top Creative Winner · WIx and Vitamin T · 2014</div>
   <div style="background:white;border-radius:8px;padding:32px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
     <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:16px;">
       <div class="spin" style="width:24px;height:24px;"></div>
-      <span style="font-size:16px;font-weight:500;">Analyzing...</span>
+      <span style="font-size:16px;font-weight:500;">Scoring resume...</span>
     </div>
-    <div style="font-size:13px;color:var(--muted);">Scoring your resume against the job description</div>
+    <div style="font-size:13px;color:var(--muted);">Evaluating your resume against the job description</div>
   </div>
 </div>
 
@@ -4666,14 +4666,14 @@ function simpleHash(str) {
   return h;
 }
 
-async function runFullAnalysis() {
+async function runFullAnalysis(skipOverlay) {
   const resume = getResumeText();
   const jdText = g('jd-text') || proj?.jdText || '';
   if (!resume) { toast('Add resume content first'); return; }
   if (!jdText) { toast('Paste a job description in the Job Description tab first'); return; }
-  // Show blocking analyze overlay
+  // Show blocking analyze overlay (unless called from applySelectedFixes which has its own)
   const analyzeOverlay = document.getElementById('analyze-overlay');
-  if (analyzeOverlay) analyzeOverlay.style.display = 'flex';
+  if (!skipOverlay && analyzeOverlay) analyzeOverlay.style.display = 'flex';
   // Only switch to analyzer if explicitly called, not on page load
   // switchTab('analyzer');
   // CRITICAL: Clear all analyzer DOM before doing anything else to prevent stale content flash
@@ -4773,16 +4773,20 @@ RESUME:\n${resume.slice(0,1500)}`, 1000);
     loading.classList.remove('show');
     document.getElementById('analyzer-content').style.display = 'block';
     updateScorePill(score.overall);
-    // Hide overlay
-    const analyzeOverlay = document.getElementById('analyze-overlay');
-    if (analyzeOverlay) analyzeOverlay.style.display = 'none';
+    // Hide overlay only if we showed it
+    if (!skipOverlay) {
+      const analyzeOverlay = document.getElementById('analyze-overlay');
+      if (analyzeOverlay) analyzeOverlay.style.display = 'none';
+    }
     // Switch to analyzer only after analysis completes successfully
     switchTab('analyzer');
   } catch(e) {
     loading.classList.remove('show');
-    // Hide overlay
-    const analyzeOverlay = document.getElementById('analyze-overlay');
-    if (analyzeOverlay) analyzeOverlay.style.display = 'none';
+    // Hide overlay only if we showed it
+    if (!skipOverlay) {
+      const analyzeOverlay = document.getElementById('analyze-overlay');
+      if (analyzeOverlay) analyzeOverlay.style.display = 'none';
+    }
     // Restore analyzer content so the previous score/suggestions stay visible
     document.getElementById('analyzer-content').style.display = 'block';
     let msg;
@@ -5202,17 +5206,15 @@ async function applySelectedFixes(){
   const resume = getResumeText();
   if (!resume) { toast('No resume to update'); return; }
 
-  // Show blocking overlay modal
+  // Show blocking overlay modal — Phase 1: Optimizing
   const overlay = document.getElementById('apply-overlay');
   const overlayMsg = document.getElementById('overlay-msg');
-  const total = selectedFixes.length + selectedKws.length;
-  overlayMsg.textContent = `Applying ${total} change${total>1?'s':''}...`;
+  const overlaySub = document.getElementById('overlay-sub');
+  overlayMsg.textContent = 'Optimizing resume...';
+  overlaySub.textContent = 'Applying your selected changes';
   overlay.style.display = 'flex';
 
-  const applyLoad = document.getElementById('apply-loading');
   const applyBtn = document.getElementById('apply-btn');
-  const applyMsg = document.getElementById('apply-msg');
-  // applyLoad hidden - modal only
   applyBtn.disabled = true;
 
   try {
@@ -5241,22 +5243,16 @@ async function applySelectedFixes(){
       proj.drafts.push(cleaned);
     }
     proj._redoStack = [];
-    proj._aiApplied = true;  // mark that AI has modified the resume text
-    proj._cachedScore = null; proj._analysisHash = null; proj.scores = [];  // Force completely fresh analysis
-    proj._analysisHash = null; // Force fresh analysis to pick up the changes
-    console.log('DEBUG applySelectedFixes: Updated draft v' + proj.drafts.length + ', length: ' + cleaned.length);
-    console.log('DEBUG applySelectedFixes: proj.drafts.length after update:', proj.drafts.length);
+    proj._aiApplied = true;
+    proj._cachedScore = null; proj._analysisHash = null; proj.scores = [];
     autoSave();
     showResume(cleaned, proj.drafts.length);
-    console.log('applySelectedFixes: displayed draft v' + proj.drafts.length);
 
     // Mark applied items and record them
     fixCbs.forEach(cb => {
       const idx = parseInt(cb.dataset.idx);
       const fix = fixes[idx];
-      if (fix) {
-        recordAppliedFix('fix', fix.title, fix.title);
-      }
+      if (fix) recordAppliedFix('fix', fix.title, fix.title);
       cb.checked = false;
       cb.disabled = true;
       document.getElementById('fix-item-' + cb.dataset.idx)?.classList.add('applied');
@@ -5277,21 +5273,18 @@ async function applySelectedFixes(){
     updateFixBar();
     const totalApplied = selectedFixes.length + selectedKws.length;
     toast(`${totalApplied} fix${totalApplied>1?'es':''} applied`);
-    // overlay stays visible until analysis completes
-    // Auto-analyze immediately after applying - keep modal visible
-    console.log('applySelectedFixes: running auto-analysis immediately');
-    overlayMsg.textContent = 'Re-analyzing resume...';
-    await runFullAnalysis();
-    // Hide the apply overlay now that analysis is done
-    overlay.style.display = 'none';
-    // Sync updated resume text back into Content Editor fields (without switching tabs)
+
+    // Phase 2: Scoring — update overlay message
+    overlayMsg.textContent = 'Scoring resume...';
+    overlaySub.textContent = 'Evaluating your updated resume against the job description';
+    await runFullAnalysis(true);  // pass true to skip showing its own overlay
+
+    // Phase 3: Sync CE fields
     try {
-      console.log('applySelectedFixes: syncing updated draft to CE fields');
       const _currentTab = document.querySelector('.tab.active')?.id?.replace('tab-','');
       await parseToCE(cleaned);
       fillCE(proj.ce);
       autoSave();
-      // Stay on optimizer tab
       if (_currentTab) switchTab(_currentTab);
     } catch(ceErr) { console.warn('CE sync after apply:', ceErr); }
   } catch(e){
@@ -5302,8 +5295,7 @@ async function applySelectedFixes(){
     toast(msg);
   }
   applyBtn.disabled=false;
-  // Hide overlay
-  if (overlay) overlay.style.display = 'none';
+  overlay.style.display = 'none';
 }
 
 // ─────────────────────────────────────────────────────────
