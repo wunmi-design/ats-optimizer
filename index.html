@@ -2701,7 +2701,7 @@ function setAuthUI() {
     window._atsUser = JSON.parse(stored);
     setTimeout(setAuthUI, 100);
   }
-  // If not logged in, clear any loaded project on page load
+  // If not logged in, clear any loaded project and all fields
   if (!window._atsUser) {
     setTimeout(function() {
       proj = null;
@@ -2709,6 +2709,10 @@ function setAuthUI() {
       if (nd) { nd.textContent = 'New Project'; nd.classList.add('placeholder'); }
       var rb = document.querySelector('.resume-panel-body');
       if (rb) rb.innerHTML = '<div class="resume-empty"><div class="resume-empty-icon">📄</div><p>Resume will appear here</p></div>';
+      // Clear all form fields
+      document.querySelectorAll('.left-panel textarea, .left-panel input[type=text], .left-panel input[type=number]').forEach(function(el) { el.value = ''; });
+      // Clear any contenteditable areas
+      document.querySelectorAll('[contenteditable]').forEach(function(el) { el.textContent = ''; });
     }, 200);
   }
 })();
