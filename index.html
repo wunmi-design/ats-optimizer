@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.0.7</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.1.0</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -2040,6 +2040,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <div class="flex-between mb-3">
           <div><div class="bold" style="font-size:15px;">Analyzer</div><div class="text-xs text-muted mt-1">Score, gaps, and suggested fixes against the job description</div></div>
           <div class="flex-c gap-2">
+            <button class="btn btn-secondary" onclick="autoOptimize()" id="auto-opt-btn" title="Automatically apply suggestions until score reaches 90+">⚡ Auto-Optimize to 90+</button>
             <button class="btn btn-primary" onclick="runFullAnalysis()">🔍 Analyze Resume →</button>
           </div>
         </div>
@@ -5331,6 +5332,146 @@ async function applySelectedFixes(){
   }
   applyBtn.disabled=false;
   overlay.style.display = 'none';
+}
+
+// ─────────────────────────────────────────────────────────
+//  AUTO-OPTIMIZE TO 90+
+// ─────────────────────────────────────────────────────────
+async function autoOptimize() {
+  const resume = getResumeText();
+  const jdText = g('jd-text') || proj?.jdText || '';
+  if (!resume) { toast('Add resume content first'); return; }
+  if (!jdText) { toast('Paste a job description in the Job Description tab first'); return; }
+  if (!proj) { toast('Create a project first'); return; }
+
+  const TARGET_SCORE = 90;
+  const MAX_ROUNDS = 4;
+  const overlay = document.getElementById('apply-overlay');
+  const overlayMsg = document.getElementById('overlay-msg');
+  const overlaySub = document.getElementById('overlay-sub');
+  const autoBtn = document.getElementById('auto-opt-btn');
+  autoBtn.disabled = true;
+
+  overlay.style.display = 'flex';
+
+  try {
+    for (let round = 1; round <= MAX_ROUNDS; round++) {
+      // Phase 1: Score & analyze
+      overlayMsg.textContent = `Round ${round}/${MAX_ROUNDS}: Scoring resume...`;
+      overlaySub.textContent = 'Evaluating your resume against the job description';
+
+      // Force fresh analysis
+      proj._cachedScore = null; proj._analysisHash = null; proj.scores = [];
+      await runFullAnalysis(true);
+
+      // Check current score
+      const currentScore = proj._cachedScore?.overall || 0;
+      overlayMsg.textContent = `Round ${round}/${MAX_ROUNDS}: Score is ${currentScore}`;
+
+      if (currentScore >= TARGET_SCORE) {
+        overlaySub.textContent = `Target reached! Score: ${currentScore}`;
+        await new Promise(r => setTimeout(r, 1500));
+        break;
+      }
+
+      // Phase 2: Gather all suggestions + missing keywords
+      const fixes = proj._currentFixes || [];
+      const unappliedFixes = fixes.filter((f, i) => {
+        const cb = document.querySelector(`.fix-cb[data-idx="${i}"]`);
+        return cb && !cb.disabled;
+      });
+      const unappliedKws = Array.from(document.querySelectorAll('.kw-missing-row input[data-kw]'))
+        .filter(cb => !cb.disabled)
+        .map(cb => cb.dataset.kw);
+
+      if (!unappliedFixes.length && !unappliedKws.length) {
+        overlaySub.textContent = `No more suggestions to apply. Final score: ${currentScore}`;
+        await new Promise(r => setTimeout(r, 1500));
+        break;
+      }
+
+      // Phase 3: Apply all suggestions
+      overlayMsg.textContent = `Round ${round}/${MAX_ROUNDS}: Optimizing resume...`;
+      overlaySub.textContent = `Applying ${unappliedFixes.length} fixes and ${unappliedKws.length} keywords`;
+
+      let promptBody = '';
+      if (unappliedFixes.length) {
+        const fixInstructions = unappliedFixes.map((f, i) => {
+          if (f.before && f.after) return `FIX ${i+1} — ${f.title}\nREPLACE: ${f.before}\nWITH: ${f.after}`;
+          return `FIX ${i+1} — ${f.title}: ${f.desc}`;
+        }).join('\n\n');
+        promptBody += `FIXES TO APPLY:\n${fixInstructions}\n\n`;
+      }
+      if (unappliedKws.length) {
+        promptBody += `KEYWORDS TO INSERT (weave naturally into existing sentences or skill lists — no fabricated accomplishments):\n${unappliedKws.map(k => '• ' + k).join('\n')}\n\n`;
+      }
+
+      const currentResume = getResumeText();
+      const result = await claudeFetch(
+        `Apply these changes to the resume. Return ONLY the complete corrected plain-text resume, no commentary.\n\n${promptBody}RESUME:\n${currentResume}`,
+        4000
+      );
+      const cleaned = result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim();
+
+      // Update draft
+      if (proj.drafts.length > 0) {
+        proj.drafts[proj.drafts.length - 1] = cleaned;
+      } else {
+        proj.drafts.push(cleaned);
+      }
+      proj._redoStack = [];
+      proj._aiApplied = true;
+      proj._cachedScore = null; proj._analysisHash = null; proj.scores = [];
+      autoSave();
+      showResume(cleaned, proj.drafts.length);
+
+      // Mark all applied
+      unappliedFixes.forEach((f, i) => {
+        recordAppliedFix('fix', f.title, f.title);
+      });
+      document.querySelectorAll('.fix-cb').forEach(cb => { cb.checked = false; cb.disabled = true; });
+      document.querySelectorAll('.fix-item').forEach(el => el.classList.add('applied'));
+      unappliedKws.forEach(kw => recordAppliedFix('keyword', kw, kw));
+      document.querySelectorAll('.kw-missing-row input[data-kw]').forEach(cb => {
+        cb.checked = false; cb.disabled = true;
+        cb.closest('.kw-missing-row')?.style.setProperty('opacity', '0.5');
+      });
+      renderAppliedFixes();
+      updateFixBar();
+
+      // Sync CE
+      try {
+        await parseToCE(cleaned);
+        fillCE(proj.ce);
+        autoSave();
+      } catch(ceErr) { console.warn('CE sync:', ceErr); }
+
+      // Brief pause before next round
+      if (round < MAX_ROUNDS) {
+        overlayMsg.textContent = `Round ${round} complete. Score: ${currentScore}. Starting round ${round+1}...`;
+        overlaySub.textContent = 'Preparing next optimization pass';
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    }
+
+    // Final score display
+    const finalScore = proj._cachedScore?.overall || 0;
+    if (finalScore >= TARGET_SCORE) {
+      toast(`Auto-optimize complete! Score: ${finalScore}`);
+    } else {
+      toast(`Optimization done after ${MAX_ROUNDS} rounds. Score: ${finalScore}. You can continue manually.`);
+    }
+  } catch(e) {
+    let msg;
+    if (e.message === 'RATE_LIMIT') msg = 'Rate limit reached — try again in 1 minute';
+    else if (e.message === 'API_UNAVAILABLE') msg = 'API unavailable — try again shortly';
+    else msg = 'Error: ' + (e.message || 'please try again');
+    toast(msg);
+  }
+
+  overlay.style.display = 'none';
+  autoBtn.disabled = false;
+  switchTab('analyzer');
 }
 
 // ─────────────────────────────────────────────────────────
