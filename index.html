@@ -600,7 +600,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 1.9.5</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 1.9.6</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -2043,7 +2043,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
           </div>
         </div>
 
-        <div class="loading-row mb-2" id="dash-loading"><div class="spin"></div><span id="dash-msg">Analyzing...</span></div>
+        <div class="loading-row mb-2" id="dash-loading" style="display:none !important;"><div class="spin"></div><span id="dash-msg">Analyzing...</span></div>
         <div id="analyzer-content" style="display: none;">
           <!-- Score row -->
           <div class="card mb-3">
@@ -5091,7 +5091,7 @@ async function applySelectedFixes(){
   const applyLoad = document.getElementById('apply-loading');
   const applyBtn = document.getElementById('apply-btn');
   const applyMsg = document.getElementById('apply-msg');
-  applyLoad.classList.add('show');
+  // applyLoad hidden - modal only
   applyBtn.disabled = true;
 
   try {
@@ -5156,18 +5156,22 @@ async function applySelectedFixes(){
     updateFixBar();
     const totalApplied = selectedFixes.length + selectedKws.length;
     toast(`${totalApplied} fix${totalApplied>1?'es':''} applied`);
-    // Auto-analyze after applying suggestions to show updated score
-    console.log('applySelectedFixes: scheduling auto-analysis in 2 seconds');
-    setTimeout(() => {
-      console.log('applySelectedFixes: running auto-analysis');
-      runFullAnalysis();
-    }, 2000);
-    // Sync updated resume text back into Content Editor fields
+    // overlay stays visible until analysis completes
+    // Auto-analyze immediately after applying - keep modal visible
+    console.log('applySelectedFixes: running auto-analysis immediately');
+    overlayMsg.textContent = 'Re-analyzing resume...';
+    await runFullAnalysis();
+    // Hide the apply overlay now that analysis is done
+    overlay.style.display = 'none';
+    // Sync updated resume text back into Content Editor fields (without switching tabs)
     try {
       console.log('applySelectedFixes: syncing updated draft to CE fields');
+      const _currentTab = document.querySelector('.tab.active')?.id?.replace('tab-','');
       await parseToCE(cleaned);
       fillCE(proj.ce);
       autoSave();
+      // Stay on optimizer tab
+      if (_currentTab) switchTab(_currentTab);
     } catch(ceErr) { console.warn('CE sync after apply:', ceErr); }
   } catch(e){
     let msg;
@@ -5176,7 +5180,7 @@ async function applySelectedFixes(){
     else msg = 'Error: ' + (e.message || 'please try again');
     toast(msg);
   }
-  applyLoad.classList.remove('show');applyBtn.disabled=false;
+  applyBtn.disabled=false;
   // Hide overlay
   if (overlay) overlay.style.display = 'none';
 }
