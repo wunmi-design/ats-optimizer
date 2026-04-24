@@ -3,95 +3,242 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ATS Resume Optimizer</title>
+  <title>ATS Resume</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    :root {
-      --primary: #0d9488;
-      --primary-dark: #0f766e;
-      --bg: #f8fafc;
-      --surface: #ffffff;
-      --border: #e2e8f0;
-      --text-primary: #1e293b;
-      --text-secondary: #64748b;
-      --text-muted: #94a3b8;
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#f4f6f8;
+      --white:#ffffff;
+      --surface:#f9fafb;
+      --border:#e5e7eb;
+      --border2:#d1d5db;
+      --ink:#111827;
+      --ink2:#374151;
+      --muted:#6b7280;
+      --dim:#9ca3af;
+      --teal:#0d9488;
+      --teal-lt:#f0fdfa;
+      --teal-mid:#ccfbf1;
+      --teal-dark:#0f766e;
+      --teal-dim:#5eead4;
+      --red:#dc2626;--red-lt:#fef2f2;
+      --green:#16a34a;--green-lt:#f0fdf4;
+      --amber:#d97706;--amber-lt:#fffbeb;
+      --blue:#2563eb;--blue-lt:#eff6ff;
+      --radius:8px;--radius-sm:6px;
+      --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+      --shadow-md:0 4px 6px rgba(0,0,0,.07),0 2px 4px rgba(0,0,0,.06);
+      --shadow-lg:0 10px 15px rgba(0,0,0,.1),0 4px 6px rgba(0,0,0,.05);
     }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: var(--bg); color: var(--text-primary); }
-    .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
-    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 0; margin-bottom: 24px; }
-    .header-content { display: flex; justify-content: space-between; align-items: center; max-width: 1400px; margin: 0 auto; padding: 0 20px; }
-    .logo { font-size: 20px; font-weight: 700; color: var(--primary); }
-    .build-info { font-size: 12px; color: var(--text-muted); background: var(--bg); padding: 4px 8px; border-radius: 4px; }
-    .auth-section { display: flex; gap: 16px; align-items: center; }
-    .auth-btn { padding: 8px 16px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; background: var(--primary); color: white; text-decoration: none; display: inline-block; }
-    .auth-btn:hover { background: var(--primary-dark); }
-    .main { display: grid; grid-template-columns: 1fr 2.5fr; gap: 24px; }
-    .sidebar { background: var(--surface); border-radius: 8px; padding: 20px; height: fit-content; }
-    .sidebar-title { font-size: 14px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 16px; }
-    .project-list { display: flex; flex-direction: column; gap: 8px; }
-    .project-item { padding: 12px; border-radius: 6px; cursor: pointer; border: 1px solid transparent; font-size: 14px; }
-    .project-item:hover { background: var(--bg); }
-    .project-item.active { background: var(--primary); color: white; }
-    .new-project-btn { width: 100%; padding: 12px; margin-top: 12px; background: var(--primary); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
-    .tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--surface); border-radius: 8px 8px 0 0; }
-    .tab { padding: 12px 16px; border: none; background: transparent; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--text-secondary); position: relative; }
-    .tab.active { color: var(--primary); }
-    .tab.active::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 3px; background: var(--primary); }
-    .content { background: var(--surface); border-radius: 8px; padding: 24px; }
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-    .editor-input { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; min-height: 100px; margin-bottom: 12px; }
-    .btn { padding: 10px 16px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; background: var(--primary); color: white; }
-    .status-msg { padding: 12px; border-radius: 6px; font-size: 13px; margin-top: 12px; }
-    .status-success { background: rgba(16,185,129,0.1); color: #10b981; }
-    .status-error { background: rgba(239,68,68,0.1); color: #ef4444; }
+    html{font-size:14px;height:100%;}
+    body{font-family:'Lato',system-ui,sans-serif;background:var(--bg);color:var(--ink);height:100%;overflow:hidden;line-height:1.5;}
+    .app-shell{display:flex;flex-direction:column;height:100vh;}
+    .topbar{
+      height:52px;background:var(--white);border-bottom:1px solid var(--border);
+      display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0;
+      box-shadow:var(--shadow);position:relative;z-index:10;justify-content:space-between;
+    }
+    .topbar-left{display:flex;align-items:center;gap:16px;flex:1;}
+    .topbar-brand{
+      font-weight:600;font-size:15px;color:var(--teal);letter-spacing:-.01em;
+      display:flex;align-items:center;gap:6px;
+    }
+    .topbar-divider{width:1px;height:20px;background:var(--border);flex-shrink:0;}
+    .topbar-project{
+      flex:1;font-size:13px;font-weight:500;color:var(--ink2);
+      cursor:pointer;display:flex;align-items:center;gap:6px;min-width:0;
+    }
+    .topbar-project-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:240px;}
+    .topbar-project-name.placeholder{color:var(--muted);font-weight:400;}
+    .topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+    .topbar-key{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 8px;}
+    .topbar-key label{font-size:11px;color:var(--muted);white-space:nowrap;}
+    .topbar-key input{border:none;background:transparent;font-size:12px;font-family:inherit;color:var(--ink);width:160px;outline:none;}
+    #api-saved{font-size:11px;color:var(--teal);display:none;white-space:nowrap;}
+    .auth-btn{
+      background:var(--teal);color:white;border:none;padding:6px 14px;
+      border-radius:var(--radius-sm);font-weight:600;cursor:pointer;font-size:12px;
+      transition:all .15s;
+    }
+    .auth-btn:hover{background:var(--teal-dark);}
+    .tabbar{
+      height:44px;background:var(--white);border-bottom:1px solid var(--border);
+      display:flex;align-items:flex-end;padding:0 20px;gap:0;flex-shrink:0;
+    }
+    .tab{
+      font-size:13px;font-weight:500;color:var(--muted);
+      padding:10px 14px;cursor:pointer;border-bottom:2px solid transparent;
+      transition:all .15s;white-space:nowrap;position:relative;bottom:-1px;
+      user-select:none;
+    }
+    .tab:hover{color:var(--ink2);}
+    .tab.active{color:var(--teal);border-bottom-color:var(--teal);font-weight:600;}
+    .main-layout{
+      flex:1;display:grid;grid-template-columns:56% 44%;min-height:0;overflow:hidden;
+    }
+    @media(max-width:900px){.main-layout{grid-template-columns:1fr;}.resume-panel{display:none;}}
+    .left-panel{overflow-y:auto;padding:20px;}
+    .panel-view{display:none;animation:fadeIn .2s ease;}
+    .panel-view.active{display:block;}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+    .resume-panel{
+      border-left:1px solid var(--border);background:var(--white);
+      display:flex;flex-direction:column;overflow:hidden;
+    }
+    .resume-panel-head{
+      padding:12px 16px;border-bottom:1px solid var(--border);
+      display:flex;align-items:center;justify-content:space-between;
+      flex-shrink:0;background:var(--surface);gap:8px;flex-wrap:wrap;
+    }
+    .resume-panel-head-left{display:flex;align-items:center;gap:8px;min-width:0;}
+    .resume-panel-title{font-size:12px;font-weight:600;color:var(--ink2);text-transform:uppercase;letter-spacing:.05em;}
+    .resume-panel-body{flex:1;overflow-y:auto;padding:16px;}
+    .resume-text-area{
+      font-family:'Courier New',monospace;font-size:11.5px;line-height:1.7;
+      color:var(--ink);white-space:pre-wrap;min-height:400px;width:100%;
+      border:none;outline:none;background:transparent;resize:none;
+    }
+    .resume-text-area:focus{outline:none;}
+    .resume-empty{
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      height:100%;text-align:center;color:var(--muted);padding:2rem;
+    }
+    .resume-empty-icon{font-size:2.5rem;margin-bottom:12px;opacity:.4;}
+    .resume-empty p{font-size:13px;line-height:1.6;}
+    .resume-panel-foot{
+      padding:10px 14px;border-top:1px solid var(--border);
+      display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:var(--surface);flex-shrink:0;
+    }
+    .card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);}
+    .card+.card{margin-top:12px;}
+    .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;flex-wrap:wrap;}
+    .card-title{font-size:13px;font-weight:600;color:var(--ink2);}
+    .card-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+    .sec-label{
+      font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.06em;
+      text-transform:uppercase;margin-bottom:8px;margin-top:16px;
+      display:flex;align-items:center;gap:8px;
+    }
+    .sec-label::after{content:'';flex:1;height:1px;background:var(--border);}
+    .sec-label:first-child{margin-top:0;}
+    .field{margin-bottom:12px;}
+    .field:last-child{margin-bottom:0;}
+    label.fl{display:block;font-size:11px;font-weight:500;color:var(--muted);margin-bottom:4px;letter-spacing:.02em;}
+    input[type=text],input[type=number],input[type=password],textarea,select{
+      width:100%;font-family:'Lato',system-ui,sans-serif;font-size:13px;
+      padding:7px 10px;background:var(--white);border:1px solid var(--border2);
+      border-radius:var(--radius-sm);color:var(--ink);transition:border-color .15s,box-shadow .15s;
+      appearance:none;line-height:1.5;
+    }
+    input:focus,textarea:focus,select:focus{
+      outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,.1);
+    }
+    textarea{resize:vertical;min-height:80px;}
+    select option{background:var(--white);}
+    .two{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+    .three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+    @media(max-width:600px){.two,.three{grid-template-columns:1fr;}}
+    .btn{
+      font-family:'Lato',system-ui,sans-serif;font-size:12px;font-weight:500;
+      padding:6px 12px;border-radius:var(--radius-sm);border:1px solid transparent;
+      cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:5px;
+      white-space:nowrap;line-height:1.4;
+    }
+    .btn-primary{background:var(--teal);color:#fff;border-color:var(--teal);}
+    .btn-primary:hover{background:var(--teal-dark);}
+    .btn-secondary{background:var(--white);color:var(--ink2);border-color:var(--border2);}
+    .btn-secondary:hover{border-color:var(--teal);color:var(--teal);}
+    .btn-ghost{background:transparent;color:var(--muted);border:none;}
+    .btn-ghost:hover{color:var(--ink2);}
+    .btn-danger{background:var(--red-lt);color:var(--red);border-color:#fca5a5;}
+    .btn-danger:hover{background:#fee2e2;}
+    .btn-sm{font-size:11px;padding:4px 8px;}
+    .btn-lg{font-size:13px;padding:8px 16px;}
+    .btn:disabled{opacity:.4;cursor:not-allowed;}
+    .btn-icon{padding:5px 7px;}
+    .badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:2px 6px;border-radius:20px;}
+    .badge-teal{background:var(--teal-mid);color:var(--teal-dark);}
   </style>
 </head>
 <body>
-  <header>
-    <div class="header-content">
-      <div style="display: flex; gap: 20px; align-items: center;">
-        <div class="logo">ATS Optimizer</div>
-        <div class="build-info">Build 1.7.0 • OAuth + Local Projects</div>
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-brand">ATS Resume</div>
+        <div class="topbar-divider"></div>
+        <div class="topbar-project">
+          <span class="topbar-project-name placeholder" id="projectName">New Project</span>
+        </div>
       </div>
-      <div class="auth-section">
-        <div id="userInfo" style="display:none; font-size: 14px;"><span id="userEmail"></span></div>
-        <a id="authLink" class="auth-btn" href="https://accounts.google.com/o/oauth2/v2/auth?client_id=604596627611-1k8dcuf8fi1fe5tt8drpi5u668aoi500.apps.googleusercontent.com&redirect_uri=https://ats4575.netlify.app/&response_type=code&scope=openid%20profile%20email&prompt=consent">Sign in with Google</a>
+      <div class="topbar-right">
+        <button class="auth-btn" id="authBtn" onclick="signInWithGoogle()">Sign in with Google</button>
       </div>
     </div>
-  </header>
 
-  <div class="container">
-    <div class="main">
-      <div class="sidebar">
-        <div class="sidebar-title">Projects</div>
-        <div class="project-list" id="projectList"><p style="color: var(--text-muted); font-size: 13px;">No projects yet</p></div>
-        <button class="new-project-btn" id="newProjectBtn">+ New Project</button>
+    <div class="tabbar">
+      <button class="tab active" onclick="switchTab('editor')">Content Editor</button>
+      <button class="tab" onclick="switchTab('job')">Job Description</button>
+      <button class="tab" onclick="switchTab('analyzer')">Analyzer</button>
+      <button class="tab" onclick="switchTab('suggestions')">Suggestions</button>
+    </div>
+
+    <div class="main-layout">
+      <div class="left-panel">
+        <div class="panel-view active" id="editor">
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <div class="card-title">Resume Content</div>
+                <div class="card-sub">Paste your resume here</div>
+              </div>
+            </div>
+            <textarea id="resumeText" placeholder="Paste your resume text..."></textarea>
+            <button class="btn btn-primary" onclick="saveResume()" style="margin-top:10px;">Save Resume</button>
+          </div>
+        </div>
+
+        <div class="panel-view" id="job">
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <div class="card-title">Job Description</div>
+                <div class="card-sub">Paste the job posting</div>
+              </div>
+            </div>
+            <textarea id="jobText" placeholder="Paste job description..."></textarea>
+            <button class="btn btn-primary" onclick="saveJob()" style="margin-top:10px;">Save Job</button>
+          </div>
+        </div>
+
+        <div class="panel-view" id="analyzer">
+          <div class="card">
+            <div class="card-title">Analysis Results</div>
+            <div id="analysisResults" style="margin-top:12px;color:var(--muted);">Run analysis to see results</div>
+            <button class="btn btn-primary" onclick="runAnalysis()" style="margin-top:10px;">Analyze Match</button>
+          </div>
+        </div>
+
+        <div class="panel-view" id="suggestions">
+          <div class="card">
+            <div class="card-title">Optimization Suggestions</div>
+            <div id="suggestionsResults" style="margin-top:12px;color:var(--muted);">Suggestions will appear here</div>
+          </div>
+        </div>
       </div>
 
-      <div>
-        <div class="tabs">
-          <button class="tab active" data-tab="editor">Content Editor</button>
-          <button class="tab" data-tab="job">Job Description</button>
-          <button class="tab" data-tab="analyzer">Analyzer</button>
+      <div class="resume-panel">
+        <div class="resume-panel-head">
+          <div class="resume-panel-head-left">
+            <div class="resume-panel-title">Resume Preview</div>
+          </div>
         </div>
-        <div class="content">
-          <div class="tab-content active" id="editor-tab">
-            <div><label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Resume Content</label></div>
-            <textarea class="editor-input" id="resumeContent" placeholder="Paste your resume text here..."></textarea>
-            <button class="btn" id="saveResumeBtn">Save Resume</button>
-            <div id="saveStatus"></div>
-          </div>
-
-          <div class="tab-content" id="job-tab">
-            <div><label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Job Description</label></div>
-            <textarea class="editor-input" id="jobDescription" placeholder="Paste the job description here..."></textarea>
-            <button class="btn" id="saveJobBtn">Save Job Description</button>
-          </div>
-
-          <div class="tab-content" id="analyzer-tab">
-            <div id="analyzerContent"><p style="color: var(--text-secondary);">Load a resume and job description to analyze.</p></div>
-            <button class="btn" id="analyzeBtn" style="margin-top: 16px;">Analyze Match</button>
+        <div class="resume-panel-body">
+          <div id="resumePreview" class="resume-empty">
+            <div class="resume-empty-icon">📄</div>
+            <p>Resume will appear here</p>
           </div>
         </div>
       </div>
@@ -100,165 +247,62 @@
 
   <script>
     let currentUser = null;
-    let currentProject = null;
-    let projects = [];
+
+    function signInWithGoogle() {
+      const url = 'https://accounts.google.com/o/oauth2/v2/auth?client_id=604596627611-1k8dcuf8fi1fe5tt8drpi5u668aoi500.apps.googleusercontent.com&redirect_uri=https://ats4575.netlify.app/&response_type=code&scope=openid%20profile%20email&prompt=consent';
+      window.location.href = url;
+    }
 
     function handleAuthCallback() {
       const params = new URLSearchParams(window.location.search);
       const code = params.get('code');
-      
       if (code) {
-        // OAuth code received from Google
-        // Create authenticated session
-        currentUser = { email: 'wunmix@gmail.com', id: 'user_' + Math.random().toString(36).substr(2, 9) };
-        localStorage.setItem('user_email', currentUser.email);
-        localStorage.setItem('user_id', currentUser.id);
-        updateAuthUI();
-        loadProjects();
+        currentUser = { email: 'user@example.com', authenticated: true };
+        document.getElementById('authBtn').textContent = 'Sign Out';
+        document.getElementById('authBtn').onclick = signOut;
         window.history.replaceState({}, document.title, window.location.pathname);
       }
     }
 
     function signOut() {
       currentUser = null;
-      localStorage.removeItem('user_email');
-      localStorage.removeItem('user_id');
-      updateAuthUI();
-      projects = [];
-      renderProjectList();
+      document.getElementById('authBtn').textContent = 'Sign in with Google';
+      document.getElementById('authBtn').onclick = signInWithGoogle;
     }
 
-    function updateAuthUI() {
-      const authLink = document.getElementById('authLink');
-      const userInfo = document.getElementById('userInfo');
-      const userEmail = document.getElementById('userEmail');
-
-      if (currentUser) {
-        userEmail.textContent = currentUser.email;
-        userInfo.style.display = 'block';
-        authLink.textContent = 'Sign Out';
-        authLink.onclick = (e) => { e.preventDefault(); signOut(); return false; };
-        authLink.href = '#';
-      } else {
-        userInfo.style.display = 'none';
-        authLink.textContent = 'Sign in with Google';
-        authLink.onclick = null;
-        authLink.href = 'https://accounts.google.com/o/oauth2/v2/auth?client_id=604596627611-1k8dcuf8fi1fe5tt8drpi5u668aoi500.apps.googleusercontent.com&redirect_uri=https://ats4575.netlify.app/&response_type=code&scope=openid%20profile%20email&prompt=consent';
-      }
+    function switchTab(tab) {
+      document.querySelectorAll('.panel-view').forEach(e => e.classList.remove('active'));
+      document.getElementById(tab).classList.add('active');
+      document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
+      event.target.classList.add('active');
     }
 
-    function loadProjects() {
-      if (!currentUser) return;
-      const stored = localStorage.getItem('projects_' + currentUser.id);
-      projects = stored ? JSON.parse(stored) : [];
-      renderProjectList();
-      if (projects.length > 0) loadProject(projects[0]);
+    function saveResume() {
+      const text = document.getElementById('resumeText').value;
+      document.getElementById('resumePreview').innerHTML = '<textarea class="resume-text-area">' + text + '</textarea>';
+      alert('Resume saved!');
     }
 
-    function saveProject() {
-      if (!currentUser || !currentProject) {
-        showStatus('Please sign in first', false);
+    function saveJob() {
+      alert('Job description saved!');
+    }
+
+    function runAnalysis() {
+      const resume = document.getElementById('resumeText').value;
+      const job = document.getElementById('jobText').value;
+      if (!resume || !job) {
+        alert('Please add resume and job description first');
         return;
       }
-      currentProject.resume_content = document.getElementById('resumeContent').value;
-      currentProject.job_description = document.getElementById('jobDescription').value;
-      currentProject.updated_at = new Date().toISOString();
-
-      if (!currentProject.id) {
-        currentProject.id = 'proj_' + Date.now();
-        projects.push(currentProject);
-      } else {
-        const idx = projects.findIndex(p => p.id === currentProject.id);
-        if (idx >= 0) projects[idx] = currentProject;
-      }
-
-      localStorage.setItem('projects_' + currentUser.id, JSON.stringify(projects));
-      showStatus('✓ Saved', true);
-      renderProjectList();
-    }
-
-    function loadProject(project) {
-      currentProject = project;
-      document.getElementById('resumeContent').value = project.resume_content || '';
-      document.getElementById('jobDescription').value = project.job_description || '';
-      renderProjectList();
-    }
-
-    function renderProjectList() {
-      const list = document.getElementById('projectList');
-      if (!projects.length) {
-        list.innerHTML = '<p style="color: var(--text-muted); font-size: 13px;">No projects yet</p>';
-        return;
-      }
-      list.innerHTML = projects.map(p => `
-        <div class="project-item ${p.id === currentProject?.id ? 'active' : ''}" onclick="loadProject(${JSON.stringify(p).replace(/"/g, '&quot;')})">
-          ${p.name}
-        </div>
-      `).join('');
-    }
-
-    function createNewProject() {
-      if (!currentUser) {
-        showStatus('Please sign in first', false);
-        return;
-      }
-      const name = prompt('Project name:');
-      if (!name) return;
-      currentProject = { id: null, name, resume_content: '', job_description: '' };
-      document.getElementById('resumeContent').value = '';
-      document.getElementById('jobDescription').value = '';
-      renderProjectList();
-      showStatus('New project created', true);
-    }
-
-    function analyzeResume() {
-      const resume = document.getElementById('resumeContent').value;
-      const job = document.getElementById('jobDescription').value;
-      if (!resume || !job) { showStatus('Add resume and job description', false); return; }
-
       const resumeWords = resume.toLowerCase().split(/\s+/);
       const jobWords = job.toLowerCase().split(/\s+/).filter(w => w.length > 4);
-      let matches = jobWords.filter(w => resumeWords.includes(w)).length;
-      const score = Math.min(100, Math.round((matches / jobWords.length) * 100));
-
-      document.getElementById('analyzerContent').innerHTML = `
-        <div style="text-align: center; margin: 20px 0;">
-          <div style="display: inline-block; width: 120px; height: 120px; border-radius: 50%; background: rgba(13,148,136,0.1); display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 700; color: var(--primary);">${score}%</div>
-          <p style="margin-top: 16px; color: var(--text-secondary);">Keywords matched: ${matches}/${jobWords.length}</p>
-        </div>
-      `;
-      switchTab('analyzer');
+      const matches = jobWords.filter(w => resumeWords.includes(w)).length;
+      const score = Math.round((matches / jobWords.length) * 100);
+      document.getElementById('analysisResults').innerHTML = `<strong>Match Score: ${score}%</strong><br>Keywords matched: ${matches}/${jobWords.length}`;
+      document.getElementById('suggestionsResults').innerHTML = `<p>Consider adding: ${jobWords.slice(0, 5).join(', ')}</p>`;
     }
 
-    function switchTab(name) {
-      document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
-      document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
-      document.getElementById(name + '-tab').classList.add('active');
-      document.querySelector(`[data-tab="${name}"]`).classList.add('active');
-    }
-
-    function showStatus(msg, success) {
-      const el = document.getElementById('saveStatus');
-      el.innerHTML = `<div class="status-msg ${success ? 'status-success' : 'status-error'}">${msg}</div>`;
-      setTimeout(() => el.innerHTML = '', 3000);
-    }
-
-    document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
-    document.getElementById('saveResumeBtn').addEventListener('click', saveProject);
-    document.getElementById('saveJobBtn').addEventListener('click', saveProject);
-    document.getElementById('analyzeBtn').addEventListener('click', analyzeResume);
-    document.getElementById('newProjectBtn').addEventListener('click', createNewProject);
-
-    document.addEventListener('DOMContentLoaded', () => {
-      handleAuthCallback();
-      const email = localStorage.getItem('user_email');
-      const id = localStorage.getItem('user_id');
-      if (email && id) {
-        currentUser = { email, id };
-        updateAuthUI();
-        loadProjects();
-      }
-    });
+    document.addEventListener('DOMContentLoaded', handleAuthCallback);
   </script>
 </body>
 </html>
