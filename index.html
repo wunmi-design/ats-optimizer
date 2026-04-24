@@ -27,7 +27,7 @@
     .logo { font-size: 20px; font-weight: 700; color: var(--primary); }
     .build-info { font-size: 12px; color: var(--text-muted); background: var(--bg); padding: 4px 8px; border-radius: 4px; }
     .auth-section { display: flex; gap: 16px; align-items: center; }
-    .auth-btn { padding: 8px 16px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; background: var(--primary); color: white; }
+    .auth-btn { padding: 8px 16px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; background: var(--primary); color: white; text-decoration: none; display: inline-block; }
     .auth-btn:hover { background: var(--primary-dark); }
     .main { display: grid; grid-template-columns: 1fr 2.5fr; gap: 24px; }
     .sidebar { background: var(--surface); border-radius: 8px; padding: 20px; height: fit-content; }
@@ -56,11 +56,11 @@
     <div class="header-content">
       <div style="display: flex; gap: 20px; align-items: center;">
         <div class="logo">ATS Optimizer</div>
-        <div class="build-info">Build 1.3.0 • REST API</div>
+        <div class="build-info">Build 1.4.0 • Direct OAuth Link</div>
       </div>
       <div class="auth-section">
         <div id="userInfo" style="display:none; font-size: 14px;"><span id="userEmail"></span></div>
-        <button id="authBtn" class="auth-btn" onclick="signInWithGoogle(); return false;">Sign in with Google</button>
+        <a id="authLink" class="auth-btn" href="https://accounts.google.com/o/oauth2/v2/auth?client_id=604596627611-1k8dcuf8fi1fe5tt8drpi5u668aoi500.apps.googleusercontent.com&redirect_uri=https://ats4575.netlify.app/&response_type=code&scope=openid%20profile%20email&prompt=consent">Sign in with Google</a>
       </div>
     </div>
   </header>
@@ -103,37 +103,13 @@
   </div>
 
   <script>
-    // Supabase config
     const SUPABASE_URL = 'https://qirzmqfswcnofunxlmwr.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpcnptcWZzd2Nub2Z1bnhsbXdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5ODI4ODIsImV4cCI6MjA5MjU1ODg4Mn0.rhtDuIrFpkl2sqBHmhkpgmHADInGvgr7-sfsX9-_d28';
     
-    // State
     let currentUser = null;
     let currentProject = null;
     let projects = [];
     let accessToken = null;
-
-    // Auth - Using REST API instead of SDK
-    async function signInWithGoogle() {
-      try {
-        // Initiate OAuth flow using REST endpoint
-        const redirectUrl = `${window.location.origin}${window.location.pathname}`;
-        const scope = 'openid profile email';
-        const clientId = '604596627611-1k8dcuf8fi1fe5tt8drpi5u668aoi500.apps.googleusercontent.com';
-        
-        const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-        url.searchParams.set('client_id', clientId);
-        url.searchParams.set('redirect_uri', redirectUrl);
-        url.searchParams.set('response_type', 'code');
-        url.searchParams.set('scope', scope);
-        url.searchParams.set('prompt', 'consent');
-        
-        window.location.href = url.toString();
-      } catch (err) {
-        console.error('Auth error:', err);
-        showStatus('Authentication error', false);
-      }
-    }
 
     async function handleAuthCallback() {
       const params = new URLSearchParams(window.location.search);
@@ -141,26 +117,20 @@
       
       if (code) {
         try {
-          // Exchange code for token using Supabase REST API
           const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=authorization_code`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              code: code,
-              grant_type: 'authorization_code'
-            })
+            body: JSON.stringify({ code: code, grant_type: 'authorization_code' })
           });
           
           const data = await response.json();
           if (data.access_token) {
             accessToken = data.access_token;
             localStorage.setItem('supabase_token', data.access_token);
-            // Parse JWT to get user info
             const payload = JSON.parse(atob(data.access_token.split('.')[1]));
             currentUser = { email: payload.email, id: payload.sub };
             updateAuthUI();
             loadProjects();
-            // Clean up URL
             window.history.replaceState({}, document.title, window.location.pathname);
           }
         } catch (err) {
@@ -179,23 +149,24 @@
     }
 
     function updateAuthUI() {
-      const authBtn = document.getElementById('authBtn');
+      const authLink = document.getElementById('authLink');
       const userInfo = document.getElementById('userInfo');
       const userEmail = document.getElementById('userEmail');
 
       if (currentUser) {
         userEmail.textContent = currentUser.email;
         userInfo.style.display = 'block';
-        authBtn.textContent = 'Sign Out';
-        authBtn.onclick = signOut;
+        authLink.textContent = 'Sign Out';
+        authLink.onclick = (e) => { e.preventDefault(); signOut(); return false; };
+        authLink.href = '#';
       } else {
         userInfo.style.display = 'none';
-        authBtn.textContent = 'Sign in with Google';
-        authBtn.onclick = signInWithGoogle;
+        authLink.textContent = 'Sign in with Google';
+        authLink.onclick = null;
+        authLink.href = 'https://accounts.google.com/o/oauth2/v2/auth?client_id=604596627611-1k8dcuf8fi1fe5tt8drpi5u668aoi500.apps.googleusercontent.com&redirect_uri=https://ats4575.netlify.app/&response_type=code&scope=openid%20profile%20email&prompt=consent';
       }
     }
 
-    // Projects - Using REST API
     async function loadProjects() {
       if (!currentUser || !accessToken) return;
       try {
@@ -311,19 +282,14 @@
       setTimeout(() => el.innerHTML = '', 3000);
     }
 
-    // Event Listeners
     document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
     document.getElementById('saveResumeBtn').addEventListener('click', saveProject);
     document.getElementById('saveJobBtn').addEventListener('click', saveProject);
     document.getElementById('analyzeBtn').addEventListener('click', analyzeResume);
     document.getElementById('newProjectBtn').addEventListener('click', createNewProject);
 
-    // Startup
     document.addEventListener('DOMContentLoaded', () => {
-      // Check for auth callback
       handleAuthCallback();
-      
-      // Check for stored token
       const token = localStorage.getItem('supabase_token');
       if (token) {
         accessToken = token;
