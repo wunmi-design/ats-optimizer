@@ -600,7 +600,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 1.9.7</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 1.9.8</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -4602,7 +4602,12 @@ async function runFullAnalysis() {
       : await claudeFetch(`Score this resume against the job description. Return ONLY valid JSON:
 {"overall":78,"keyword_match":82,"hard_skills":88,"soft_skills":70,"title_alignment":75,"yoe_alignment":95,"score_reason":"...","strengths":["..."],"gaps":["..."],"keyword_coverage":[{"keyword":"lean UX","found":true}],"top_fixes":[{"rank":1,"title":"...","desc":"...","section":"summary|bullets|skills","before":"exact verbatim text to replace","after":"exact stronger replacement using only documented results — do not fabricate metrics"}]}
 QUALITY RULES: Do not invent metrics. Only suggest fixes using real documented accomplishments. Every bullet must reflect business/customer/product impact.
-CRITICAL: Analyze the CURRENT resume text below. Do NOT suggest changes for things already present in the resume. Each "before" field must contain text that ACTUALLY EXISTS verbatim in the resume below. Suggest only NEW improvements not already addressed.
+CRITICAL RULES:
+1. READ the resume below carefully FIRST. Do NOT suggest adding keywords that ALREADY APPEAR in the resume text.
+2. Each "before" field must be an EXACT quote from the resume. If you cannot find the exact text, do not include that fix.
+3. For keyword_coverage: mark a keyword as "found":true if it appears ANYWHERE in the resume (even as part of another word).
+4. For top_fixes: ONLY suggest improvements for content that is genuinely MISSING or WEAK. Never suggest adding something already present.
+5. Do NOT suggest adding "payments" if the word "payments" already appears in the resume. Same for ALL keywords.
 ${(proj.appliedFixes||[]).length ? 'ALREADY APPLIED (do NOT re-suggest these):\n' + (proj.appliedFixes||[]).map(f=>f.title||f.text).join('\n') + '\n' : ''}JOB:\n${jdText.slice(0,2500)}\nRESUME:\n${resume.slice(0,2500)}`, 3000, undefined, 0);
 
     const deepRaw = await claudeFetch(`Analyze this resume against the job description. Return ONLY valid JSON:
@@ -4735,7 +4740,11 @@ async function rescan() {
   try {
     const raw=await claudeFetch(`Score this resume against the job description. Return ONLY valid JSON:
 {"overall":78,"keyword_match":82,"hard_skills":88,"soft_skills":70,"title_alignment":75,"yoe_alignment":95,"score_reason":"...","strengths":["..."],"gaps":["..."],"keyword_coverage":[{"keyword":"lean UX","found":true}],"top_fixes":[{"rank":1,"title":"...","desc":"...","section":"summary|bullets|skills","before":"exact verbatim text to replace or empty string","after":"exact stronger replacement — do not fabricate metrics, use only documented results from the resume"}]}
-CRITICAL: Each "before" field must contain text that ACTUALLY EXISTS verbatim in the current resume. Do NOT suggest changes already made. Suggest only NEW improvements.
+CRITICAL RULES:
+1. READ the resume below carefully FIRST. Do NOT suggest adding keywords that ALREADY APPEAR in the resume.
+2. Each "before" field must be an EXACT quote from the resume.
+3. For keyword_coverage: mark "found":true if the keyword appears ANYWHERE in the resume.
+4. ONLY suggest genuinely MISSING content. Never re-suggest something already present.
 ${(proj.appliedFixes||[]).length ? 'ALREADY APPLIED (do NOT re-suggest):\n' + (proj.appliedFixes||[]).map(f=>f.title||f.text).join('\n') + '\n' : ''}
 QUALITY RULES: Do not invent metrics. Only suggest fixes that use real documented accomplishments. Every suggested bullet must reflect business/customer/product impact. Avoid vague responsibilities.
 JOB:\n${jdText.slice(0,3000)}\nRESUME:\n${resume.slice(0,3000)}`,3000);
