@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.1.4</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.1.5</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -5298,8 +5298,11 @@ async function applySelectedFixes(){
       promptBody += `KEYWORDS TO INSERT (weave naturally into existing sentences or skill lists — no fabricated accomplishments):\n${selectedKws.map(k => '• ' + k).join('\n')}\n\n`;
     }
 
+    const jdTitle = g('jd-title') || proj?.jdTitle || '';
+    const titleRule = jdTitle ? `\\n- The person's job title line (directly under their name) MUST be exactly: "${jdTitle}"` : '';
+
     const result = await claudeFetch(
-      `Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT same section structure and order as the original resume\n- SKILLS must stay organized in labeled categories (e.g. Leadership:, Design:, Product:, Engineering:). If the original has categories, keep them. If not, organize skills into logical categories.\n- When adding keywords to skills, place them in the correct category\n- Do NOT merge all skills into one flat list\n- Preserve all line breaks between sections\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n\n${promptBody}RESUME:\n${resume}`,
+      `Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT same section structure and order as the original resume${titleRule}\n- SKILLS must stay organized in labeled categories (e.g. Leadership:, Design:, Product:, Engineering:). If the original has categories, keep them. If not, organize skills into logical categories.\n- When adding keywords to skills, place them in the correct category\n- Do NOT merge all skills into one flat list\n- Preserve all line breaks between sections\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n\n${promptBody}RESUME:\n${resume}`,
       4000
     );
     const cleaned = result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim();
@@ -5351,8 +5354,8 @@ async function applySelectedFixes(){
       const _currentTab = document.querySelector('.tab.active')?.id?.replace('tab-','');
       await parseToCE(cleaned);
       fillCE(proj.ce);
-      // Auto-fill Job Title from posting if not already set
-      if (proj.jdTitle && !document.getElementById('ce-title').value) {
+      // Auto-fill Job Title from posting — always match exactly
+      if (proj.jdTitle) {
         document.getElementById('ce-title').value = proj.jdTitle;
       }
       autoSave();
@@ -5442,8 +5445,11 @@ async function autoOptimize() {
       }
 
       const currentResume = getResumeText();
+      const jdTitle = g('jd-title') || proj?.jdTitle || '';
+      const titleRule = jdTitle ? `\\n- The person's job title line (directly under their name) MUST be exactly: "${jdTitle}"` : '';
+
       const result = await claudeFetch(
-        `Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT same section structure and order as the original resume\n- SKILLS must stay organized in labeled categories (e.g. Leadership:, Design:, Product:, Engineering:). If the original has categories, keep them. If not, organize skills into logical categories.\n- When adding keywords to skills, place them in the correct category\n- Do NOT merge all skills into one flat list\n- Preserve all line breaks between sections\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n\n${promptBody}RESUME:\n${currentResume}`,
+        `Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT same section structure and order as the original resume${titleRule}\n- SKILLS must stay organized in labeled categories (e.g. Leadership:, Design:, Product:, Engineering:). If the original has categories, keep them. If not, organize skills into logical categories.\n- When adding keywords to skills, place them in the correct category\n- Do NOT merge all skills into one flat list\n- Preserve all line breaks between sections\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n\n${promptBody}RESUME:\n${currentResume}`,
         4000
       );
       const cleaned = result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim();
@@ -5478,8 +5484,8 @@ async function autoOptimize() {
       try {
         await parseToCE(cleaned);
         fillCE(proj.ce);
-        // Auto-fill Job Title from posting if not already set
-        if (proj.jdTitle && !document.getElementById('ce-title').value) {
+        // Auto-fill Job Title from posting — always match exactly
+        if (proj.jdTitle) {
           document.getElementById('ce-title').value = proj.jdTitle;
         }
         autoSave();
