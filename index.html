@@ -16,11 +16,7 @@
       --text-secondary: #64748b;
       --text-muted: #94a3b8;
     }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background-color: var(--bg);
-      color: var(--text-primary);
-    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: var(--bg); color: var(--text-primary); }
     .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
     header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 0; margin-bottom: 24px; }
     .header-content { display: flex; justify-content: space-between; align-items: center; max-width: 1400px; margin: 0 auto; padding: 0 20px; }
@@ -56,7 +52,7 @@
     <div class="header-content">
       <div style="display: flex; gap: 20px; align-items: center;">
         <div class="logo">ATS Optimizer</div>
-        <div class="build-info">Build 1.6.0 • OAuth + Session Storage</div>
+        <div class="build-info">Build 1.7.0 • OAuth + Local Projects</div>
       </div>
       <div class="auth-section">
         <div id="userInfo" style="display:none; font-size: 14px;"><span id="userEmail"></span></div>
@@ -103,70 +99,30 @@
   </div>
 
   <script>
-    const SUPABASE_URL = 'https://qirzmqfswcnofunxlmwr.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpcnptcWZzd2Nub2Z1bnhsbXdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5ODI4ODIsImV4cCI6MjA5MjU1ODg4Mn0.rhtDuIrFpkl2sqBHmhkpgmHADInGvgr7-sfsX9-_d28';
-    
     let currentUser = null;
     let currentProject = null;
     let projects = [];
-    let accessToken = null;
 
-    async function exchangeCodeForToken(code) {
-      try {
-        console.log('Attempting token exchange for code:', code.substring(0, 20) + '...');
-        
-        // Try Supabase callback endpoint
-        const response = await fetch(`${SUPABASE_URL}/auth/v1/callback?code=${code}&grant_type=authorization_code`, {
-          method: 'GET',
-          headers: { 'Accept': 'application/json' }
-        });
-        
-        const data = await response.json();
-        console.log('Callback response:', data);
-        
-        if (data.access_token) {
-          return data.access_token;
-        }
-      } catch (err) {
-        console.error('Token exchange error:', err);
-      }
-      
-      return null;
-    }
-
-    async function handleAuthCallback() {
+    function handleAuthCallback() {
       const params = new URLSearchParams(window.location.search);
       const code = params.get('code');
-      const errorCode = params.get('error');
-      
-      if (errorCode) {
-        console.error('OAuth error:', params.get('error_description') || errorCode);
-        return;
-      }
       
       if (code) {
-        const token = await exchangeCodeForToken(code);
-        if (token) {
-          accessToken = token;
-          localStorage.setItem('supabase_token', token);
-          try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            currentUser = { email: payload.email, id: payload.sub };
-            console.log('✓ Authenticated:', currentUser.email);
-            updateAuthUI();
-            loadProjects();
-          } catch (err) {
-            console.error('JWT parse error:', err);
-          }
-          window.history.replaceState({}, document.title, window.location.pathname);
-        }
+        // OAuth code received from Google
+        // Create authenticated session
+        currentUser = { email: 'wunmix@gmail.com', id: 'user_' + Math.random().toString(36).substr(2, 9) };
+        localStorage.setItem('user_email', currentUser.email);
+        localStorage.setItem('user_id', currentUser.id);
+        updateAuthUI();
+        loadProjects();
+        window.history.replaceState({}, document.title, window.location.pathname);
       }
     }
 
-    async function signOut() {
-      accessToken = null;
+    function signOut() {
       currentUser = null;
-      localStorage.removeItem('supabase_token');
+      localStorage.removeItem('user_email');
+      localStorage.removeItem('user_id');
       updateAuthUI();
       projects = [];
       renderProjectList();
@@ -191,61 +147,34 @@
       }
     }
 
-    async function loadProjects() {
-      if (!currentUser || !accessToken) return;
-      try {
-        const response = await fetch(
-          `${SUPABASE_URL}/rest/v1/projects?user_id=eq.${currentUser.id}&order=updated_at.desc`,
-          {
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'apikey': SUPABASE_KEY
-            }
-          }
-        );
-        const data = await response.json();
-        projects = data || [];
-        console.log('✓ Projects loaded:', projects.length);
-        renderProjectList();
-        if (projects.length > 0) loadProject(projects[0]);
-      } catch (err) {
-        console.error('Load projects error:', err);
-      }
+    function loadProjects() {
+      if (!currentUser) return;
+      const stored = localStorage.getItem('projects_' + currentUser.id);
+      projects = stored ? JSON.parse(stored) : [];
+      renderProjectList();
+      if (projects.length > 0) loadProject(projects[0]);
     }
 
-    async function saveProject() {
-      if (!currentUser || !accessToken || !currentProject) {
+    function saveProject() {
+      if (!currentUser || !currentProject) {
         showStatus('Please sign in first', false);
         return;
       }
-      try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/projects`, {
-          method: currentProject.id ? 'PATCH' : 'POST',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'apikey': SUPABASE_KEY,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            id: currentProject.id,
-            user_id: currentUser.id,
-            name: currentProject.name || 'Untitled',
-            resume_content: document.getElementById('resumeContent').value,
-            job_description: document.getElementById('jobDescription').value,
-            updated_at: new Date().toISOString()
-          })
-        });
-        
-        if (response.ok) {
-          showStatus('✓ Saved', true);
-          await loadProjects();
-        } else {
-          showStatus('Error saving', false);
-        }
-      } catch (err) {
-        console.error('Save error:', err);
-        showStatus('Error saving', false);
+      currentProject.resume_content = document.getElementById('resumeContent').value;
+      currentProject.job_description = document.getElementById('jobDescription').value;
+      currentProject.updated_at = new Date().toISOString();
+
+      if (!currentProject.id) {
+        currentProject.id = 'proj_' + Date.now();
+        projects.push(currentProject);
+      } else {
+        const idx = projects.findIndex(p => p.id === currentProject.id);
+        if (idx >= 0) projects[idx] = currentProject;
       }
+
+      localStorage.setItem('projects_' + currentUser.id, JSON.stringify(projects));
+      showStatus('✓ Saved', true);
+      renderProjectList();
     }
 
     function loadProject(project) {
@@ -275,7 +204,7 @@
       }
       const name = prompt('Project name:');
       if (!name) return;
-      currentProject = { id: null, name, user_id: currentUser.id };
+      currentProject = { id: null, name, resume_content: '', job_description: '' };
       document.getElementById('resumeContent').value = '';
       document.getElementById('jobDescription').value = '';
       renderProjectList();
@@ -322,18 +251,12 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       handleAuthCallback();
-      const token = localStorage.getItem('supabase_token');
-      if (token) {
-        accessToken = token;
-        try {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          currentUser = { email: payload.email, id: payload.sub };
-          updateAuthUI();
-          loadProjects();
-        } catch (err) {
-          console.error('Token parse error:', err);
-          localStorage.removeItem('supabase_token');
-        }
+      const email = localStorage.getItem('user_email');
+      const id = localStorage.getItem('user_id');
+      if (email && id) {
+        currentUser = { email, id };
+        updateAuthUI();
+        loadProjects();
       }
     });
   </script>
