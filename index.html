@@ -600,7 +600,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 1.9.9</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.0.0</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -4014,6 +4014,77 @@ async function fetchJobFromUrl() {
     // Try multiple methods to fetch the job posting
     let html = '';
     const encodedUrl = encodeURIComponent(url);
+
+    // Special handler for Ashby job boards (JS-rendered, proxies won't work)
+    const ashbyMatch = url.match(/jobs\.ashbyhq\.com\/([^\/]+)\/([a-f0-9-]+)/);
+    if (ashbyMatch) {
+      try {
+        if (msgEl) msgEl.textContent = 'Fetching from Ashby API...';
+        const ashbyResp = await fetch('https://api.ashbyhq.com/posting-api/job-board/' + ashbyMatch[1] + '/posting/' + ashbyMatch[2] + '?apiVersion=2024-01-01');
+        if (ashbyResp.ok) {
+          const ashbyData = await ashbyResp.json();
+          const info = ashbyData.info || ashbyData;
+          const title = info.title || '';
+          const team = info.teamName || info.departmentName || '';
+          const loc = info.locationName || '';
+          // Extract description HTML to text
+          const descHtml = info.descriptionHtml || info.description || '';
+          const descDoc = new DOMParser().parseFromString(descHtml, 'text/html');
+          const descText = descDoc.body?.textContent?.trim() || descHtml.replace(/<[^>]+>/g, ' ').trim();
+          
+          if (title) { s('jd-title', title); if (proj) proj.jdTitle = title; }
+          const company = ashbyMatch[1].charAt(0).toUpperCase() + ashbyMatch[1].slice(1);
+          s('jd-company', company); if (proj) proj.jdCompany = company;
+          if (descText) { s('jd-text', descText); if (proj) proj.jdText = descText; }
+          loading?.classList.remove('show');
+          toast('Job details extracted — review and click Analyze');
+          if (proj) autoSave();
+          return;
+        }
+      } catch(ashbyErr) { console.warn('Ashby API error:', ashbyErr); }
+    }
+
+    // Special handler for Lever job boards
+    const leverMatch = url.match(/jobs\.lever\.co\/([^\/]+)\/([a-f0-9-]+)/);
+    if (leverMatch) {
+      try {
+        if (msgEl) msgEl.textContent = 'Fetching from Lever API...';
+        const leverResp = await fetch('https://api.lever.co/v0/postings/' + leverMatch[1] + '/' + leverMatch[2]);
+        if (leverResp.ok) {
+          const leverData = await leverResp.json();
+          if (leverData.text) { s('jd-title', leverData.text); if (proj) proj.jdTitle = leverData.text; }
+          if (leverData.categories?.team) { s('jd-company', leverData.categories.team); if (proj) proj.jdCompany = leverData.categories.team; }
+          const descHtml = leverData.descriptionPlain || (leverData.description || '').replace(/<[^>]+>/g, ' ');
+          if (descHtml) { s('jd-text', descHtml); if (proj) proj.jdText = descHtml; }
+          loading?.classList.remove('show');
+          toast('Job details extracted — review and click Analyze');
+          if (proj) autoSave();
+          return;
+        }
+      } catch(leverErr) { console.warn('Lever API error:', leverErr); }
+    }
+
+    // Special handler for Greenhouse job boards
+    const ghMatch = url.match(/boards\.greenhouse\.io\/([^\/]+)\/jobs\/(\d+)/);
+    if (ghMatch) {
+      try {
+        if (msgEl) msgEl.textContent = 'Fetching from Greenhouse API...';
+        const ghResp = await fetch('https://boards-api.greenhouse.io/v1/boards/' + ghMatch[1] + '/jobs/' + ghMatch[2]);
+        if (ghResp.ok) {
+          const ghData = await ghResp.json();
+          if (ghData.title) { s('jd-title', ghData.title); if (proj) proj.jdTitle = ghData.title; }
+          s('jd-company', ghMatch[1].charAt(0).toUpperCase() + ghMatch[1].slice(1));
+          if (proj) proj.jdCompany = ghMatch[1].charAt(0).toUpperCase() + ghMatch[1].slice(1);
+          const descDoc = new DOMParser().parseFromString(ghData.content || '', 'text/html');
+          const descText = descDoc.body?.textContent?.trim() || '';
+          if (descText) { s('jd-text', descText); if (proj) proj.jdText = descText; }
+          loading?.classList.remove('show');
+          toast('Job details extracted — review and click Analyze');
+          if (proj) autoSave();
+          return;
+        }
+      } catch(ghErr) { console.warn('Greenhouse API error:', ghErr); }
+    }
     const proxies = [
       { url: `https://api.allorigins.win/get?url=${encodedUrl}`, parse: d => d.contents },
       { url: `https://api.codetabs.com/v1/proxy?quest=${encodedUrl}`, parse: d => d },
