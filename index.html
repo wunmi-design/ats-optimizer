@@ -2664,6 +2664,7 @@ function handleAuthClick() {
     localStorage.removeItem('ats_user');
     document.getElementById('auth-btn').textContent = 'Sign in with Google';
     document.getElementById('user-display').style.display = 'none';
+    updateTabVisibility();
     // Clear loaded project and resume preview
     proj = null;
     document.getElementById('proj-name-display').textContent = 'New Project';
@@ -2692,13 +2693,13 @@ function setAuthUI() {
     window._atsUser = { authenticated: true, email: 'Signed in' };
     localStorage.setItem('ats_user', JSON.stringify(window._atsUser));
     window.history.replaceState({}, document.title, window.location.pathname);
-    setTimeout(setAuthUI, 100);
+    setTimeout(function(){ setAuthUI(); updateTabVisibility(); }, 100);
   }
   // Check stored session
   const stored = localStorage.getItem('ats_user');
   if (stored) {
     window._atsUser = JSON.parse(stored);
-    setTimeout(setAuthUI, 100);
+    setTimeout(function(){ setAuthUI(); updateTabVisibility(); }, 100);
   }
   // If not logged in, clear any loaded project and all fields
   if (!window._atsUser) {
@@ -2717,7 +2718,17 @@ function setAuthUI() {
 })();
 
 const TABS = ['projects','content','format','jd','questions','analyzer'];
+const AUTH_TABS = ['content','format','jd','questions','analyzer']; // tabs that require login
+function updateTabVisibility() {
+  AUTH_TABS.forEach(t => {
+    var tab = document.getElementById('tab-'+t);
+    if (tab) tab.style.display = window._atsUser ? '' : 'none';
+  });
+}
+setTimeout(updateTabVisibility, 250);
 function switchTab(name) {
+  // Block access to auth-required tabs when not logged in
+  if (!window._atsUser && AUTH_TABS.includes(name)) { return; }
   // Before switching away from content, ensure we've saved the display state
   if (name !== 'content' && proj?.drafts?.length) {
     const editor = document.getElementById('resume-editor');
