@@ -600,7 +600,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 1.9.8</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 1.9.9</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -4011,19 +4011,57 @@ async function fetchJobFromUrl() {
   if (msgEl) msgEl.textContent = 'Fetching job posting...';
 
   try {
-    // Try direct fetch first (works for many job boards)
+    // Try multiple methods to fetch the job posting
     let html = '';
+    const encodedUrl = encodeURIComponent(url);
+    const proxies = [
+      { url: `https://api.allorigins.win/get?url=${encodedUrl}`, parse: d => d.contents },
+      { url: `https://api.codetabs.com/v1/proxy?quest=${encodedUrl}`, parse: d => d },
+      { url: `https://corsproxy.io/?${encodedUrl}`, parse: d => d },
+    ];
+
+    // Try direct fetch first
     try {
       const resp = await fetch(url, { mode: 'cors' });
       if (resp.ok) html = await resp.text();
-    } catch(e) {
-      // CORS blocked — use a proxy
-      const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-      const resp = await fetch(proxy);
-      if (resp.ok) {
-        const data = await resp.json();
-        html = data.contents || '';
+    } catch(e) {}
+
+    // Try proxies in sequence
+    if (!html) {
+      for (const proxy of proxies) {
+        try {
+          if (msgEl) msgEl.textContent = 'Trying alternate fetch...';
+          const resp = await fetch(proxy.url);
+          if (resp.ok) {
+            const contentType = resp.headers.get('content-type') || '';
+            if (contentType.includes('json')) {
+              const data = await resp.json();
+              html = typeof proxy.parse(data) === 'string' ? proxy.parse(data) : '';
+            } else {
+              html = await resp.text();
+            }
+            if (html && html.length > 100) break;
+            html = '';
+          }
+        } catch(e) { html = ''; }
       }
+    }
+
+    // Last resort: use Claude to fetch via web search context
+    if (!html) {
+      if (msgEl) msgEl.textContent = 'Fetching via AI...';
+      try {
+        const aiRaw = await claudeFetch(`I need the full job description from this URL: ${url}
+Please provide the complete job posting text including title, company, responsibilities, qualifications, and requirements. Return ONLY valid JSON:
+{"title":"job title","company":"company name","description":"full job description"}`, 3000);
+        const aiParsed = parseJson(aiRaw);
+        if (aiParsed.title) { s('jd-title', aiParsed.title); if (proj) proj.jdTitle = aiParsed.title; }
+        if (aiParsed.company) { s('jd-company', aiParsed.company); if (proj) proj.jdCompany = aiParsed.company; }
+        if (aiParsed.description) { s('jd-text', aiParsed.description); if (proj) proj.jdText = aiParsed.description; }
+        loading?.classList.remove('show');
+        toast('Job details extracted via AI — review and click Analyze');
+        return;
+      } catch(aiErr) {}
     }
 
     if (!html) throw new Error('Could not retrieve the page. Try pasting the description manually.');
