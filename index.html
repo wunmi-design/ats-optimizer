@@ -56,7 +56,7 @@
     <div class="header-content">
       <div style="display: flex; gap: 20px; align-items: center;">
         <div class="logo">ATS Optimizer</div>
-        <div class="build-info">Build 1.2.3 • Supabase</div>
+        <div class="build-info">Build 1.3.0 • REST API</div>
       </div>
       <div class="auth-section">
         <div id="userInfo" style="display:none; font-size: 14px;"><span id="userEmail"></span></div>
@@ -102,54 +102,80 @@
     </div>
   </div>
 
-  <!-- Supabase Library -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/main.umd.js" async></script>
-
-  <!-- Main App Script -->
   <script>
-    // Configuration
+    // Supabase config
     const SUPABASE_URL = 'https://qirzmqfswcnofunxlmwr.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpcnptcWZzd2Nub2Z1bnhsbXdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5ODI4ODIsImV4cCI6MjA5MjU1ODg4Mn0.rhtDuIrFpkl2sqBHmhkpgmHADInGvgr7-sfsX9-_d28';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpcnptcWZzd2Nub2Z1bnhsbXdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5ODI4ODIsImV4cCI6MjA5MjU1ODg4Mn0.rhtDuIrFpkl2sqBHmhkpgmHADInGvgr7-sfsX9-_d28';
     
-    let supabase = null;
+    // State
     let currentUser = null;
     let currentProject = null;
     let projects = [];
+    let accessToken = null;
 
-    // Initialize Supabase when library loads
-    function initSupabase() {
-      if (typeof window.supabase !== 'undefined') {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        console.log('✓ Supabase ready');
-        attachAuthListener();
-        checkAuth();
-      } else {
-        setTimeout(initSupabase, 100);
+    // Auth - Using REST API instead of SDK
+    async function signInWithGoogle() {
+      try {
+        // Initiate OAuth flow using REST endpoint
+        const redirectUrl = `${window.location.origin}${window.location.pathname}`;
+        const scope = 'openid profile email';
+        const clientId = '604596627611-1k8dcuf8fi1fe5tt8drpi5u668aoi500.apps.googleusercontent.com';
+        
+        const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+        url.searchParams.set('client_id', clientId);
+        url.searchParams.set('redirect_uri', redirectUrl);
+        url.searchParams.set('response_type', 'code');
+        url.searchParams.set('scope', scope);
+        url.searchParams.set('prompt', 'consent');
+        
+        window.location.href = url.toString();
+      } catch (err) {
+        console.error('Auth error:', err);
+        showStatus('Authentication error', false);
       }
     }
 
-    function attachAuthListener() {
-      if (!supabase) return;
-      supabase.auth.onAuthStateChange((event, session) => {
-        if (session?.user) {
-          currentUser = session.user;
-          updateAuthUI();
-          loadProjects();
-        } else {
-          currentUser = null;
-          updateAuthUI();
+    async function handleAuthCallback() {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      
+      if (code) {
+        try {
+          // Exchange code for token using Supabase REST API
+          const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=authorization_code`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              code: code,
+              grant_type: 'authorization_code'
+            })
+          });
+          
+          const data = await response.json();
+          if (data.access_token) {
+            accessToken = data.access_token;
+            localStorage.setItem('supabase_token', data.access_token);
+            // Parse JWT to get user info
+            const payload = JSON.parse(atob(data.access_token.split('.')[1]));
+            currentUser = { email: payload.email, id: payload.sub };
+            updateAuthUI();
+            loadProjects();
+            // Clean up URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        } catch (err) {
+          console.error('Token exchange error:', err);
         }
-      });
+      }
     }
 
-    async function checkAuth() {
-      if (!supabase) return;
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        currentUser = user;
-        updateAuthUI();
-        loadProjects();
-      }
+    async function signOut() {
+      accessToken = null;
+      currentUser = null;
+      localStorage.removeItem('supabase_token');
+      updateAuthUI();
+      projects = [];
+      renderProjectList();
     }
 
     function updateAuthUI() {
@@ -169,43 +195,58 @@
       }
     }
 
-    async function signInWithGoogle() {
-      if (!supabase) {
-        alert('Supabase not initialized');
-        return;
-      }
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: `${window.location.origin}${window.location.pathname}` }
-      });
-      if (error) console.error('Sign in error:', error);
-    }
-
-    async function signOut() {
-      if (!supabase) return;
-      await supabase.auth.signOut();
-    }
-
+    // Projects - Using REST API
     async function loadProjects() {
-      if (!currentUser || !supabase) return;
-      const { data } = await supabase.from('projects').select('*').eq('user_id', currentUser.id).order('updated_at', { ascending: false });
-      projects = data || [];
-      renderProjectList();
-      if (projects.length > 0) loadProject(projects[0]);
+      if (!currentUser || !accessToken) return;
+      try {
+        const response = await fetch(
+          `${SUPABASE_URL}/rest/v1/projects?user_id=eq.${currentUser.id}&order=updated_at.desc`,
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'apikey': SUPABASE_KEY
+            }
+          }
+        );
+        const data = await response.json();
+        projects = data || [];
+        renderProjectList();
+        if (projects.length > 0) loadProject(projects[0]);
+      } catch (err) {
+        console.error('Load error:', err);
+      }
     }
 
     async function saveProject() {
-      if (!currentUser || !supabase || !currentProject) return;
-      const { error } = await supabase.from('projects').upsert({
-        id: currentProject.id || undefined,
-        user_id: currentUser.id,
-        name: currentProject.name || 'Untitled',
-        resume_content: document.getElementById('resumeContent').value,
-        job_description: document.getElementById('jobDescription').value,
-        updated_at: new Date().toISOString()
-      });
-      showStatus(error ? 'Error saving' : '✓ Saved', !error);
-      if (!error) await loadProjects();
+      if (!currentUser || !accessToken || !currentProject) return;
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/projects`, {
+          method: currentProject.id ? 'PATCH' : 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'apikey': SUPABASE_KEY,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            id: currentProject.id,
+            user_id: currentUser.id,
+            name: currentProject.name || 'Untitled',
+            resume_content: document.getElementById('resumeContent').value,
+            job_description: document.getElementById('jobDescription').value,
+            updated_at: new Date().toISOString()
+          })
+        });
+        
+        if (response.ok) {
+          showStatus('✓ Saved', true);
+          await loadProjects();
+        } else {
+          showStatus('Error saving', false);
+        }
+      } catch (err) {
+        console.error('Save error:', err);
+        showStatus('Error saving', false);
+      }
     }
 
     function loadProject(project) {
@@ -277,16 +318,26 @@
     document.getElementById('analyzeBtn').addEventListener('click', analyzeResume);
     document.getElementById('newProjectBtn').addEventListener('click', createNewProject);
 
-    // Start
-    document.addEventListener('DOMContentLoaded', initSupabase);
-    
-    // Fallback - try to init after 1s anyway
-    setTimeout(() => {
-      if (!supabase && window.supabase) {
-        console.log('Initializing via timeout');
-        initSupabase();
+    // Startup
+    document.addEventListener('DOMContentLoaded', () => {
+      // Check for auth callback
+      handleAuthCallback();
+      
+      // Check for stored token
+      const token = localStorage.getItem('supabase_token');
+      if (token) {
+        accessToken = token;
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          currentUser = { email: payload.email, id: payload.sub };
+          updateAuthUI();
+          loadProjects();
+        } catch (err) {
+          console.error('Token parse error:', err);
+          localStorage.removeItem('supabase_token');
+        }
       }
-    }, 1000);
+    });
   </script>
 </body>
 </html>
