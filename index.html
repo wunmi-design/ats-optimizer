@@ -2650,6 +2650,17 @@ NY Top Creative Winner · WIx and Vitamin T · 2014</div>
 // ═══════════════════════════════════════════════════════
 
 // ── Tab routing ────────────────────────────────────────
+// Auth state
+window._atsUser = null;
+(function checkAuth() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  if (code) {
+    window._atsUser = { authenticated: true };
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+})();
+
 const TABS = ['projects','content','format','jd','questions','analyzer'];
 function switchTab(name) {
   // Before switching away from content, ensure we've saved the display state
@@ -2872,12 +2883,8 @@ function renderProjGrid() {
   const grid = document.getElementById('proj-grid');
   const all = ProjectStore.getAll();
 
-  // New Project and Upload tiles — same size as project tiles
+  // Upload tile — always shown
   let html = `
-  <div class="proj-card new-card" onclick="showNewProjectModal()" style="min-height:140px;">
-    <div class="proj-card-icon">+</div>
-    <div style="font-size:12px;font-weight:600;">New Project</div>
-  </div>
   <div class="proj-card new-card" id="upload-zone-projects" onclick="document.getElementById('file-in-projects').click()"
     ondragover="onDragOver(event,'upload-zone-projects')"
     ondrop="onDropProjects(event)"
@@ -2888,6 +2895,18 @@ function renderProjGrid() {
     <div style="font-size:12px;font-weight:600;text-align:center;padding:0 8px;">Upload a resume to start a new project</div>
     <div class="text-xs text-muted mt-1">PDF · Word · Text</div>
   </div>`;
+
+  // New Project tile — only when logged in
+  if (window._atsUser) {
+    html += `
+    <div class="proj-card new-card" onclick="showNewProjectModal()" style="min-height:140px;">
+      <div class="proj-card-icon">+</div>
+      <div style="font-size:12px;font-weight:600;">New Project</div>
+    </div>`;
+  }
+
+  // Project tiles — only when logged in
+  if (!window._atsUser) { grid.innerHTML = html; return; }
 
   all.forEach(p => {
     const sc = p.scores?.[p.scores.length-1]?.overall || 0;
