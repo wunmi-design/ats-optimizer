@@ -600,7 +600,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.0.2</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.0.3</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -4016,16 +4016,22 @@ async function fetchJobFromUrl() {
     if (ashbyMatch) {
       try {
         if (msgEl) msgEl.textContent = 'Fetching from Ashby API...';
-        const ashbyResp = await fetch('https://api.ashbyhq.com/posting-api/job-board/' + ashbyMatch[1]);
-        if (ashbyResp.ok) {
-          const ashbyAll = await ashbyResp.json();
-          const jobs = ashbyAll.jobs || ashbyAll;
-          const info = Array.isArray(jobs) ? jobs.find(j => j.id === ashbyMatch[2]) : null;
-          if (!info) throw new Error('Job not found in board');
+        const ashbyGqlResp = await fetch('https://jobs.ashbyhq.com/api/non-user-graphql', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            operationName: 'apiJobPosting',
+            variables: { organizationHostedJobsPageName: ashbyMatch[1], jobPostingId: ashbyMatch[2] },
+            query: 'query apiJobPosting($organizationHostedJobsPageName: String!, $jobPostingId: String!) { jobPosting(organizationHostedJobsPageName: $organizationHostedJobsPageName, jobPostingId: $jobPostingId) { id title departmentName locationName descriptionHtml teamNames } }'
+          })
+        });
+        if (ashbyGqlResp.ok) {
+          const ashbyGql = await ashbyGqlResp.json();
+          const info = ashbyGql?.data?.jobPosting;
+          if (!info) throw new Error('Job not found');
           const title = info.title || '';
-          const team = info.teamName || info.departmentName || '';
-          const loc = info.locationName || '';
-          const descText = info.descriptionPlain || (() => { const d = new DOMParser().parseFromString(info.descriptionHtml || '', 'text/html'); return d.body?.textContent?.trim() || ''; })();
+          const descDoc = new DOMParser().parseFromString(info.descriptionHtml || '', 'text/html');
+          const descText = descDoc.body?.textContent?.trim() || '';
           
           if (title) { s('jd-title', title); if (proj) proj.jdTitle = title; }
           const company = ashbyMatch[1].charAt(0).toUpperCase() + ashbyMatch[1].slice(1);
