@@ -598,7 +598,8 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span class="edit-icon" id="proj-edit-icon" style="display: inline;">✎</span>
     </div>
     <div class="topbar-right">
-      <button class="btn btn-primary" onclick="window.location.href='https://accounts.google.com/o/oauth2/v2/auth?client_id=604596627611-1k8dcuf8fi1fe5tt8drpi5u668aoi500.apps.googleusercontent.com&redirect_uri=https://ats4575.netlify.app/&response_type=code&scope=openid%20profile%20email&prompt=consent'">Sign in with Google</button>
+      <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
+      <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
         <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 1.0.12</span>
         <label>API Key</label>
@@ -2652,12 +2653,40 @@ NY Top Creative Winner · WIx and Vitamin T · 2014</div>
 // ── Tab routing ────────────────────────────────────────
 // Auth state
 window._atsUser = null;
+function handleAuthClick() {
+  if (window._atsUser) {
+    // Sign out
+    window._atsUser = null;
+    localStorage.removeItem('ats_user');
+    document.getElementById('auth-btn').textContent = 'Sign in with Google';
+    document.getElementById('user-display').style.display = 'none';
+    renderProjGrid();
+  } else {
+    window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?client_id=604596627611-1k8dcuf8fi1fe5tt8drpi5u668aoi500.apps.googleusercontent.com&redirect_uri=https://ats4575.netlify.app/&response_type=code&scope=openid%20profile%20email&prompt=consent';
+  }
+}
+function setAuthUI() {
+  if (window._atsUser) {
+    document.getElementById('auth-btn').textContent = 'Sign Out';
+    document.getElementById('user-display').textContent = window._atsUser.name || window._atsUser.email || '';
+    document.getElementById('user-display').style.display = 'inline';
+  }
+}
 (function checkAuth() {
+  // Check URL callback
   const params = new URLSearchParams(window.location.search);
   const code = params.get('code');
   if (code) {
-    window._atsUser = { authenticated: true };
+    window._atsUser = { authenticated: true, email: 'Signed in' };
+    localStorage.setItem('ats_user', JSON.stringify(window._atsUser));
     window.history.replaceState({}, document.title, window.location.pathname);
+    setTimeout(setAuthUI, 100);
+  }
+  // Check stored session
+  const stored = localStorage.getItem('ats_user');
+  if (stored) {
+    window._atsUser = JSON.parse(stored);
+    setTimeout(setAuthUI, 100);
   }
 })();
 
