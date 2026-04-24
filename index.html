@@ -600,7 +600,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 1.9.6</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 1.9.7</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -4602,7 +4602,8 @@ async function runFullAnalysis() {
       : await claudeFetch(`Score this resume against the job description. Return ONLY valid JSON:
 {"overall":78,"keyword_match":82,"hard_skills":88,"soft_skills":70,"title_alignment":75,"yoe_alignment":95,"score_reason":"...","strengths":["..."],"gaps":["..."],"keyword_coverage":[{"keyword":"lean UX","found":true}],"top_fixes":[{"rank":1,"title":"...","desc":"...","section":"summary|bullets|skills","before":"exact verbatim text to replace","after":"exact stronger replacement using only documented results — do not fabricate metrics"}]}
 QUALITY RULES: Do not invent metrics. Only suggest fixes using real documented accomplishments. Every bullet must reflect business/customer/product impact.
-JOB:\n${jdText.slice(0,2500)}\nRESUME:\n${resume.slice(0,2500)}`, 3000, undefined, 0);
+CRITICAL: Analyze the CURRENT resume text below. Do NOT suggest changes for things already present in the resume. Each "before" field must contain text that ACTUALLY EXISTS verbatim in the resume below. Suggest only NEW improvements not already addressed.
+${(proj.appliedFixes||[]).length ? 'ALREADY APPLIED (do NOT re-suggest these):\n' + (proj.appliedFixes||[]).map(f=>f.title||f.text).join('\n') + '\n' : ''}JOB:\n${jdText.slice(0,2500)}\nRESUME:\n${resume.slice(0,2500)}`, 3000, undefined, 0);
 
     const deepRaw = await claudeFetch(`Analyze this resume against the job description. Return ONLY valid JSON:
 {"missing_keywords":[{"keyword":"exact JD term","context":"where in JD"}],"weak_phrases":[{"original":"weak phrase","stronger":"better version","reason":"why"}],"impact_issues":[{"bullet":"bullet text up to 80 chars","suggestion":"add outcome"}],"gaps":[{"text":"gap description","suggestion":"how to address"}]}
@@ -4734,6 +4735,8 @@ async function rescan() {
   try {
     const raw=await claudeFetch(`Score this resume against the job description. Return ONLY valid JSON:
 {"overall":78,"keyword_match":82,"hard_skills":88,"soft_skills":70,"title_alignment":75,"yoe_alignment":95,"score_reason":"...","strengths":["..."],"gaps":["..."],"keyword_coverage":[{"keyword":"lean UX","found":true}],"top_fixes":[{"rank":1,"title":"...","desc":"...","section":"summary|bullets|skills","before":"exact verbatim text to replace or empty string","after":"exact stronger replacement — do not fabricate metrics, use only documented results from the resume"}]}
+CRITICAL: Each "before" field must contain text that ACTUALLY EXISTS verbatim in the current resume. Do NOT suggest changes already made. Suggest only NEW improvements.
+${(proj.appliedFixes||[]).length ? 'ALREADY APPLIED (do NOT re-suggest):\n' + (proj.appliedFixes||[]).map(f=>f.title||f.text).join('\n') + '\n' : ''}
 QUALITY RULES: Do not invent metrics. Only suggest fixes that use real documented accomplishments. Every suggested bullet must reflect business/customer/product impact. Avoid vague responsibilities.
 JOB:\n${jdText.slice(0,3000)}\nRESUME:\n${resume.slice(0,3000)}`,3000);
     const score=parseJson(raw);
@@ -5121,7 +5124,7 @@ async function applySelectedFixes(){
     }
     proj._redoStack = [];
     proj._aiApplied = true;  // mark that AI has modified the resume text
-    proj._cachedScore = null;  // Clear cached score so next analysis rescores from scratch
+    proj._cachedScore = null; proj._analysisHash = null; proj.scores = [];  // Force completely fresh analysis
     proj._analysisHash = null; // Force fresh analysis to pick up the changes
     console.log('DEBUG applySelectedFixes: Updated draft v' + proj.drafts.length + ', length: ' + cleaned.length);
     console.log('DEBUG applySelectedFixes: proj.drafts.length after update:', proj.drafts.length);
