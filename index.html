@@ -606,10 +606,15 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
       </div>
-      <button class="btn btn-secondary btn-sm" onclick="saveProjectToDisk()" title="Save to hard drive">💾 Export</button>
-      <button class="btn btn-secondary btn-sm" onclick="if(!proj){toast('No project open');return;}saveProject();toast('Saved to browser')" title="Save to browser">Save</button>
-      <button class="btn btn-secondary btn-sm" onclick="saveAsNewProject()" title="Save as new project">💾 Save as New</button>
-      <button class="btn btn-secondary btn-sm" onclick="loadProjectFromDisk()" title="Load from hard drive">📂 Load</button>
+      <div style="position:relative;display:inline-block;" id="file-menu-wrap">
+        <button class="btn btn-secondary btn-sm" onmouseenter="document.getElementById('file-dropdown').style.display='block'" onclick="document.getElementById('file-dropdown').style.display=document.getElementById('file-dropdown').style.display==='block'?'none':'block'">File ▾</button>
+        <div id="file-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:999;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-lg);min-width:160px;overflow:hidden;" onmouseleave="this.style.display='none'">
+          <div style="padding:6px 14px;font-size:12px;cursor:pointer;white-space:nowrap;" onmouseenter="this.style.background='var(--surface)'" onmouseleave="this.style.background=''" onclick="saveProjectToDisk();document.getElementById('file-dropdown').style.display='none'">💾 Export</div>
+          <div style="padding:6px 14px;font-size:12px;cursor:pointer;white-space:nowrap;" onmouseenter="this.style.background='var(--surface)'" onmouseleave="this.style.background=''" onclick="loadProjectFromDisk();document.getElementById('file-dropdown').style.display='none'">📂 Load</div>
+          <div style="padding:6px 14px;font-size:12px;cursor:pointer;white-space:nowrap;" onmouseenter="this.style.background='var(--surface)'" onmouseleave="this.style.background=''" onclick="if(!proj){toast('No project open');return;}saveProject();toast('Saved to browser');document.getElementById('file-dropdown').style.display='none'">💾 Save</div>
+          <div style="padding:6px 14px;font-size:12px;cursor:pointer;white-space:nowrap;" onmouseenter="this.style.background='var(--surface)'" onmouseleave="this.style.background=''" onclick="saveAsNewProject();document.getElementById('file-dropdown').style.display='none'">📄 Save as New</div>
+        </div>
+      </div>
       <div style="position:relative;display:inline-block;" id="download-menu-wrap">
         <button class="btn btn-primary btn-sm" onclick="toggleDownloadMenu(event)">↓ Resume ▾</button>
         <div id="download-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);right:0;z-index:999;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-lg);min-width:140px;overflow:hidden;">
