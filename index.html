@@ -600,12 +600,12 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 1.9.3</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 1.9.4</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
       </div>
-      <button class="btn btn-secondary btn-sm" onclick="if(!proj){toast('No project open');return;}saveProject();toast(window._atsUser?'Saved to cloud':'Saved locally')" title="Save">Save</button>
+      <button class="btn btn-secondary btn-sm" onclick="if(!window._atsUser){handleAuthClick();return;}if(!proj){toast('No project open');return;}saveProject();toast('Saved to cloud')" title="Save">Save</button>
       <div style="position:relative;display:inline-block;" id="file-menu-wrap">
         <button class="btn btn-secondary btn-sm" onmouseenter="document.getElementById('file-dropdown').style.display='block'" onclick="document.getElementById('file-dropdown').style.display=document.getElementById('file-dropdown').style.display==='block'?'none':'block'">File ▾</button>
         <div id="file-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:999;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-lg);min-width:160px;overflow:hidden;" onmouseleave="this.style.display='none'">
