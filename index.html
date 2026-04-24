@@ -5,339 +5,61 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ATS Resume Optimizer</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
       --primary: #0d9488;
       --primary-dark: #0f766e;
-      --primary-light: #14b8a6;
       --bg: #f8fafc;
       --surface: #ffffff;
       --border: #e2e8f0;
       --text-primary: #1e293b;
       --text-secondary: #64748b;
       --text-muted: #94a3b8;
-      --success: #10b981;
-      --warning: #f59e0b;
-      --error: #ef4444;
-      --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
-      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
     }
-
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background-color: var(--bg);
       color: var(--text-primary);
-      line-height: 1.6;
     }
-
-    .container {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-
-    header {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 16px 0;
-      margin-bottom: 24px;
-      box-shadow: var(--shadow);
-    }
-
-    .header-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 0 20px;
-    }
-
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-    }
-
-    .logo {
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--primary);
-    }
-
-    .build-info {
-      font-size: 12px;
-      color: var(--text-muted);
-      background: var(--bg);
-      padding: 4px 8px;
-      border-radius: 4px;
-    }
-
-    .auth-section {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .user-info {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 14px;
-      color: var(--text-secondary);
-    }
-
-    .auth-btn {
-      padding: 8px 16px;
-      border: none;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      background: var(--primary);
-      color: white;
-    }
-
-    .auth-btn:hover {
-      background: var(--primary-dark);
-    }
-
-    .auth-btn.logout {
-      background: var(--border);
-      color: var(--text-primary);
-    }
-
-    .auth-btn.logout:hover {
-      background: #cbd5e1;
-    }
-
-    .main {
-      display: grid;
-      grid-template-columns: 1fr 2.5fr;
-      gap: 24px;
-    }
-
-    .sidebar {
-      background: var(--surface);
-      border-radius: 8px;
-      padding: 20px;
-      box-shadow: var(--shadow);
-      height: fit-content;
-      position: sticky;
-      top: 20px;
-    }
-
-    .sidebar-title {
-      font-size: 14px;
-      font-weight: 700;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      margin-bottom: 16px;
-    }
-
-    .project-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .project-item {
-      padding: 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.2s;
-      border: 1px solid transparent;
-      font-size: 14px;
-    }
-
-    .project-item:hover {
-      background: var(--bg);
-      border-color: var(--border);
-    }
-
-    .project-item.active {
-      background: var(--primary-light);
-      color: white;
-      border-color: var(--primary);
-    }
-
-    .new-project-btn {
-      width: 100%;
-      padding: 12px;
-      margin-top: 12px;
-      background: var(--primary);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .new-project-btn:hover {
-      background: var(--primary-dark);
-    }
-
-    .tabs {
-      display: flex;
-      gap: 0;
-      border-bottom: 1px solid var(--border);
-      background: var(--surface);
-      border-radius: 8px 8px 0 0;
-      overflow: hidden;
-    }
-
-    .tab {
-      padding: 12px 16px;
-      border: none;
-      background: transparent;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      transition: all 0.2s;
-      position: relative;
-    }
-
-    .tab:hover {
-      color: var(--text-primary);
-    }
-
-    .tab.active {
-      color: var(--primary);
-    }
-
-    .tab.active::after {
-      content: '';
-      position: absolute;
-      bottom: -1px;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background: var(--primary);
-    }
-
-    .content {
-      background: var(--surface);
-      border-radius: 8px;
-      padding: 24px;
-      box-shadow: var(--shadow);
-    }
-
-    .tab-content {
-      display: none;
-    }
-
-    .tab-content.active {
-      display: block;
-    }
-
-    .editor-section {
-      margin-bottom: 24px;
-    }
-
-    .editor-label {
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      margin-bottom: 8px;
-    }
-
-    .editor-input {
-      width: 100%;
-      padding: 12px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      font-size: 14px;
-      font-family: inherit;
-      resize: vertical;
-      min-height: 100px;
-    }
-
-    .editor-input:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(13,148,136,0.1);
-    }
-
-    .btn {
-      padding: 10px 16px;
-      border: none;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      background: var(--primary);
-      color: white;
-    }
-
-    .btn:hover {
-      background: var(--primary-dark);
-    }
-
-    .status-msg {
-      padding: 12px;
-      border-radius: 6px;
-      font-size: 13px;
-      margin-top: 12px;
-    }
-
-    .status-success {
-      background: rgba(16,185,129,0.1);
-      color: var(--success);
-      border: 1px solid rgba(16,185,129,0.2);
-    }
-
-    .status-error {
-      background: rgba(239,68,68,0.1);
-      color: var(--error);
-      border: 1px solid rgba(239,68,68,0.2);
-    }
-
-    .spinner {
-      width: 20px;
-      height: 20px;
-      border: 2px solid var(--border);
-      border-top-color: var(--primary);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      display: inline-block;
-      margin-right: 8px;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    @media (max-width: 1024px) {
-      .main {
-        grid-template-columns: 1fr;
-      }
-      .sidebar {
-        position: static;
-      }
-    }
+    .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 0; margin-bottom: 24px; }
+    .header-content { display: flex; justify-content: space-between; align-items: center; max-width: 1400px; margin: 0 auto; padding: 0 20px; }
+    .logo { font-size: 20px; font-weight: 700; color: var(--primary); }
+    .build-info { font-size: 12px; color: var(--text-muted); background: var(--bg); padding: 4px 8px; border-radius: 4px; }
+    .auth-section { display: flex; gap: 16px; align-items: center; }
+    .auth-btn { padding: 8px 16px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; background: var(--primary); color: white; }
+    .auth-btn:hover { background: var(--primary-dark); }
+    .main { display: grid; grid-template-columns: 1fr 2.5fr; gap: 24px; }
+    .sidebar { background: var(--surface); border-radius: 8px; padding: 20px; height: fit-content; }
+    .sidebar-title { font-size: 14px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 16px; }
+    .project-list { display: flex; flex-direction: column; gap: 8px; }
+    .project-item { padding: 12px; border-radius: 6px; cursor: pointer; border: 1px solid transparent; font-size: 14px; }
+    .project-item:hover { background: var(--bg); }
+    .project-item.active { background: var(--primary); color: white; }
+    .new-project-btn { width: 100%; padding: 12px; margin-top: 12px; background: var(--primary); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    .tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--surface); border-radius: 8px 8px 0 0; }
+    .tab { padding: 12px 16px; border: none; background: transparent; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--text-secondary); position: relative; }
+    .tab.active { color: var(--primary); }
+    .tab.active::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 3px; background: var(--primary); }
+    .content { background: var(--surface); border-radius: 8px; padding: 24px; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .editor-input { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; min-height: 100px; margin-bottom: 12px; }
+    .btn { padding: 10px 16px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; background: var(--primary); color: white; }
+    .status-msg { padding: 12px; border-radius: 6px; font-size: 13px; margin-top: 12px; }
+    .status-success { background: rgba(16,185,129,0.1); color: #10b981; }
+    .status-error { background: rgba(239,68,68,0.1); color: #ef4444; }
   </style>
 </head>
 <body>
   <header>
     <div class="header-content">
-      <div class="header-left">
+      <div style="display: flex; gap: 20px; align-items: center;">
         <div class="logo">ATS Optimizer</div>
-        <div class="build-info">Build 1.2.0 • Supabase</div>
+        <div class="build-info">Build 1.2.3 • Supabase</div>
       </div>
-      <div class="auth-section" id="authSection">
-        <div class="user-info" id="userInfo" style="display:none;">
-          <span id="userEmail"></span>
-        </div>
+      <div class="auth-section">
+        <div id="userInfo" style="display:none; font-size: 14px;"><span id="userEmail"></span></div>
         <button id="authBtn" class="auth-btn">Sign in with Google</button>
       </div>
     </div>
@@ -347,7 +69,7 @@
     <div class="main">
       <div class="sidebar">
         <div class="sidebar-title">Projects</div>
-        <div class="project-list" id="projectList"></div>
+        <div class="project-list" id="projectList"><p style="color: var(--text-muted); font-size: 13px;">No projects yet</p></div>
         <button class="new-project-btn" id="newProjectBtn">+ New Project</button>
       </div>
 
@@ -357,29 +79,22 @@
           <button class="tab" data-tab="job">Job Description</button>
           <button class="tab" data-tab="analyzer">Analyzer</button>
         </div>
-
         <div class="content">
           <div class="tab-content active" id="editor-tab">
-            <div class="editor-section">
-              <div class="editor-label">Resume Content</div>
-              <textarea class="editor-input" id="resumeContent" placeholder="Paste your resume text here..."></textarea>
-            </div>
+            <div><label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Resume Content</label></div>
+            <textarea class="editor-input" id="resumeContent" placeholder="Paste your resume text here..."></textarea>
             <button class="btn" id="saveResumeBtn">Save Resume</button>
             <div id="saveStatus"></div>
           </div>
 
           <div class="tab-content" id="job-tab">
-            <div class="editor-section">
-              <div class="editor-label">Job Description</div>
-              <textarea class="editor-input" id="jobDescription" placeholder="Paste the job description here..."></textarea>
-            </div>
+            <div><label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Job Description</label></div>
+            <textarea class="editor-input" id="jobDescription" placeholder="Paste the job description here..."></textarea>
             <button class="btn" id="saveJobBtn">Save Job Description</button>
           </div>
 
           <div class="tab-content" id="analyzer-tab">
-            <div id="analyzerContent">
-              <p style="color: var(--text-secondary);">Load a resume and job description to analyze.</p>
-            </div>
+            <div id="analyzerContent"><p style="color: var(--text-secondary);">Load a resume and job description to analyze.</p></div>
             <button class="btn" id="analyzeBtn" style="margin-top: 16px;">Analyze Match</button>
           </div>
         </div>
@@ -387,85 +102,54 @@
     </div>
   </div>
 
-  <script src="https://unpkg.com/@supabase/supabase-js@2" defer></script>
-  <script defer>
-    // ============================================
-    // SUPABASE CONFIG
-    // ============================================
+  <!-- Supabase Library -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2" async></script>
+
+  <!-- Main App Script -->
+  <script>
+    // Configuration
     const SUPABASE_URL = 'https://qirzmqfswcnofunxlmwr.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpcnptcWZzd2Nub2Z1bnhsbXdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5ODI4ODIsImV4cCI6MjA5MjU1ODg4Mn0.rhtDuIrFpkl2sqBHmhkpgmHADInGvgr7-sfsX9-_d28';
     
     let supabase = null;
-
-    // ============================================
-    // STATE
-    // ============================================
     let currentUser = null;
     let currentProject = null;
     let projects = [];
 
-    // ============================================
-    // INIT SUPABASE
-    // ============================================
-    async function waitForSupabase() {
-      let attempts = 0;
-      while (!window.supabase && attempts < 50) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        attempts++;
-      }
-      
-      if (window.supabase) {
+    // Initialize Supabase when library loads
+    function initSupabase() {
+      if (typeof window.supabase !== 'undefined') {
         supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        console.log('✓ Supabase initialized');
-        return true;
+        console.log('✓ Supabase ready');
+        attachAuthListener();
+        checkAuth();
       } else {
-        console.error('✗ Supabase library failed to load');
-        return false;
+        setTimeout(initSupabase, 100);
       }
     }
 
-    // ============================================
-    // AUTH FUNCTIONS
-    // ============================================
-    async function initAuth() {
+    function attachAuthListener() {
       if (!supabase) return;
-      
+      supabase.auth.onAuthStateChange((event, session) => {
+        if (session?.user) {
+          currentUser = session.user;
+          updateAuthUI();
+          loadProjects();
+        } else {
+          currentUser = null;
+          updateAuthUI();
+        }
+      });
+    }
+
+    async function checkAuth() {
+      if (!supabase) return;
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         currentUser = user;
         updateAuthUI();
-        await loadProjects();
+        loadProjects();
       }
-    }
-
-    async function signInWithGoogle() {
-      if (!supabase) {
-        showStatus('Supabase not ready', false);
-        return;
-      }
-
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}${window.location.pathname}`
-        }
-      });
-
-      if (error) {
-        console.error('Sign in error:', error);
-        showStatus('Sign in error: ' + error.message, false);
-      }
-    }
-
-    async function signOut() {
-      if (!supabase) return;
-      
-      await supabase.auth.signOut();
-      currentUser = null;
-      currentProject = null;
-      projects = [];
-      updateAuthUI();
-      renderProjectList();
     }
 
     function updateAuthUI() {
@@ -475,83 +159,53 @@
 
       if (currentUser) {
         userEmail.textContent = currentUser.email;
-        userInfo.style.display = 'flex';
+        userInfo.style.display = 'block';
         authBtn.textContent = 'Sign Out';
         authBtn.onclick = signOut;
-        authBtn.classList.add('logout');
       } else {
         userInfo.style.display = 'none';
         authBtn.textContent = 'Sign in with Google';
         authBtn.onclick = signInWithGoogle;
-        authBtn.classList.remove('logout');
       }
     }
 
-    // ============================================
-    // PROJECT FUNCTIONS
-    // ============================================
-    async function loadProjects() {
-      if (!currentUser || !supabase) return;
-
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('user_id', currentUser.id)
-        .order('updated_at', { ascending: false });
-
-      if (error) {
-        console.error('Load error:', error);
+    async function signInWithGoogle() {
+      if (!supabase) {
+        alert('Supabase not initialized');
         return;
       }
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: `${window.location.origin}${window.location.pathname}` }
+      });
+      if (error) console.error('Sign in error:', error);
+    }
 
+    async function signOut() {
+      if (!supabase) return;
+      await supabase.auth.signOut();
+    }
+
+    async function loadProjects() {
+      if (!currentUser || !supabase) return;
+      const { data } = await supabase.from('projects').select('*').eq('user_id', currentUser.id).order('updated_at', { ascending: false });
       projects = data || [];
       renderProjectList();
-
-      if (projects.length > 0) {
-        loadProject(projects[0]);
-      }
+      if (projects.length > 0) loadProject(projects[0]);
     }
 
     async function saveProject() {
       if (!currentUser || !supabase || !currentProject) return;
-
-      const resumeContent = document.getElementById('resumeContent').value;
-      const jobDescription = document.getElementById('jobDescription').value;
-
-      const { error } = await supabase
-        .from('projects')
-        .upsert({
-          id: currentProject.id || undefined,
-          user_id: currentUser.id,
-          name: currentProject.name || 'Untitled',
-          resume_content: resumeContent,
-          job_description: jobDescription,
-          updated_at: new Date().toISOString()
-        });
-
-      if (error) {
-        showStatus('Error saving project', false);
-        console.error('Save error:', error);
-      } else {
-        showStatus('✓ Project saved', true);
-        await loadProjects();
-      }
-    }
-
-    function createNewProject() {
-      const name = prompt('Project name:');
-      if (!name) return;
-
-      currentProject = {
-        id: null,
-        name: name,
-        user_id: currentUser.id
-      };
-
-      document.getElementById('resumeContent').value = '';
-      document.getElementById('jobDescription').value = '';
-      renderProjectList();
-      showStatus('New project created', true);
+      const { error } = await supabase.from('projects').upsert({
+        id: currentProject.id || undefined,
+        user_id: currentUser.id,
+        name: currentProject.name || 'Untitled',
+        resume_content: document.getElementById('resumeContent').value,
+        job_description: document.getElementById('jobDescription').value,
+        updated_at: new Date().toISOString()
+      });
+      showStatus(error ? 'Error saving' : '✓ Saved', !error);
+      if (!error) await loadProjects();
     }
 
     function loadProject(project) {
@@ -561,127 +215,78 @@
       renderProjectList();
     }
 
-    async function deleteProject(projectId) {
-      if (!confirm('Delete this project?')) return;
-      if (!supabase) return;
-
-      const { error } = await supabase
-        .from('projects')
-        .delete()
-        .eq('id', projectId);
-
-      if (error) {
-        console.error('Delete error:', error);
-      } else {
-        await loadProjects();
-      }
-    }
-
     function renderProjectList() {
       const list = document.getElementById('projectList');
-      if (projects.length === 0) {
+      if (!projects.length) {
         list.innerHTML = '<p style="color: var(--text-muted); font-size: 13px;">No projects yet</p>';
         return;
       }
-
-      list.innerHTML = projects.map(proj => `
-        <div class="project-item ${proj.id === currentProject?.id ? 'active' : ''}" onclick="loadProject(${JSON.stringify(proj).replace(/"/g, '&quot;')})">
-          ${proj.name}
-          <button style="margin-left: auto; background: none; border: none; color: inherit; cursor: pointer; font-size: 16px;" onclick="event.stopPropagation(); deleteProject('${proj.id}')">×</button>
+      list.innerHTML = projects.map(p => `
+        <div class="project-item ${p.id === currentProject?.id ? 'active' : ''}" onclick="loadProject(${JSON.stringify(p).replace(/"/g, '&quot;')})">
+          ${p.name}
         </div>
       `).join('');
     }
 
-    // ============================================
-    // ANALYZER FUNCTIONS
-    // ============================================
+    function createNewProject() {
+      const name = prompt('Project name:');
+      if (!name) return;
+      currentProject = { id: null, name, user_id: currentUser?.id };
+      document.getElementById('resumeContent').value = '';
+      document.getElementById('jobDescription').value = '';
+      renderProjectList();
+      showStatus('New project created', true);
+    }
+
     function analyzeResume() {
       const resume = document.getElementById('resumeContent').value;
       const job = document.getElementById('jobDescription').value;
-
-      if (!resume || !job) {
-        showStatus('Please add both resume and job description', false);
-        return;
-      }
+      if (!resume || !job) { showStatus('Add resume and job description', false); return; }
 
       const resumeWords = resume.toLowerCase().split(/\s+/);
-      const jobWords = job.toLowerCase().split(/\s+/);
-      const jobKeywords = jobWords.filter(w => w.length > 4);
-
-      let matches = 0;
-      jobKeywords.forEach(keyword => {
-        if (resumeWords.includes(keyword)) matches++;
-      });
-
-      const score = Math.min(100, Math.round((matches / jobKeywords.length) * 100));
-      const ringClass = score >= 70 ? 'success' : score >= 50 ? 'warning' : 'error';
+      const jobWords = job.toLowerCase().split(/\s+/).filter(w => w.length > 4);
+      let matches = jobWords.filter(w => resumeWords.includes(w)).length;
+      const score = Math.min(100, Math.round((matches / jobWords.length) * 100));
 
       document.getElementById('analyzerContent').innerHTML = `
         <div style="text-align: center; margin: 20px 0;">
           <div style="display: inline-block; width: 120px; height: 120px; border-radius: 50%; background: rgba(13,148,136,0.1); display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 700; color: var(--primary);">${score}%</div>
-          <p style="margin-top: 16px; color: var(--text-secondary);">Keywords matched: ${matches}/${jobKeywords.length}</p>
+          <p style="margin-top: 16px; color: var(--text-secondary);">Keywords matched: ${matches}/${jobWords.length}</p>
         </div>
       `;
-
       switchTab('analyzer');
     }
 
-    // ============================================
-    // UI FUNCTIONS
-    // ============================================
-    function switchTab(tabName) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-
-      document.getElementById(tabName + '-tab').classList.add('active');
-      document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+    function switchTab(name) {
+      document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
+      document.getElementById(name + '-tab').classList.add('active');
+      document.querySelector(`[data-tab="${name}"]`).classList.add('active');
     }
 
-    function showStatus(msg, isSuccess) {
-      const status = document.getElementById('saveStatus');
-      status.innerHTML = `<div class="status-msg ${isSuccess ? 'status-success' : 'status-error'}">${msg}</div>`;
-      setTimeout(() => status.innerHTML = '', 3000);
+    function showStatus(msg, success) {
+      const el = document.getElementById('saveStatus');
+      el.innerHTML = `<div class="status-msg ${success ? 'status-success' : 'status-error'}">${msg}</div>`;
+      setTimeout(() => el.innerHTML = '', 3000);
     }
 
-    // ============================================
-    // EVENT LISTENERS
-    // ============================================
-    document.querySelectorAll('.tab').forEach(tab => {
-      tab.addEventListener('click', () => switchTab(tab.dataset.tab));
-    });
-
+    // Event Listeners
+    document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
     document.getElementById('saveResumeBtn').addEventListener('click', saveProject);
     document.getElementById('saveJobBtn').addEventListener('click', saveProject);
     document.getElementById('analyzeBtn').addEventListener('click', analyzeResume);
     document.getElementById('newProjectBtn').addEventListener('click', createNewProject);
 
-    // ============================================
-    // STARTUP
-    // ============================================
-    async function startup() {
-      const ready = await waitForSupabase();
-      if (!ready) {
-        alert('Failed to load Supabase. Please refresh the page.');
-        return;
+    // Start
+    document.addEventListener('DOMContentLoaded', initSupabase);
+    
+    // Fallback - try to init after 1s anyway
+    setTimeout(() => {
+      if (!supabase && window.supabase) {
+        console.log('Initializing via timeout');
+        initSupabase();
       }
-
-      await initAuth();
-
-      if (supabase) {
-        supabase.auth.onAuthStateChange((event, session) => {
-          if (session?.user) {
-            currentUser = session.user;
-            updateAuthUI();
-            loadProjects();
-          } else {
-            currentUser = null;
-            updateAuthUI();
-          }
-        });
-      }
-    }
-
-    document.addEventListener('DOMContentLoaded', startup);
+    }, 1000);
   </script>
 </body>
 </html>
