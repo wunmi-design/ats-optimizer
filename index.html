@@ -600,7 +600,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 1.9.4</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 1.9.5</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -5162,6 +5162,13 @@ async function applySelectedFixes(){
       console.log('applySelectedFixes: running auto-analysis');
       runFullAnalysis();
     }, 2000);
+    // Sync updated resume text back into Content Editor fields
+    try {
+      console.log('applySelectedFixes: syncing updated draft to CE fields');
+      await parseToCE(cleaned);
+      fillCE(proj.ce);
+      autoSave();
+    } catch(ceErr) { console.warn('CE sync after apply:', ceErr); }
   } catch(e){
     let msg;
     if (e.message === 'RATE_LIMIT') msg = 'Rate limit reached — try again in 1 minute';
