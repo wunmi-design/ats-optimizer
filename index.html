@@ -2690,7 +2690,7 @@ function handleAuthClick() {
     renderProjGrid();
   } else {
     // Use Supabase OAuth endpoint (handles PKCE internally)
-    const redirectTo = encodeURIComponent(window.location.origin + window.location.pathname);
+    const redirectTo = encodeURIComponent(window.location.origin + window.location.pathname.replace(/\/$/,'') + '/');
     window.location.href = SUPABASE_URL + '/auth/v1/authorize?provider=google&redirect_to=' + redirectTo;
   }
 }
