@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.0.5</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.0.6</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -3038,13 +3038,25 @@ const ProjectStore = {
     } catch(e) { console.error('Cloud delete error:', e); }
   },
   async syncFromCloud() {
-    if (!window._atsUser || !window._atsToken) return;
+    if (!window._atsUser || !window._atsToken) { console.log('syncFromCloud: skipped - no user/token'); return; }
     try {
+      console.log('syncFromCloud: fetching projects for user', window._atsUser.id);
       const res = await supaFetch('/rest/v1/projects?user_id=eq.' + window._atsUser.id + '&order=updated_at.desc&limit=50');
-      if (!res.ok) { console.error('Cloud sync failed:', res.status); return; }
+      console.log('syncFromCloud: response status', res.status);
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error('Cloud sync failed:', res.status, errText);
+        // If 403/401, RLS policies may be missing — still render local projects
+        if (res.status === 403 || res.status === 401) {
+          console.warn('Cloud sync: RLS policy may be missing. Check Supabase dashboard → projects table → RLS policies.');
+        }
+        return;
+      }
       const rows = await res.json();
+      console.log('syncFromCloud: got', rows.length, 'rows from cloud');
       if (Array.isArray(rows) && rows.length > 0) {
         const cloudProjects = rows.map(r => r.resume_content).filter(Boolean);
+        console.log('syncFromCloud: parsed', cloudProjects.length, 'valid projects');
         // Merge: cloud wins for conflicts
         const local = this.getAll();
         const cloudIds = new Set(cloudProjects.map(p => p.id));
@@ -3054,7 +3066,9 @@ const ProjectStore = {
         });
         this._cache = merged;
         try { localStorage.setItem(this._key, JSON.stringify(merged.slice(0, 50))); } catch(e) {}
-        console.log('Cloud sync OK:', cloudProjects.length, 'projects');
+        console.log('Cloud sync OK:', cloudProjects.length, 'cloud +', (merged.length - cloudProjects.length), 'local-only');
+      } else {
+        console.log('syncFromCloud: no cloud projects found, keeping local only');
       }
     } catch(e) { console.error('Cloud sync error:', e); }
   }
