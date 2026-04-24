@@ -2655,67 +2655,168 @@ NY Top Creative Winner · WIx and Vitamin T · 2014</div>
 // ═══════════════════════════════════════════════════════
 
 // ── Tab routing ────────────────────────────────────────
-// Auth state
+// ─── SUPABASE CONFIG ─────────────────────────────────
+const SUPABASE_URL = 'https://qirzmqfswcnofunxlmwr.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpcnptcWZzd2Nub2Z1bnhsbXdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5ODI4ODIsImV4cCI6MjA5MjU1ODg4Mn0.rhtDuIrFpkl2sqBHmhkpgmHADInGvgr7-sfsX9-_d28';
+
+// ─── AUTH STATE ──────────────────────────────────────
 window._atsUser = null;
+window._atsToken = null;
+
+async function supaFetch(path, opts = {}) {
+  const headers = { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json', ...opts.headers };
+  if (window._atsToken) headers['Authorization'] = 'Bearer ' + window._atsToken;
+  const res = await fetch(SUPABASE_URL + path, { ...opts, headers });
+  return res;
+}
+
 function handleAuthClick() {
   if (window._atsUser) {
     // Sign out
     window._atsUser = null;
+    window._atsToken = null;
     localStorage.removeItem('ats_user');
+    localStorage.removeItem('ats_token');
+    localStorage.removeItem('ats_refresh');
     document.getElementById('auth-btn').textContent = 'Sign in with Google';
     document.getElementById('user-display').style.display = 'none';
     updateTabVisibility();
-    // Clear loaded project and resume preview
     proj = null;
     document.getElementById('proj-name-display').textContent = 'New Project';
     document.getElementById('proj-name-display').classList.add('placeholder');
     var resumeBody = document.querySelector('.resume-panel-body');
     if (resumeBody) resumeBody.innerHTML = '<div class="resume-empty"><div class="resume-empty-icon">📄</div><p>Resume will appear here</p></div>';
-    // Switch to projects tab
     switchTab('projects');
     renderProjGrid();
   } else {
-    window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?client_id=604596627611-1k8dcuf8fi1fe5tt8drpi5u668aoi500.apps.googleusercontent.com&redirect_uri=https://ats4575.netlify.app/&response_type=code&scope=openid%20profile%20email&prompt=consent';
+    // Use Supabase OAuth endpoint (handles PKCE internally)
+    const redirectTo = encodeURIComponent(window.location.origin + window.location.pathname);
+    window.location.href = SUPABASE_URL + '/auth/v1/authorize?provider=google&redirect_to=' + redirectTo;
   }
 }
+
 function setAuthUI() {
   if (window._atsUser) {
     document.getElementById('auth-btn').textContent = 'Sign Out';
-    document.getElementById('user-display').textContent = window._atsUser.name || window._atsUser.email || '';
+    const name = window._atsUser.name || window._atsUser.email || 'Signed in';
+    document.getElementById('user-display').textContent = name;
     document.getElementById('user-display').style.display = 'inline';
   }
 }
-(function checkAuth() {
-  // Check URL callback
+
+async function handleAuthCallback() {
+  // Supabase returns tokens in URL hash fragment
+  const hash = window.location.hash;
+  if (hash && hash.includes('access_token')) {
+    const params = new URLSearchParams(hash.substring(1));
+    const accessToken = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+    if (accessToken) {
+      window._atsToken = accessToken;
+      localStorage.setItem('ats_token', accessToken);
+      if (refreshToken) localStorage.setItem('ats_refresh', refreshToken);
+      // Get user info
+      try {
+        const res = await fetch(SUPABASE_URL + '/auth/v1/user', {
+          headers: { 'Authorization': 'Bearer ' + accessToken, 'apikey': SUPABASE_KEY }
+        });
+        const userData = await res.json();
+        window._atsUser = {
+          id: userData.id,
+          email: userData.email,
+          name: userData.user_metadata?.full_name || userData.user_metadata?.name || userData.email
+        };
+        localStorage.setItem('ats_user', JSON.stringify(window._atsUser));
+      } catch(e) {
+        // Fallback: parse JWT
+        try {
+          const payload = JSON.parse(atob(accessToken.split('.')[1]));
+          window._atsUser = { id: payload.sub, email: payload.email, name: payload.email };
+          localStorage.setItem('ats_user', JSON.stringify(window._atsUser));
+        } catch(e2) {}
+      }
+      window.history.replaceState({}, document.title, window.location.pathname);
+      setAuthUI();
+      updateTabVisibility();
+      // Sync projects from cloud
+      await ProjectStore.syncFromCloud();
+      renderProjGrid();
+      return;
+    }
+  }
+
+  // Check for code in query params (fallback)
   const params = new URLSearchParams(window.location.search);
   const code = params.get('code');
   if (code) {
-    window._atsUser = { authenticated: true, email: 'Signed in' };
-    localStorage.setItem('ats_user', JSON.stringify(window._atsUser));
     window.history.replaceState({}, document.title, window.location.pathname);
-    setTimeout(function(){ setAuthUI(); updateTabVisibility(); }, 100);
   }
-  // Check stored session
-  const stored = localStorage.getItem('ats_user');
-  if (stored) {
-    window._atsUser = JSON.parse(stored);
-    setTimeout(function(){ setAuthUI(); updateTabVisibility(); }, 100);
+
+  // Restore session from localStorage
+  const storedToken = localStorage.getItem('ats_token');
+  const storedUser = localStorage.getItem('ats_user');
+  if (storedToken && storedUser) {
+    window._atsToken = storedToken;
+    window._atsUser = JSON.parse(storedUser);
+    // Verify token is still valid
+    try {
+      const res = await fetch(SUPABASE_URL + '/auth/v1/user', {
+        headers: { 'Authorization': 'Bearer ' + storedToken, 'apikey': SUPABASE_KEY }
+      });
+      if (res.ok) {
+        setAuthUI();
+        updateTabVisibility();
+        await ProjectStore.syncFromCloud();
+        renderProjGrid();
+      } else {
+        // Token expired, try refresh
+        const refreshToken = localStorage.getItem('ats_refresh');
+        if (refreshToken) {
+          const refreshRes = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+            body: JSON.stringify({ refresh_token: refreshToken })
+          });
+          const refreshData = await refreshRes.json();
+          if (refreshData.access_token) {
+            window._atsToken = refreshData.access_token;
+            localStorage.setItem('ats_token', refreshData.access_token);
+            if (refreshData.refresh_token) localStorage.setItem('ats_refresh', refreshData.refresh_token);
+            setAuthUI();
+            updateTabVisibility();
+            await ProjectStore.syncFromCloud();
+            renderProjGrid();
+          } else {
+            // Refresh failed, clear session
+            localStorage.removeItem('ats_token');
+            localStorage.removeItem('ats_user');
+            localStorage.removeItem('ats_refresh');
+            window._atsUser = null;
+            window._atsToken = null;
+          }
+        }
+      }
+    } catch(e) {
+      console.error('Session restore error:', e);
+    }
   }
-  // If not logged in, clear any loaded project and all fields
+
+  // If not logged in, clear UI
   if (!window._atsUser) {
     setTimeout(function() {
       proj = null;
       var nd = document.getElementById('proj-name-display');
       if (nd) { nd.textContent = 'New Project'; nd.classList.add('placeholder'); }
       var rb = document.querySelector('.resume-panel-body');
-      if (rb) rb.innerHTML = '<div class="resume-empty"><div class="resume-empty-icon">📄</div><p>Resume will appear here</p></div>';
-      // Clear all form fields
+      if (rb) rb.innerHTML = '<div class="resume-empty"><div class="resume-empty-icon">�4</div><p>Resume will appear here</p></div>';
       document.querySelectorAll('.left-panel textarea, .left-panel input[type=text], .left-panel input[type=number]').forEach(function(el) { el.value = ''; });
-      // Clear any contenteditable areas
       document.querySelectorAll('[contenteditable]').forEach(function(el) { el.textContent = ''; });
     }, 200);
   }
-})();
+}
+
+// Run auth on page load
+handleAuthCallback();
 
 const TABS = ['projects','content','format','jd','questions','analyzer'];
 const AUTH_TABS = ['content','format','jd','questions','analyzer']; // tabs that require login
@@ -2868,11 +2969,94 @@ function parseJson(raw) {
 // ─────────────────────────────────────────────────────────
 const ProjectStore = {
   _key:'ats_projects',
-  getAll(){ try{return JSON.parse(localStorage.getItem(this._key)||'[]');}catch(e){return[];} },
-  save(p){ p.updatedAt=Date.now(); const all=this.getAll().filter(x=>x.id!==p.id); all.unshift(p); try{localStorage.setItem(this._key,JSON.stringify(all.slice(0,20)));}catch(e){} },
-  load(id){ return this.getAll().find(p=>p.id===id)||null; },
-  delete(id){ const all=this.getAll().filter(p=>p.id!==id); try{localStorage.setItem(this._key,JSON.stringify(all));}catch(e){} },
-  newProject(name){ return {id:'p_'+Date.now(),name:name||'Untitled',createdAt:Date.now(),updatedAt:Date.now(),jdTitle:'',jdCompany:'',jdText:'',parsedText:'',parsedFields:{},jdAnalysis:null,ws:{},questions:[],drafts:[],scores:[],atsAudit:null,claudeContext:{source:'conversation',text:''}}; }
+  _cache: null,
+  getAll(){
+    if (this._cache) return this._cache;
+    try { return JSON.parse(localStorage.getItem(this._key)||'[]'); } catch(e) { return []; }
+  },
+  save(p){
+    p.updatedAt = Date.now();
+    const all = this.getAll().filter(x => x.id !== p.id);
+    all.unshift(p);
+    const trimmed = all.slice(0, 50);
+    this._cache = trimmed;
+    try { localStorage.setItem(this._key, JSON.stringify(trimmed)); } catch(e) {}
+    // Sync to cloud
+    this.saveToCloud(p);
+  },
+  load(id){ return this.getAll().find(p => p.id === id) || null; },
+  delete(id){
+    const all = this.getAll().filter(p => p.id !== id);
+    this._cache = all;
+    try { localStorage.setItem(this._key, JSON.stringify(all)); } catch(e) {}
+    this.deleteFromCloud(id);
+  },
+  newProject(name){
+    return {id:'p_'+Date.now(),name:name||'Untitled',createdAt:Date.now(),updatedAt:Date.now(),jdTitle:'',jdCompany:'',jdText:'',parsedText:'',parsedFields:{},jdAnalysis:null,ws:{},questions:[],drafts:[],scores:[],atsAudit:null,claudeContext:{source:'conversation',text:''}};
+  },
+  // ─── CLOUD SYNC ────────────────────────────────────
+  // Uses existing Supabase table: projects(id, user_id, name, resume_content JSONB, ...)
+  // Stores full project object in resume_content JSONB column
+  async saveToCloud(p) {
+    if (!window._atsUser || !window._atsToken) return;
+    try {
+      // Use project name + user_id as unique key (table has UNIQUE(user_id, name))
+      // First try to find by matching resume_content->id
+      const checkRes = await supaFetch('/rest/v1/projects?select=id&user_id=eq.' + window._atsUser.id + '&resume_content->>id=eq.' + encodeURIComponent(p.id));
+      const existing = await checkRes.json();
+
+      const row = {
+        user_id: window._atsUser.id,
+        name: (p.name || 'Untitled').substring(0, 200) + '_' + p.id.slice(-6),
+        resume_content: p,
+        updated_at: new Date().toISOString()
+      };
+
+      if (Array.isArray(existing) && existing.length > 0) {
+        await supaFetch('/rest/v1/projects?id=eq.' + existing[0].id, {
+          method: 'PATCH',
+          headers: { 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ resume_content: p, updated_at: new Date().toISOString() })
+        });
+      } else {
+        await supaFetch('/rest/v1/projects', {
+          method: 'POST',
+          headers: { 'Prefer': 'return=minimal' },
+          body: JSON.stringify(row)
+        });
+      }
+      console.log('Cloud save OK:', p.name);
+    } catch(e) { console.error('Cloud save error:', e); }
+  },
+  async deleteFromCloud(projectId) {
+    if (!window._atsUser || !window._atsToken) return;
+    try {
+      await supaFetch('/rest/v1/projects?user_id=eq.' + window._atsUser.id + '&resume_content->>id=eq.' + encodeURIComponent(projectId), {
+        method: 'DELETE'
+      });
+    } catch(e) { console.error('Cloud delete error:', e); }
+  },
+  async syncFromCloud() {
+    if (!window._atsUser || !window._atsToken) return;
+    try {
+      const res = await supaFetch('/rest/v1/projects?user_id=eq.' + window._atsUser.id + '&order=updated_at.desc&limit=50');
+      if (!res.ok) { console.error('Cloud sync failed:', res.status); return; }
+      const rows = await res.json();
+      if (Array.isArray(rows) && rows.length > 0) {
+        const cloudProjects = rows.map(r => r.resume_content).filter(Boolean);
+        // Merge: cloud wins for conflicts
+        const local = this.getAll();
+        const cloudIds = new Set(cloudProjects.map(p => p.id));
+        const merged = [...cloudProjects];
+        local.forEach(lp => {
+          if (!cloudIds.has(lp.id)) merged.push(lp);
+        });
+        this._cache = merged;
+        try { localStorage.setItem(this._key, JSON.stringify(merged.slice(0, 50))); } catch(e) {}
+        console.log('Cloud sync OK:', cloudProjects.length, 'projects');
+      }
+    } catch(e) { console.error('Cloud sync error:', e); }
+  }
 };
 
 
