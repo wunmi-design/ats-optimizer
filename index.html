@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ATS Resume Optimizer</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
     * {
       margin: 0;
@@ -557,7 +557,14 @@
     const SUPABASE_URL = 'https://qirzmqfswcnofunxlmwr.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpcnptcWZzd2Nub2Z1bnhsbXdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5ODI4ODIsImV4cCI6MjA5MjU1ODg4Mn0.rhtDuIrFpkl2sqBHmhkpgmHADInGvgr7-sfsX9-_d28';
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let supabase = null;
+    
+    // Initialize Supabase after library loads
+    if (window.supabase) {
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    } else {
+      console.error('Supabase library failed to load');
+    }
 
     // ============================================
     // STATE
@@ -570,6 +577,11 @@
     // AUTH FUNCTIONS
     // ============================================
     async function initAuth() {
+      if (!supabase) {
+        console.error('Supabase not initialized');
+        return;
+      }
+      
       // Check if already logged in
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
