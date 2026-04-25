@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.1.5</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.2.0</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -4765,19 +4765,38 @@ async function runFullAnalysis(skipOverlay) {
     const scoreRaw = useCachedScore
       ? JSON.stringify(cachedScore)
       : await claudeFetch(`Score this resume against the job description. Return ONLY valid JSON:
-{"overall":78,"keyword_match":82,"hard_skills":88,"soft_skills":70,"title_alignment":75,"yoe_alignment":95,"score_reason":"...","strengths":["..."],"gaps":["..."],"keyword_coverage":[{"keyword":"lean UX","found":true}],"top_fixes":[{"rank":1,"title":"...","desc":"...","section":"summary|bullets|skills","before":"exact verbatim text to replace","after":"exact stronger replacement using only documented results — do not fabricate metrics"}]}
-QUALITY RULES: Do not invent metrics. Only suggest fixes using real documented accomplishments. Every bullet must reflect business/customer/product impact.
+{"overall":78,"keyword_match":82,"hard_skills":88,"soft_skills":70,"title_alignment":75,"yoe_alignment":95,"summary_quality":70,"bullet_quality":75,"score_reason":"...","strengths":["..."],"gaps":["..."],"keyword_coverage":[{"keyword":"lean UX","found":true}],"top_fixes":[{"rank":1,"title":"...","desc":"...","section":"summary|bullets|skills","before":"exact verbatim text to replace","after":"exact stronger replacement using only documented results — do not fabricate metrics"}]}
+SCORING RULES:
+- keyword_match: % of important JD keywords found in resume. Check CAREFULLY — if the word appears ANYWHERE, it counts.
+- title_alignment: 100 if resume title exactly matches JD title, lower if partial match.
+- yoe_alignment: how well years of experience match JD requirements.
+- summary_quality: COUNT words in the summary section. Target 50-75 words. Score 100 if in range. Penalize: >90 words (-20), <40 words (-15), filler phrases (-10), third-person language (-10).
+- bullet_quality: CHECK each bullet point length. Target 20-30 words. Score 100 if most are in range. Penalize: bullets >35 words (-5 each), no metric/outcome (-5 each), comma-chain sentences (-5 each).
+- hard_skills/soft_skills: match to JD. Also check total skill count — target 15-25 items. Penalize >30 (-10) or <10 (-10).
+- overall: weighted average of all sub-scores. Mostly 85+ sub-scores = 85+ overall.
+QUALITY RULES: Do not invent metrics. Only suggest fixes using real documented accomplishments.
+TOP_FIXES PRIORITY: Suggest fixes that target the LOWEST scoring dimensions first:
+1. Missing JD keywords (raises keyword_match)
+2. Title mismatch (raises title_alignment)
+3. Summary too long/short — provide specific rewrite at 50-75 words (raises summary_quality)
+4. Bullets over 35 words — provide tighter 20-30 word rewrites with metrics first (raises bullet_quality)
+5. Skills over 25 or under 15 — specify items to add/remove (raises hard_skills/soft_skills)
 CRITICAL RULES:
-1. READ the resume below carefully FIRST. Do NOT suggest adding keywords that ALREADY APPEAR in the resume text.
-2. Each "before" field must be an EXACT quote from the resume. If you cannot find the exact text, do not include that fix.
-3. For keyword_coverage: mark a keyword as "found":true if it appears ANYWHERE in the resume (even as part of another word).
-4. For top_fixes: ONLY suggest improvements for content that is genuinely MISSING or WEAK. Never suggest adding something already present.
-5. Do NOT suggest adding "payments" if the word "payments" already appears in the resume. Same for ALL keywords.
+1. READ the resume carefully. Mark keyword as "found":true if it appears ANYWHERE in the resume.
+2. Each "before" field must be an EXACT quote from the resume.
+3. ONLY suggest improvements for content that is genuinely MISSING or WEAK.
+4. Do NOT suggest adding keywords already present in the resume.
 ${(proj.appliedFixes||[]).length ? 'ALREADY APPLIED (do NOT re-suggest these):\n' + (proj.appliedFixes||[]).map(f=>f.title||f.text).join('\n') + '\n' : ''}JOB:\n${jdText.slice(0,2500)}\nRESUME:\n${resume.slice(0,2500)}`, 3000, undefined, 0);
 
     const deepRaw = await claudeFetch(`Analyze this resume against the job description. Return ONLY valid JSON:
 {"missing_keywords":[{"keyword":"exact JD term","context":"where in JD"}],"weak_phrases":[{"original":"weak phrase","stronger":"better version","reason":"why"}],"impact_issues":[{"bullet":"bullet text up to 80 chars","suggestion":"add outcome"}],"gaps":[{"text":"gap description","suggestion":"how to address"}]}
-Rules: only flag real issues, do not fabricate metrics, use documented results only.
+PRIORITY ORDER for suggestions:
+1. KEYWORD MATCH: Identify important JD keywords missing from the resume. Biggest ATS impact.
+2. TITLE MATCH: If resume title doesn't exactly match JD title, flag it.
+3. SUMMARY LENGTH: Count words in summary. If >75 or <50, flag with specific rewrite at 50-75 words.
+4. BULLET LENGTH: Find bullets >35 words and provide tighter 20-30 word rewrites with metrics first.
+5. SKILL COUNT: If skills section has >25 or <15 items, flag with items to add/remove.
+Rules: only flag real issues. Do not fabricate metrics, skills, or achievements.
 JOB:\n${jdText.slice(0,2000)}\nRESUME:\n${resume.slice(0,2500)}`, 2500);
 
     const auditRaw = await claudeFetch(`Audit this resume for ATS issues. Return ONLY valid JSON:
@@ -4908,14 +4927,13 @@ async function rescan() {
   const loading=document.getElementById('dash-loading');loading.classList.add('show');
   try {
     const raw=await claudeFetch(`Score this resume against the job description. Return ONLY valid JSON:
-{"overall":78,"keyword_match":82,"hard_skills":88,"soft_skills":70,"title_alignment":75,"yoe_alignment":95,"score_reason":"...","strengths":["..."],"gaps":["..."],"keyword_coverage":[{"keyword":"lean UX","found":true}],"top_fixes":[{"rank":1,"title":"...","desc":"...","section":"summary|bullets|skills","before":"exact verbatim text to replace or empty string","after":"exact stronger replacement — do not fabricate metrics, use only documented results from the resume"}]}
-CRITICAL RULES:
-1. READ the resume below carefully FIRST. Do NOT suggest adding keywords that ALREADY APPEAR in the resume.
-2. Each "before" field must be an EXACT quote from the resume.
-3. For keyword_coverage: mark "found":true if the keyword appears ANYWHERE in the resume.
-4. ONLY suggest genuinely MISSING content. Never re-suggest something already present.
+{"overall":78,"keyword_match":82,"hard_skills":88,"soft_skills":70,"title_alignment":75,"yoe_alignment":95,"summary_quality":70,"bullet_quality":75,"score_reason":"...","strengths":["..."],"gaps":["..."],"keyword_coverage":[{"keyword":"lean UX","found":true}],"top_fixes":[{"rank":1,"title":"...","desc":"...","section":"summary|bullets|skills","before":"exact verbatim text to replace or empty string","after":"exact stronger replacement — do not fabricate metrics, use only documented results from the resume"}]}
+SCORING RULES:
+- keyword_match: % of JD keywords found. summary_quality: 50-75 words target, penalize >90 or <40. bullet_quality: 20-30 words target per bullet, penalize >35 or no metrics. hard_skills/soft_skills: match to JD + skill count 15-25 target. title_alignment: exact JD title match. overall: weighted average.
+TOP_FIXES PRIORITY: 1) Missing keywords 2) Title mismatch 3) Summary length fix with rewrite 4) Long bullets with tighter rewrites 5) Skill count adjustment.
+CRITICAL RULES: Read resume carefully. Mark keywords found:true if anywhere in resume. Each "before" = exact quote. Only suggest genuinely missing/weak content.
 ${(proj.appliedFixes||[]).length ? 'ALREADY APPLIED (do NOT re-suggest):\n' + (proj.appliedFixes||[]).map(f=>f.title||f.text).join('\n') + '\n' : ''}
-QUALITY RULES: Do not invent metrics. Only suggest fixes that use real documented accomplishments. Every suggested bullet must reflect business/customer/product impact. Avoid vague responsibilities.
+QUALITY RULES: Do not invent metrics. Only use real documented accomplishments.
 JOB:\n${jdText.slice(0,3000)}\nRESUME:\n${resume.slice(0,3000)}`,3000);
     const score=parseJson(raw);
     proj.scores.push(score); autoSave();
@@ -4933,9 +4951,9 @@ function renderDashboard(score) {
     const circ=document.getElementById('score-circle');
     if(circ){const c=2*Math.PI*42;circ.style.strokeDashoffset=c-(pct/100)*c;circ.style.stroke=pct>=80?'var(--green)':pct>=60?'var(--teal)':'var(--red)';}
     const numEl=document.getElementById('score-num');if(numEl)numEl.textContent=pct+'%';
-  const cells=[['keyword_match','Keywords'],['hard_skills','Hard Skills'],['soft_skills','Soft Skills'],['title_alignment','Title'],['yoe_alignment','YOE']];
+  const cells=[['keyword_match','Keywords'],['hard_skills','Hard Skills'],['soft_skills','Soft Skills'],['title_alignment','Title Match'],['yoe_alignment','Years of Experience'],['summary_quality','Summary'],['bullet_quality','Bullets']];
   const grid=document.getElementById('score-grid');
-  if(grid)grid.innerHTML=cells.map(([k,l])=>{
+  if(grid)grid.innerHTML=cells.filter(([k])=>score[k]!==undefined&&score[k]!==null).map(([k,l])=>{
     const v=score[k]||0;
     const c=v>=80?'var(--green)':v>=60?'var(--teal)':'var(--red)';
     let label=l;
@@ -5302,7 +5320,7 @@ async function applySelectedFixes(){
     const titleRule = jdTitle ? `\\n- The person's job title line (directly under their name) MUST be exactly: "${jdTitle}"` : '';
 
     const result = await claudeFetch(
-      `Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT same section structure and order as the original resume${titleRule}\n- SKILLS must stay organized in labeled categories (e.g. Leadership:, Design:, Product:, Engineering:). If the original has categories, keep them. If not, organize skills into logical categories.\n- When adding keywords to skills, place them in the correct category\n- Do NOT merge all skills into one flat list\n- Preserve all line breaks between sections\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n\n${promptBody}RESUME:\n${resume}`,
+      `Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT same section structure and order as the original resume${titleRule}\n- SKILLS must stay organized in labeled categories (e.g. Leadership:, Design:, Product:, Engineering:). If the original has categories, keep them. If not, organize skills into logical categories.\n- When adding keywords to skills, place them in the correct category\n- Do NOT merge all skills into one flat list\n- FORMATTING IS SACRED: Output must use IDENTICAL format as input — same line breaks, spacing, bullet characters, section header style.\n- Do NOT reformat, restructure, merge lines, split lines, add/remove blank lines, or change bullet style.\n- Do NOT change the number of roles, reorder roles, or alter dates/companies.\n- ONLY change the specific text content requested. Everything else stays EXACTLY as-is.\n- Summary target: 50-75 words. Bullets target: 20-30 words each. Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n\n${promptBody}RESUME:\n${resume}`,
       4000
     );
     const cleaned = result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim();
@@ -5449,7 +5467,7 @@ async function autoOptimize() {
       const titleRule = jdTitle ? `\\n- The person's job title line (directly under their name) MUST be exactly: "${jdTitle}"` : '';
 
       const result = await claudeFetch(
-        `Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT same section structure and order as the original resume${titleRule}\n- SKILLS must stay organized in labeled categories (e.g. Leadership:, Design:, Product:, Engineering:). If the original has categories, keep them. If not, organize skills into logical categories.\n- When adding keywords to skills, place them in the correct category\n- Do NOT merge all skills into one flat list\n- Preserve all line breaks between sections\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n\n${promptBody}RESUME:\n${currentResume}`,
+        `Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT same section structure and order as the original resume${titleRule}\n- SKILLS must stay organized in labeled categories (e.g. Leadership:, Design:, Product:, Engineering:). If the original has categories, keep them. If not, organize skills into logical categories.\n- When adding keywords to skills, place them in the correct category\n- Do NOT merge all skills into one flat list\n- FORMATTING IS SACRED: Output must use IDENTICAL format as input — same line breaks, spacing, bullet characters, section header style.\n- Do NOT reformat, restructure, merge lines, split lines, add/remove blank lines, or change bullet style.\n- Do NOT change the number of roles, reorder roles, or alter dates/companies.\n- ONLY change the specific text content requested. Everything else stays EXACTLY as-is.\n- Summary target: 50-75 words. Bullets target: 20-30 words each. Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n\n${promptBody}RESUME:\n${currentResume}`,
         4000
       );
       const cleaned = result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim();
