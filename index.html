@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.3.3</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.3.4</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -6108,23 +6108,19 @@ function exportWorkday() {
   if (!proj) { toast('Open a project first'); return; }
 
   const ce = proj.ce || {};
-  const ws = proj.ws || {};
-
-  // Helper to get a value from CE, WS, or DOM
-  const val = (ceKey, wsKey, domId) => {
-    return ce[ceKey] || ws[wsKey] || (domId ? document.getElementById(domId)?.value || '' : '');
-  };
-
+  const contact = ce.contact || {};
   const lines = [];
 
   // ── CONTACT ──────────────────────────────────────────────
-  const name = val('name','name','ce-name');
-  const jobTitle = proj.jdTitle || val('title','title','ce-title') || val('title','title','jd-title');
-  const email = val('email','email','ce-email');
-  const phone = val('phone','phone','ce-phone');
-  const location = val('location','location','ce-location');
-  const linkedin = val('linkedin','linkedin','ce-linkedin');
-  const website = val('website','website','ce-website');
+  const name = ((contact.fname || '') + ' ' + (contact.lname || '')).trim();
+  const jobTitle = proj.jdTitle || contact.title || '';
+  const email = contact.email || '';
+  const phone = contact.phone || '';
+  const city = contact.city || '';
+  const state = contact.state || '';
+  const location = [city, state].filter(Boolean).join(', ');
+  const linkedin = contact.linkedin || '';
+  const website = contact.portfolio || '';
 
   if (name) lines.push('FULL NAME: ' + name);
   if (jobTitle) lines.push('JOB TITLE: ' + jobTitle);
@@ -6136,7 +6132,7 @@ function exportWorkday() {
   lines.push('');
 
   // ── SUMMARY ──────────────────────────────────────────────
-  const summary = val('summary','summary','ce-summary');
+  const summary = ce.summary || '';
   if (summary) {
     lines.push('SUMMARY');
     lines.push(summary.trim());
@@ -6150,20 +6146,6 @@ function exportWorkday() {
     lines.push('SKILLS');
     lines.push(allSkills.join(', '));
     lines.push('');
-  } else {
-    // Fall back to parsing skills from the raw resume text
-    const resumeText = getResumeText() || '';
-    const skillsMatch = resumeText.match(/SKILLS[\s\S]*?(?=\n[A-Z]{2,}|\n\n[A-Z]|$)/i);
-    if (skillsMatch) {
-      const skillsBlock = skillsMatch[0].replace(/^SKILLS\s*/i, '');
-      // Strip category labels and flatten
-      const flat = skillsBlock.replace(/[A-Za-z &]+:\s*/g, '').replace(/\n/g, ', ').replace(/,\s*,/g, ',').trim();
-      if (flat) {
-        lines.push('SKILLS');
-        lines.push(flat);
-        lines.push('');
-      }
-    }
   }
 
   // ── WORK EXPERIENCE ──────────────────────────────────────
@@ -6172,77 +6154,24 @@ function exportWorkday() {
     lines.push('WORK EXPERIENCE');
     lines.push('');
     roles.forEach(role => {
-      // Strip middle dots from title/company — Workday parses them wrong
-      const title = (role.title || '').replace(/\s*[·•]\s*.*/,'').trim();
-      const company = (role.company || '').replace(/\s*[·•]\s*.*/,'').trim();
-      const location = (role.location || '').trim();
-      const startDate = fmtWorkdayDate(role.startDate || role.start || '');
-      const endDate = role.current ? 'Present' : fmtWorkdayDate(role.endDate || role.end || '');
-
-      lines.push('JOB TITLE: ' + title);
-      lines.push('COMPANY: ' + company);
-      if (location) lines.push('LOCATION: ' + location);
+      lines.push('JOB TITLE: ' + (role.title || ''));
+      lines.push('COMPANY: ' + (role.company || ''));
+      if (role.location) lines.push('LOCATION: ' + role.location);
+      const startDate = fmtWorkdayDate(role.startDate || '');
+      const endDate = (!role.endDate || role.endDate === 'Present') ? 'Present' : fmtWorkdayDate(role.endDate);
       if (startDate) lines.push('FROM: ' + startDate);
       if (endDate) lines.push('TO: ' + endDate);
-      if (role.summary) lines.push('ROLE SUMMARY: ' + role.summary.trim());
-
-      const bullets = role.bullets || role.achievements || [];
+      if (role.context) lines.push('ROLE SUMMARY: ' + role.context.trim());
+      const bullets = role.bullets || [];
       bullets.forEach((b, i) => {
         lines.push((i+1) + '. ' + b.replace(/^[•\-\*]\s*/, '').trim());
       });
       lines.push('');
     });
-  } else {
-    // Fall back to parsing roles from raw resume text
-    const resumeText = getResumeText() || '';
-    const expMatch = resumeText.match(/EXPERIENCE[\s\S]*/i);
-    if (expMatch) {
-      lines.push('WORK EXPERIENCE');
-      lines.push('');
-      // Parse each role block — look for lines with dates pattern
-      const expText = expMatch[0].replace(/^EXPERIENCE\s*/i,'');
-      const roleBlocks = expText.split(/\n(?=[A-Z][^\n]{5,}[·•][^\n]+\d{2}\/\d{2})/);
-      roleBlocks.forEach(block => {
-        if (!block.trim()) return;
-        const blockLines = block.trim().split('\n');
-        const header = blockLines[0] || '';
-        // Parse "Title · Company MM/YY – MM/YY · City, State"
-        const parts = header.split(/\s*[·•]\s*/);
-        const title = parts[0]?.trim() || '';
-        // Extract company (strip date portion)
-        const companyRaw = parts[1]?.trim() || '';
-        const company = companyRaw.replace(/\s*\d{2}\/\d{2}.*$/, '').trim();
-        // Extract dates
-        const dateMatch = header.match(/(\d{2}\/\d{2})\s*[–\-]\s*(\d{2}\/\d{2}|Present)/i);
-        const startDate = dateMatch ? fmtWorkdayDate(dateMatch[1]) : '';
-        const endDate = dateMatch ? fmtWorkdayDate(dateMatch[2]) : '';
-        // Location
-        const loc = parts[parts.length-1]?.replace(/\d{2}\/\d{2}.*/, '').trim() || '';
-
-        if (title) lines.push('JOB TITLE: ' + title);
-        if (company) lines.push('COMPANY: ' + company);
-        if (loc && loc !== title && loc !== company) lines.push('LOCATION: ' + loc);
-        if (startDate) lines.push('FROM: ' + startDate);
-        if (endDate) lines.push('TO: ' + endDate);
-
-        // Role summary (second line, no bullet)
-        const summary = blockLines[1]?.trim();
-        if (summary && !summary.startsWith('•') && !summary.startsWith('-')) {
-          lines.push('ROLE SUMMARY: ' + summary);
-        }
-        // Bullets
-        let bulletCount = 0;
-        blockLines.slice(2).forEach(bl => {
-          const clean = bl.replace(/^[•\-\*]\s*/, '').trim();
-          if (clean) { bulletCount++; lines.push(bulletCount + '. ' + clean); }
-        });
-        lines.push('');
-      });
-    }
   }
 
   // ── EDUCATION ────────────────────────────────────────────
-  const edu = ce.education || [];
+  const edu = ce.edu || [];
   if (edu.length) {
     lines.push('EDUCATION');
     lines.push('');
@@ -6253,36 +6182,12 @@ function exportWorkday() {
       if (e.year || e.endYear) lines.push('GRADUATION YEAR: ' + (e.year || e.endYear));
       lines.push('');
     });
-  } else {
-    const resumeText = getResumeText() || '';
-    const eduMatch = resumeText.match(/EDUCATION[\s\S]*?(?=\n[A-Z]{3,}|\n\nAWARDS|$)/i);
-    if (eduMatch) {
-      lines.push('EDUCATION');
-      lines.push(eduMatch[0].replace(/^EDUCATION\s*/i,'').trim());
-      lines.push('');
-    }
-  }
-
-  // ── CHECK — bail if nothing to export ───────────────────
-  // Use raw draft text as ultimate fallback if structured parsing yielded nothing
-  const hasStructuredContent = lines.filter(l => l.trim()).length >= 3;
-  if (!hasStructuredContent) {
-    const rawDraft = (proj.drafts && proj.drafts.length > 0) ? proj.drafts[proj.drafts.length - 1] : proj.parsedText || '';
-    if (!rawDraft) {
-      toast('No resume content found — load a project with a resume first');
-      return;
-    }
-    // Fall back to exporting the raw resume text as-is with a note
-    lines.push('--- RAW RESUME TEXT ---');
-    lines.push(rawDraft);
   }
 
   // ── GENERATE FILE ────────────────────────────────────────
   try {
     const text = lines.join('\n');
-    const rawName = name || 'Resume';
-    const rawTitle = jobTitle || '';
-    const safeName = (rawName + (rawTitle ? '_' + rawTitle : '')).replace(/[^a-zA-Z0-9_]/g, '_').replace(/_+/g, '_');
+    const safeName = (name + (jobTitle ? '_' + jobTitle : '')).replace(/[^a-zA-Z0-9_]/g, '_').replace(/_+/g, '_');
     const fname = safeName + '_Workday.txt';
     const blob = new Blob([text], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -6298,7 +6203,6 @@ function exportWorkday() {
     toast('Export failed: ' + err.message);
   }
 }
-
 function fmtWorkdayDate(dateStr) {
   if (!dateStr) return '';
   // Handle MM/YYYY, MM-YYYY, Month YYYY, YYYY formats
