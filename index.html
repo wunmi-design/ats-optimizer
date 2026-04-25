@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.2.6</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.2.7</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -3368,8 +3368,10 @@ function loadProject(id) {
   proj._currentFixes = [];
   proj._missingKeywords = [];
   proj._deepKeywords = [];
-  proj._cachedScore = null;
-  proj._analysisHash = null;
+  // Restore cached score from stored scores so analysis renders without re-running
+  const latestStoredScore = (proj.scores && proj.scores.length > 0) ? proj.scores[proj.scores.length - 1] : null;
+  proj._cachedScore = latestStoredScore || null;
+  proj._analysisHash = null; // will be set fresh on next analysis
   // Set _aiApplied based on whether there are drafts (AI has modified the resume)
   proj._aiApplied = (proj.drafts && proj.drafts.length > 0);
   // Clear the analyzer DOM so stale content from the previous project doesn't flash
@@ -3407,22 +3409,12 @@ function loadProject(id) {
   // Re-render analysis dashboard if scores exist
   if (proj.scores && proj.scores.length > 0) {
     const latestScore = proj.scores[proj.scores.length - 1];
-    console.log('loadProject: re-rendering analysis dashboard with latest score');
     try {
       renderDashboard(latestScore);
-      if (latestScore.top_fixes && latestScore.top_fixes.length) {
-        renderDeepFixItems({ 
-          missing_keywords: [], 
-          weak_phrases: [] 
-        });
-        // Restore fix items from score
-        proj._currentFixes = latestScore.top_fixes || [];
+      proj._currentFixes = latestScore.top_fixes || [];
+      if (latestScore.keyword_coverage?.length) {
+        proj._missingKeywords = latestScore.keyword_coverage.filter(k => !k.found).map(k => k.keyword);
       }
-      // Restore keyword coverage from score
-      if (latestScore.keyword_coverage && latestScore.keyword_coverage.length) {
-        proj._missingKeywords = latestScore.keyword_coverage.filter(k => !k.found).map(k => k.keyword) || [];
-      }
-      // Switch to analyzer to show the results
       const analyzerContent = document.getElementById('analyzer-content');
       if (analyzerContent) analyzerContent.style.display = 'block';
       updateScorePill(latestScore.overall);
