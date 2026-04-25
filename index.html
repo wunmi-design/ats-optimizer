@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.3.1</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.3.2</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -6109,19 +6109,25 @@ function exportWorkday() {
 
   const ce = proj.ce || {};
   const ws = proj.ws || {};
+
+  // Helper to get a value from CE, WS, or DOM
+  const val = (ceKey, wsKey, domId) => {
+    return ce[ceKey] || ws[wsKey] || (domId ? document.getElementById(domId)?.value || '' : '');
+  };
+
   const lines = [];
 
   // ── CONTACT ──────────────────────────────────────────────
-  const name = ce.name || ws.name || '';
-  const title = g('jd-title') || proj.jdTitle || ce.title || ws.title || '';
-  const email = ce.email || ws.email || '';
-  const phone = ce.phone || ws.phone || '';
-  const location = ce.location || ws.location || '';
-  const linkedin = ce.linkedin || ws.linkedin || '';
-  const website = ce.website || ws.website || '';
+  const name = val('name','name','ce-name');
+  const jobTitle = proj.jdTitle || val('title','title','ce-title') || val('title','title','jd-title');
+  const email = val('email','email','ce-email');
+  const phone = val('phone','phone','ce-phone');
+  const location = val('location','location','ce-location');
+  const linkedin = val('linkedin','linkedin','ce-linkedin');
+  const website = val('website','website','ce-website');
 
   if (name) lines.push('FULL NAME: ' + name);
-  if (title) lines.push('JOB TITLE: ' + title);
+  if (jobTitle) lines.push('JOB TITLE: ' + jobTitle);
   if (email) lines.push('EMAIL: ' + email);
   if (phone) lines.push('PHONE: ' + phone);
   if (location) lines.push('LOCATION: ' + location);
@@ -6130,58 +6136,109 @@ function exportWorkday() {
   lines.push('');
 
   // ── SUMMARY ──────────────────────────────────────────────
-  const summary = ce.summary || ws.summary || '';
+  const summary = val('summary','summary','ce-summary');
   if (summary) {
     lines.push('SUMMARY');
     lines.push(summary.trim());
     lines.push('');
   }
 
-  // ── SKILLS (flat comma-separated — no category labels) ──
+  // ── SKILLS (flat list — no category labels) ──────────────
   const skillGroups = ce.skillGroups || [];
-  const allSkills = skillGroups.flatMap(g => g.skills || []).filter(Boolean);
+  const allSkills = skillGroups.flatMap(sg => sg.skills || []).filter(Boolean);
   if (allSkills.length) {
     lines.push('SKILLS');
     lines.push(allSkills.join(', '));
     lines.push('');
-  } else if (ws.hard || ws.soft) {
-    const hardSkills = (ws.hard || '').split(',').map(s => s.trim()).filter(Boolean);
-    const softSkills = (ws.soft || '').split(',').map(s => s.trim()).filter(Boolean);
-    const combined = [...new Set([...hardSkills, ...softSkills])];
-    if (combined.length) {
-      lines.push('SKILLS');
-      lines.push(combined.join(', '));
-      lines.push('');
+  } else {
+    // Fall back to parsing skills from the raw resume text
+    const resumeText = getResumeText() || '';
+    const skillsMatch = resumeText.match(/SKILLS[\s\S]*?(?=\n[A-Z]{2,}|\n\n[A-Z]|$)/i);
+    if (skillsMatch) {
+      const skillsBlock = skillsMatch[0].replace(/^SKILLS\s*/i, '');
+      // Strip category labels and flatten
+      const flat = skillsBlock.replace(/[A-Za-z &]+:\s*/g, '').replace(/\n/g, ', ').replace(/,\s*,/g, ',').trim();
+      if (flat) {
+        lines.push('SKILLS');
+        lines.push(flat);
+        lines.push('');
+      }
     }
   }
 
   // ── WORK EXPERIENCE ──────────────────────────────────────
-  const roles = ce.roles || ws.roles || [];
+  const roles = ce.roles || [];
   if (roles.length) {
     lines.push('WORK EXPERIENCE');
     lines.push('');
     roles.forEach(role => {
-      // Job title on its own line
-      lines.push('JOB TITLE: ' + (role.title || ''));
-      // Company on its own line (no middle dots)
+      // Strip middle dots from title/company — Workday parses them wrong
+      const title = (role.title || '').replace(/\s*[·•]\s*.*/,'').trim();
       const company = (role.company || '').replace(/\s*[·•]\s*.*/,'').trim();
-      lines.push('COMPANY: ' + company);
-      // Location
-      if (role.location) lines.push('LOCATION: ' + role.location);
-      // Dates in MM/YYYY format
+      const location = (role.location || '').trim();
       const startDate = fmtWorkdayDate(role.startDate || role.start || '');
       const endDate = role.current ? 'Present' : fmtWorkdayDate(role.endDate || role.end || '');
+
+      lines.push('JOB TITLE: ' + title);
+      lines.push('COMPANY: ' + company);
+      if (location) lines.push('LOCATION: ' + location);
       if (startDate) lines.push('FROM: ' + startDate);
       if (endDate) lines.push('TO: ' + endDate);
-      // Role summary (plain text)
-      if (role.summary) lines.push('SUMMARY: ' + role.summary.trim());
-      // Bullets as numbered list
+      if (role.summary) lines.push('ROLE SUMMARY: ' + role.summary.trim());
+
       const bullets = role.bullets || role.achievements || [];
       bullets.forEach((b, i) => {
-        lines.push((i + 1) + '. ' + b.replace(/^[•\-\*]\s*/, '').trim());
+        lines.push((i+1) + '. ' + b.replace(/^[•\-\*]\s*/, '').trim());
       });
       lines.push('');
     });
+  } else {
+    // Fall back to parsing roles from raw resume text
+    const resumeText = getResumeText() || '';
+    const expMatch = resumeText.match(/EXPERIENCE[\s\S]*/i);
+    if (expMatch) {
+      lines.push('WORK EXPERIENCE');
+      lines.push('');
+      // Parse each role block — look for lines with dates pattern
+      const expText = expMatch[0].replace(/^EXPERIENCE\s*/i,'');
+      const roleBlocks = expText.split(/\n(?=[A-Z][^\n]{5,}[·•][^\n]+\d{2}\/\d{2})/);
+      roleBlocks.forEach(block => {
+        if (!block.trim()) return;
+        const blockLines = block.trim().split('\n');
+        const header = blockLines[0] || '';
+        // Parse "Title · Company MM/YY – MM/YY · City, State"
+        const parts = header.split(/\s*[·•]\s*/);
+        const title = parts[0]?.trim() || '';
+        // Extract company (strip date portion)
+        const companyRaw = parts[1]?.trim() || '';
+        const company = companyRaw.replace(/\s*\d{2}\/\d{2}.*$/, '').trim();
+        // Extract dates
+        const dateMatch = header.match(/(\d{2}\/\d{2})\s*[–\-]\s*(\d{2}\/\d{2}|Present)/i);
+        const startDate = dateMatch ? fmtWorkdayDate(dateMatch[1]) : '';
+        const endDate = dateMatch ? fmtWorkdayDate(dateMatch[2]) : '';
+        // Location
+        const loc = parts[parts.length-1]?.replace(/\d{2}\/\d{2}.*/, '').trim() || '';
+
+        if (title) lines.push('JOB TITLE: ' + title);
+        if (company) lines.push('COMPANY: ' + company);
+        if (loc && loc !== title && loc !== company) lines.push('LOCATION: ' + loc);
+        if (startDate) lines.push('FROM: ' + startDate);
+        if (endDate) lines.push('TO: ' + endDate);
+
+        // Role summary (second line, no bullet)
+        const summary = blockLines[1]?.trim();
+        if (summary && !summary.startsWith('•') && !summary.startsWith('-')) {
+          lines.push('ROLE SUMMARY: ' + summary);
+        }
+        // Bullets
+        let bulletCount = 0;
+        blockLines.slice(2).forEach(bl => {
+          const clean = bl.replace(/^[•\-\*]\s*/, '').trim();
+          if (clean) { bulletCount++; lines.push(bulletCount + '. ' + clean); }
+        });
+        lines.push('');
+      });
+    }
   }
 
   // ── EDUCATION ────────────────────────────────────────────
@@ -6196,17 +6253,34 @@ function exportWorkday() {
       if (e.year || e.endYear) lines.push('GRADUATION YEAR: ' + (e.year || e.endYear));
       lines.push('');
     });
+  } else {
+    const resumeText = getResumeText() || '';
+    const eduMatch = resumeText.match(/EDUCATION[\s\S]*?(?=\n[A-Z]{3,}|\n\nAWARDS|$)/i);
+    if (eduMatch) {
+      lines.push('EDUCATION');
+      lines.push(eduMatch[0].replace(/^EDUCATION\s*/i,'').trim());
+      lines.push('');
+    }
   }
 
-  // ── GENERATE FILE ─────────────────────────────────────────
+  // ── CHECK — bail if nothing to export ───────────────────
+  if (lines.filter(l => l.trim()).length < 3) {
+    toast('No content to export — please load a project with resume data first');
+    return;
+  }
+
+  // ── GENERATE FILE ────────────────────────────────────────
   const text = lines.join('\n');
-  const fname = getResumeFilename('txt').replace('.txt', '_Workday.txt');
+  const rawName = name || 'Resume';
+  const rawTitle = jobTitle || '';
+  const safeName = (rawName + (rawTitle ? '_' + rawTitle : '')).replace(/[^a-zA-Z0-9_]/g, '_').replace(/_+/g, '_');
+  const fname = safeName + '_Workday.txt';
   const blob = new Blob([text], { type: 'text/plain' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = fname; a.click();
   URL.revokeObjectURL(url);
-  toast('Workday export saved as ' + fname);
+  toast('Workday export saved — ' + fname);
 }
 
 function fmtWorkdayDate(dateStr) {
