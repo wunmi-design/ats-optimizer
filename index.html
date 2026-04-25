@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.2.4</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.2.5</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -2919,7 +2919,7 @@ try { const k=localStorage.getItem('ats_key'); if(k){_apiKey=k;const el=document
 async function claudeFetch(prompt, maxTokens, att, temperature) {
   const key = getKey();
   const attempt = att||1;
-  const reqBody = {model:'claude-sonnet-4-20250514',max_tokens:maxTokens||3000,messages:[{role:'user',content:prompt}]};
+  const reqBody = {model:'claude-opus-4-5',max_tokens:maxTokens||3000,messages:[{role:'user',content:prompt}]};
   if (temperature !== undefined) reqBody.temperature = temperature;
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method:'POST',
@@ -3893,7 +3893,7 @@ async function processFile(file) {
       const mt=ext==='pdf'?'application/pdf':ext==='docx'?'application/vnd.openxmlformats-officedocument.wordprocessingml.document':'application/msword';
       const key=getKey();
       if(!key) throw new Error('API key not configured');
-      const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:3000,messages:[{role:'user',content:[{type:'document',source:{type:'base64',media_type:mt,data:base64}},{type:'text',text:'Extract all text from this resume. Return only plain text. Preserve line breaks and section structure. No commentary.'}]}]})});
+      const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-opus-4-5',max_tokens:3000,messages:[{role:'user',content:[{type:'document',source:{type:'base64',media_type:mt,data:base64}},{type:'text',text:'Extract all text from this resume. Return only plain text. Preserve line breaks and section structure. No commentary.'}]}]})});
       if(!resp.ok) throw new Error(`API error: ${resp.status} ${resp.statusText}`);
       const d=await resp.json();
       console.log('API Response:', d);
@@ -7615,7 +7615,7 @@ async function processFile(file) {
       const key = getKey();
       const resp = await fetch('https://api.anthropic.com/v1/messages', {
         method:'POST', headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-        body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,messages:[{role:'user',content:[{type:'document',source:{type:'base64',media_type:mt,data:base64}},{type:'text',text:'Extract all text from this resume. Return only plain text. Preserve line structure, section headers, bullet points, and all content. No commentary.'}]}]})
+        body: JSON.stringify({model:'claude-opus-4-5',max_tokens:4000,messages:[{role:'user',content:[{type:'document',source:{type:'base64',media_type:mt,data:base64}},{type:'text',text:'Extract all text from this resume. Return only plain text. Preserve line structure, section headers, bullet points, and all content. No commentary.'}]}]})
       });
       const d = await resp.json(); text = d.content?.map(b=>b.text||'').join('')||'';
     }
