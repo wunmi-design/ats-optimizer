@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.2.8</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.2.9</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -3451,6 +3451,27 @@ function loadProject(id) {
     try { renderDashboard(score); if (analyzerContent) analyzerContent.style.display='block'; } catch(e) {}
     proj._cachedScore = score;
     proj._analysisHash = currentHash;
+    // Restore deep analysis (fixes, keyword coverage)
+    if (proj._lastDeep) {
+      try { renderDeepFixItems(proj._lastDeep); } catch(e) {}
+      // Restore keyword coverage
+      const kwCov = document.getElementById('keyword-coverage');
+      if (kwCov && score.keyword_coverage?.length) {
+        const found = score.keyword_coverage.filter(k => k.found);
+        const missing = score.keyword_coverage.filter(k => !k.found);
+        kwCov.innerHTML = (missing.length ? `<div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;">Missing from resume</div>` + missing.map(k => `<label class="kw-missing-row" style="display:flex;align-items:center;gap:6px;margin-bottom:4px;"><input type="checkbox" class="kw-missing-row" data-kw="${esc(k.keyword)}"> <span style="font-size:12px;">${esc(k.keyword)}</span></label>`).join('') : '') +
+          (found.length ? `<div style="font-size:12px;font-weight:600;color:var(--green);margin:8px 0 6px;">Found in resume</div>` + found.map(k => `<div style="font-size:12px;color:var(--green);margin-bottom:2px;">✓ ${esc(k.keyword)}</div>`).join('') : '');
+      }
+    }
+    // Restore ATS audit
+    if (proj.atsAudit?.checks) {
+      const container = document.getElementById('ats-checks');
+      const card = document.getElementById('ats-audit-card');
+      if (container) container.innerHTML = proj.atsAudit.checks.map(c =>
+        `<div class="ats-row"><div class="ats-icon">${c.status==='pass'?'✅':c.status==='warn'?'⚠️':'❌'}</div><div><div class="ats-title">${esc(c.label)}</div><div class="ats-desc">${esc(c.issue||'')}</div></div></div>`
+      ).join('');
+      if (card) card.style.display = proj.atsAudit.checks.some(c => c.status !== 'pass') ? 'block' : 'none';
+    }
   } else {
     // Stale or missing — reset the score pill so the user knows to re-analyze
     updateScorePill(null);
@@ -4815,6 +4836,7 @@ RESUME:\n${resume.slice(0,1500)}`, 1000);
     // Persist the hash in saved data so we can detect stale scores on project reload
     proj._savedAnalysisHash = contentHash;
     if (audit) proj.atsAudit = audit;
+    proj._lastDeep = deep; // persist deep analysis
     autoSave();
 
     // Render score ring + grid
