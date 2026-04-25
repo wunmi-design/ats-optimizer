@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.2.1</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.2.2</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -2808,9 +2808,9 @@ async function handleAuthCallback() {
     setTimeout(function() {
       proj = null;
       var nd = document.getElementById('proj-name-display');
-      if (nd) { nd.textContent = 'New Project'; nd.classList.add('placeholder'); }
+      if (nd) { nd.textContent = ''; nd.classList.add('placeholder'); }
       var rb = document.querySelector('.resume-panel-body');
-      if (rb) rb.innerHTML = '<div class="resume-empty"><div class="resume-empty-icon">�4</div><p>Resume will appear here</p></div>';
+      if (rb) rb.innerHTML = '<div class="resume-empty"><div class="resume-empty-icon">📄</div><p>Resume will appear here</p></div>';
       document.querySelectorAll('.left-panel textarea, .left-panel input[type=text], .left-panel input[type=number]').forEach(function(el) { el.value = ''; });
       document.querySelectorAll('[contenteditable]').forEach(function(el) { el.textContent = ''; });
     }, 200);
@@ -7759,6 +7759,11 @@ const _origSaveProject = saveProject;
 
 
 document.addEventListener('DOMContentLoaded',()=>{
+  proj = null;
+  const nd = document.getElementById('proj-name-display');
+  if (nd) { nd.textContent = ''; nd.classList.add('placeholder'); }
+  const editIcon = document.getElementById('proj-edit-icon');
+  if (editIcon) editIcon.style.display = 'none';
   renderProjGrid();
   // Show preview panel from the start
   const previewEl = document.getElementById('fmt-live-preview');
