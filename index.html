@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.3.2</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.3.3</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -6264,23 +6264,39 @@ function exportWorkday() {
   }
 
   // ── CHECK — bail if nothing to export ───────────────────
-  if (lines.filter(l => l.trim()).length < 3) {
-    toast('No content to export — please load a project with resume data first');
-    return;
+  // Use raw draft text as ultimate fallback if structured parsing yielded nothing
+  const hasStructuredContent = lines.filter(l => l.trim()).length >= 3;
+  if (!hasStructuredContent) {
+    const rawDraft = (proj.drafts && proj.drafts.length > 0) ? proj.drafts[proj.drafts.length - 1] : proj.parsedText || '';
+    if (!rawDraft) {
+      toast('No resume content found — load a project with a resume first');
+      return;
+    }
+    // Fall back to exporting the raw resume text as-is with a note
+    lines.push('--- RAW RESUME TEXT ---');
+    lines.push(rawDraft);
   }
 
   // ── GENERATE FILE ────────────────────────────────────────
-  const text = lines.join('\n');
-  const rawName = name || 'Resume';
-  const rawTitle = jobTitle || '';
-  const safeName = (rawName + (rawTitle ? '_' + rawTitle : '')).replace(/[^a-zA-Z0-9_]/g, '_').replace(/_+/g, '_');
-  const fname = safeName + '_Workday.txt';
-  const blob = new Blob([text], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = fname; a.click();
-  URL.revokeObjectURL(url);
-  toast('Workday export saved — ' + fname);
+  try {
+    const text = lines.join('\n');
+    const rawName = name || 'Resume';
+    const rawTitle = jobTitle || '';
+    const safeName = (rawName + (rawTitle ? '_' + rawTitle : '')).replace(/[^a-zA-Z0-9_]/g, '_').replace(/_+/g, '_');
+    const fname = safeName + '_Workday.txt';
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = fname;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast('Workday export saved — ' + fname);
+  } catch(err) {
+    console.error('Workday export error:', err);
+    toast('Export failed: ' + err.message);
+  }
 }
 
 function fmtWorkdayDate(dateStr) {
