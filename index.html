@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.2.0</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.2.1</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -2840,7 +2840,7 @@ function switchTab(name) {
       currentDisplayedResume = editor.textContent.trim();
       // CRITICAL: Save to localStorage before switching tabs
       console.log('switchTab away from content: saving to localStorage before switch');
-      saveProject();
+      saveProject(true);
     }
   }
   
@@ -2976,8 +2976,8 @@ const ProjectStore = {
     if (this._cache) return this._cache;
     try { return JSON.parse(localStorage.getItem(this._key)||'[]'); } catch(e) { return []; }
   },
-  save(p){
-    p.updatedAt = Date.now();
+  save(p, skipTimestamp){
+    if (!skipTimestamp) p.updatedAt = Date.now();
     const all = this.getAll().filter(x => x.id !== p.id);
     all.unshift(p);
     const trimmed = all.slice(0, 50);
@@ -3174,7 +3174,8 @@ function renderProjGrid() {
   // Project tiles — only when logged in
   if (!window._atsUser) { grid.innerHTML = html; return; }
 
-  all.forEach(p => {
+  const sorted = [...all].sort((a,b) => (b.updatedAt||0) - (a.updatedAt||0));
+  sorted.forEach(p => {
     const sc = p.scores?.[p.scores.length-1]?.overall || 0;
     const scCls = sc>=80?'high':sc>=60?'mid':sc>0?'low':'';
     const date = p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
@@ -3326,7 +3327,7 @@ function confirmNewProject() {
   const name = g('new-proj-name').trim()||'Untitled Project';
   document.getElementById('new-proj-modal').classList.remove('show');
   proj = ProjectStore.newProject(name);
-  ProjectStore.save(proj);
+  ProjectStore.save(proj, skipTimestamp);
   updateProjDisplay();
   initCEForProject();
   switchTab('content');
@@ -3346,7 +3347,7 @@ function promptRenameProject() {
 function updateProjDisplay() {
   const el = document.getElementById('proj-name-display');
   const editIcon = document.getElementById('proj-edit-icon');
-  if (!proj) { el.textContent='No project open'; el.classList.add('placeholder'); editIcon.style.display='none'; return; }
+  if (!proj) { el.textContent=''; el.classList.add('placeholder'); editIcon.style.display='none'; return; }
   el.textContent=proj.name; el.classList.remove('placeholder'); editIcon.style.display='inline';
 }
 
@@ -3521,7 +3522,7 @@ function saveAsNewProject() {
   toast('Saved as "' + newName + '"');
 }
 
-function saveProject() {
+function saveProject(skipTimestamp) {
   if (!proj) return;
   proj.ws=collectWorkspace(); proj.jdTitle=g('jd-title'); proj.jdCompany=g('jd-company'); proj.jdText=g('jd-text');
   proj.fmt = Object.assign({}, _fmt);
@@ -3570,7 +3571,7 @@ function saveAsNewProject() {
 function autoSave() { 
   if(proj) {
     console.log('autoSave: saving project with', proj.drafts?.length || 0, 'drafts');
-    saveProject();
+    saveProject(true);
   }
 }
 // Autosave disabled — only save on manual Save button click
@@ -3674,7 +3675,7 @@ function getResumeFilename(ext) {
   }
   if (jobTitle) parts.push(jobTitle.trim());
   if (!parts.length) parts.push('Resume');
-  return parts.join('-').replace(/[^a-zA-Z0-9\-]/g, '').replace(/-+/g, '-') + '.' + ext;
+  return parts.join('_').replace(/[^a-zA-Z0-9_]/g, '').replace(/_+/g, '_') + '.' + ext;
 }
 
 function getResumeText() {
