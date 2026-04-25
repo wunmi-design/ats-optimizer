@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.2.9</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.3.0</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -4809,22 +4809,36 @@ CRITICAL RULES:
 4. Do NOT suggest adding keywords already present in the resume.
 ${(proj.appliedFixes||[]).length ? 'ALREADY APPLIED (do NOT re-suggest these):\n' + (proj.appliedFixes||[]).map(f=>f.title||f.text).join('\n') + '\n' : ''}JOB:\n${jdText.slice(0,2500)}\nRESUME:\n${resume.slice(0,2500)}`, 3000, undefined, 0);
 
+    const score = useCachedScore ? cachedScore : parseJson(scoreRaw);
+
+    // Build score context for the deep analysis prompt
+    const scoreContext = `CURRENT SCORES: overall=${score.overall||0}%, keywords=${score.keyword_match||0}%, hard_skills=${score.hard_skills||0}%, soft_skills=${score.soft_skills||0}%, title=${score.title_alignment||0}%, yoe=${score.yoe_alignment||0}%, summary=${score.summary_quality||0}%, bullets=${score.bullet_quality||0}%`;
+    const lowScores = [
+      ['keyword_match', 'Keywords', score.keyword_match],
+      ['hard_skills', 'Hard Skills', score.hard_skills],
+      ['soft_skills', 'Soft Skills', score.soft_skills],
+      ['title_alignment', 'Title Match', score.title_alignment],
+      ['summary_quality', 'Summary', score.summary_quality],
+      ['bullet_quality', 'Bullets', score.bullet_quality],
+    ].filter(([,, v]) => v && v < 90).sort((a,b) => a[2]-b[2]).map(([,l,v]) => `${l}=${v}%`).join(', ');
+
     const deepRaw = await claudeFetch(`Analyze this resume against the job description. Return ONLY valid JSON:
 {"missing_keywords":[{"keyword":"exact JD term","context":"where in JD"}],"weak_phrases":[{"original":"weak phrase","stronger":"better version","reason":"why"}],"impact_issues":[{"bullet":"bullet text up to 80 chars","suggestion":"add outcome"}],"gaps":[{"text":"gap description","suggestion":"how to address"}]}
-PRIORITY ORDER for suggestions:
-1. KEYWORD MATCH: Identify important JD keywords missing from the resume. Biggest ATS impact.
-2. TITLE MATCH: If resume title doesn't exactly match JD title, flag it.
-3. SUMMARY LENGTH: Count words in summary. If >75 or <50, flag with specific rewrite at 50-75 words.
-4. BULLET LENGTH: Find bullets >35 words and provide tighter 20-30 word rewrites with metrics first.
-5. SKILL COUNT: If skills section has >25 or <15 items, flag with items to add/remove.
-Rules: only flag real issues. Do not fabricate metrics, skills, or achievements.
-JOB:\n${jdText.slice(0,2000)}\nRESUME:\n${resume.slice(0,2500)}`, 2500);
-
+${scoreContext}
+TARGET: Generate suggestions that will raise the overall score from ${score.overall||0}% to 90%+. Focus on the lowest-scoring dimensions: ${lowScores||'all areas'}.
+PRIORITY ORDER — address these in order:
+1. TITLE: If title_alignment < 100, the resume title MUST exactly match the JD title. Flag this first.
+2. KEYWORDS: List every important JD keyword missing from the resume. Each one added raises keyword_match.
+3. SUMMARY: If summary_quality < 90, count the words. If >75, provide a specific rewrite under 70 words. If <50, expand it. Rewrite must be in first-person, no filler, metric-led.
+4. BULLETS: If bullet_quality < 90, find every bullet >35 words and rewrite it to 20-28 words with the metric first.
+5. SKILLS: If hard_skills or soft_skills < 90, identify missing JD skills to add and non-skills to remove.
+BE EXHAUSTIVE: Do not stop at 3-4 suggestions. Flag EVERY issue that is holding the score below 90. The user will apply all suggestions at once.
+Rules: only flag real issues. Never fabricate metrics, skills, or competitor brand names.
+JOB:\n${jdText.slice(0,2000)}\nRESUME:\n${resume.slice(0,2500)}`, 3000);
     const auditRaw = await claudeFetch(`Audit this resume for ATS issues. Return ONLY valid JSON:
 {"checks":[{"id":"c1","label":"Check name","status":"pass|fail|warn","issue":"description if fail/warn"}],"overall":"pass|warn|fail","summary":"..."}
 RESUME:\n${resume.slice(0,1500)}`, 1000);
 
-    const score = useCachedScore ? cachedScore : parseJson(scoreRaw);
     const deep = parseJson(deepRaw);
     let audit = null;
     try { audit = parseJson(auditRaw); } catch(e) {}
