@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.3.7</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.3.8</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -6113,96 +6113,85 @@ function exportWorkday() {
     const contact = ce.contact || {};
     const lines = [];
 
-  // ── CONTACT ──────────────────────────────────────────────
-  const name = ((contact.fname || '') + ' ' + (contact.lname || '')).trim();
-  const jobTitle = proj.jdTitle || contact.title || '';
-  const email = contact.email || '';
-  const phone = contact.phone || '';
-  const city = contact.city || '';
-  const state = contact.state || '';
-  const location = [city, state].filter(Boolean).join(', ');
-  const linkedin = contact.linkedin || '';
-  const website = contact.portfolio || '';
+    const name = ((contact.fname || '') + ' ' + (contact.lname || '')).trim();
+    const jobTitle = proj.jdTitle || contact.title || '';
+    const email = contact.email || '';
+    const phone = contact.phone || '';
+    const city = contact.city || '';
+    const state = contact.state || '';
+    const location = [city, state].filter(Boolean).join(', ');
+    const linkedin = contact.linkedin || '';
+    const website = contact.portfolio || '';
 
-  if (name) lines.push('FULL NAME: ' + name);
-  if (jobTitle) lines.push('JOB TITLE: ' + jobTitle);
-  if (email) lines.push('EMAIL: ' + email);
-  if (phone) lines.push('PHONE: ' + phone);
-  if (location) lines.push('LOCATION: ' + location);
-  if (linkedin) lines.push('LINKEDIN: ' + linkedin);
-  if (website) lines.push('WEBSITE: ' + website);
-  lines.push('');
-
-  // ── SUMMARY ──────────────────────────────────────────────
-  const summary = ce.summary || '';
-  if (summary) {
-    lines.push('SUMMARY');
-    lines.push(summary.trim());
+    // Contact — plain values, no labels
+    if (name) lines.push(name);
+    if (jobTitle) lines.push(jobTitle);
+    if (email) lines.push(email);
+    if (phone) lines.push(phone);
+    if (location) lines.push(location);
+    if (linkedin) lines.push(linkedin);
+    if (website) lines.push(website);
     lines.push('');
-  }
 
-  // ── SKILLS (flat list — no category labels) ──────────────
-  const skillGroups = ce.skillGroups || [];
-  const allSkills = skillGroups.flatMap(sg => (sg.skills || []).map(s => typeof s === 'string' ? s : s.text || '').filter(Boolean));
-  if (allSkills.length) {
-    lines.push('SKILLS');
-    lines.push(allSkills.join(', '));
-    lines.push('');
-  }
+    // Summary
+    const summary = ce.summary || '';
+    if (summary) { lines.push('Summary'); lines.push(summary.trim()); lines.push(''); }
 
-  // ── WORK EXPERIENCE ──────────────────────────────────────
-  const roles = ce.roles || [];
-  if (roles.length) {
-    lines.push('WORK EXPERIENCE');
-    lines.push('');
-    roles.forEach(role => {
-      lines.push('JOB TITLE: ' + (role.title || ''));
-      lines.push('COMPANY: ' + (role.company || ''));
-      if (role.location) lines.push('LOCATION: ' + role.location);
-      const startDate = fmtWorkdayDate(role.startDate || '');
-      const endDate = (!role.endDate || role.endDate === 'Present') ? 'Present' : fmtWorkdayDate(role.endDate);
-      if (startDate) lines.push('FROM: ' + startDate);
-      if (endDate) lines.push('TO: ' + endDate);
-      if (role.context) lines.push('ROLE SUMMARY: ' + role.context.trim());
-      const bullets = role.bullets || [];
-      bullets.forEach((b, i) => {
-        const text = (typeof b === 'string' ? b : b.text || b.content || '');
-        lines.push((i+1) + '. ' + text.replace(/^[•\-\*]\s*/, '').trim());
+    // Skills — flat, no category labels
+    const skillGroups = ce.skillGroups || [];
+    const allSkills = skillGroups.flatMap(sg => (sg.skills || []).map(s => typeof s === 'string' ? s : s.text || '').filter(Boolean));
+    if (allSkills.length) { lines.push('Skills'); lines.push(allSkills.join(', ')); lines.push(''); }
+
+    // Work Experience — plain values in order: title, company, location, dates, description, bullets
+    const roles = ce.roles || [];
+    if (roles.length) {
+      lines.push('Work Experience');
+      lines.push('');
+      roles.forEach(role => {
+        const title = (role.title || '').trim();
+        const company = (role.company || '').trim();
+        const loc = (role.location || '').trim();
+        const startDate = fmtWorkdayDate(role.startDate || '');
+        const endDate = (!role.endDate || role.endDate === 'Present') ? 'Present' : fmtWorkdayDate(role.endDate);
+
+        lines.push(title);
+        lines.push(company);
+        if (loc) lines.push(loc);
+        if (startDate) lines.push(startDate + ' - ' + (endDate || ''));
+        if (role.context) lines.push(role.context.trim());
+        (role.bullets || []).forEach((b, i) => {
+          const text = (typeof b === 'string' ? b : b.text || b.content || '').replace(/^[•\-\*]\s*/, '').trim();
+          if (text) lines.push((i + 1) + '. ' + text);
+        });
+        lines.push('');
       });
-      lines.push('');
-    });
-  }
+    }
 
-  // ── EDUCATION ────────────────────────────────────────────
-  const edu = ce.edu || [];
-  if (edu.length) {
-    lines.push('EDUCATION');
-    lines.push('');
-    edu.forEach(e => {
-      if (e.school) lines.push('SCHOOL: ' + e.school);
-      if (e.degree) lines.push('DEGREE: ' + e.degree);
-      if (e.field) lines.push('FIELD OF STUDY: ' + e.field);
-      if (e.year || e.endYear) lines.push('GRADUATION YEAR: ' + (e.year || e.endYear));
+    // Education
+    const edu = ce.edu || [];
+    if (edu.length) {
+      lines.push('Education');
       lines.push('');
-    });
-  }
+      edu.forEach(e => {
+        if (e.school) lines.push(e.school);
+        if (e.degree) lines.push(e.degree);
+        if (e.field) lines.push(e.field);
+        if (e.year || e.endYear) lines.push(String(e.year || e.endYear));
+        lines.push('');
+      });
+    }
 
-  // ── GENERATE FILE ────────────────────────────────────────
     const text = lines.join('\n');
     const safeName = (name + (jobTitle ? '_' + jobTitle : '')).replace(/[^a-zA-Z0-9_]/g, '_').replace(/_+/g, '_');
     const fname = safeName + '_Workday.txt';
-    console.log('exportWorkday: generating', fname, 'with', text.length, 'chars');
     const blob = new Blob([text], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = fname;
     document.body.appendChild(a);
     a.click();
-    setTimeout(() => {
-      try { document.body.removeChild(a); } catch(e) {}
-      URL.revokeObjectURL(url);
-    }, 100);
-    if (typeof toast === 'function') toast('Workday export saved — ' + fname);
+    setTimeout(() => { try { document.body.removeChild(a); } catch(e) {} URL.revokeObjectURL(url); }, 100);
+    if (typeof toast === 'function') toast('Workday export saved');
   } catch(err) {
     console.error('Workday export error:', err);
     alert('Export failed: ' + err.message);
