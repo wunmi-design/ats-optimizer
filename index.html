@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.3.4</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.3.5</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -621,7 +621,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
           <button onclick="fmtSavePdf();closeDownloadMenu()" style="display:block;width:100%;text-align:left;padding:9px 14px;font-size:12px;background:none;border:none;cursor:pointer;color:var(--ink);" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='none'">↓ Save as PDF</button>
           <button onclick="fmtSaveDocx();closeDownloadMenu()" style="display:block;width:100%;text-align:left;padding:9px 14px;font-size:12px;background:none;border:none;cursor:pointer;color:var(--ink);" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='none'">↓ Save as .docx</button>
           <div style="height:1px;background:var(--border);margin:4px 0;"></div>
-          <button onclick="exportWorkday();closeDownloadMenu()" style="display:block;width:100%;text-align:left;padding:9px 14px;font-size:12px;background:none;border:none;cursor:pointer;color:var(--ink);" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='none'">↓ Workday Export</button>
+          <button onclick="closeDownloadMenu();setTimeout(exportWorkday,50)" style="display:block;width:100%;text-align:left;padding:9px 14px;font-size:12px;background:none;border:none;cursor:pointer;color:var(--ink);" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='none'">↓ Workday Export</button>
         </div>
       </div>
     </div>
@@ -6105,11 +6105,13 @@ function initFontDropdowns() {
 }
 
 function exportWorkday() {
-  if (!proj) { toast('Open a project first'); return; }
+  console.log('exportWorkday called, proj=', !!proj);
+  try {
+    if (!proj) { alert('Open a project first'); return; }
 
-  const ce = proj.ce || {};
-  const contact = ce.contact || {};
-  const lines = [];
+    const ce = proj.ce || {};
+    const contact = ce.contact || {};
+    const lines = [];
 
   // ── CONTACT ──────────────────────────────────────────────
   const name = ((contact.fname || '') + ' ' + (contact.lname || '')).trim();
@@ -6185,22 +6187,24 @@ function exportWorkday() {
   }
 
   // ── GENERATE FILE ────────────────────────────────────────
-  try {
     const text = lines.join('\n');
     const safeName = (name + (jobTitle ? '_' + jobTitle : '')).replace(/[^a-zA-Z0-9_]/g, '_').replace(/_+/g, '_');
     const fname = safeName + '_Workday.txt';
+    console.log('exportWorkday: generating', fname, 'with', text.length, 'chars');
     const blob = new Blob([text], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = fname;
     document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    toast('Workday export saved — ' + fname);
+    setTimeout(() => {
+      try { document.body.removeChild(a); } catch(e) {}
+      URL.revokeObjectURL(url);
+    }, 100);
+    if (typeof toast === 'function') toast('Workday export saved — ' + fname);
   } catch(err) {
     console.error('Workday export error:', err);
-    toast('Export failed: ' + err.message);
+    alert('Export failed: ' + err.message);
   }
 }
 function fmtWorkdayDate(dateStr) {
