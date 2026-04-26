@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.0</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.1</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -5247,7 +5247,7 @@ ${keywords.map(k => '• ' + k).join('\n')}
 RESUME:
 ${resume}`;
     const result = await claudeFetch(prompt, 4000);
-    const cleaned = result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim();
+    const cleaned = deduplicateResume(result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim());
     proj.drafts.push(cleaned);
     proj._redoStack = [];
     autoSave();
@@ -5316,6 +5316,35 @@ function renderAppliedFixes() {
   }
 }
 
+
+function deduplicateResume(text) {
+  // Split into lines and detect duplicate role blocks
+  const lines = text.split('\n');
+  const seen = new Set();
+  const result = [];
+  let skip = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    if (skip > 0) { skip--; continue; }
+    const line = lines[i].trim();
+    // Detect role header lines — bold company or title patterns
+    const isRoleHeader = /^\*\*[^*]+\*\*/.test(line) || /^[A-Z][^\n]{5,}·[^\n]{3,}\d{2}\/\d{2}/.test(line);
+    if (isRoleHeader) {
+      const key = line.replace(/\s+/g, ' ').toLowerCase();
+      if (seen.has(key)) {
+        // Skip this duplicate block until next empty line or next role header
+        let j = i + 1;
+        while (j < lines.length && lines[j].trim() !== '' && !/^\*\*[^*]+\*\*/.test(lines[j].trim())) j++;
+        skip = j - i - 1;
+        continue;
+      }
+      seen.add(key);
+    }
+    result.push(lines[i]);
+  }
+  return result.join('\n');
+}
+
 async function applySelectedFixes(){
   const fixCbs = Array.from(document.querySelectorAll('.fix-cb:checked'));
   const kwCbs = Array.from(document.querySelectorAll('.kw-missing-row input[data-kw]:checked'));
@@ -5358,10 +5387,11 @@ async function applySelectedFixes(){
     const titleRule = jdTitle ? `\\n- The person's job title line (directly under their name) MUST be exactly: "${jdTitle}"` : '';
 
     const result = await claudeFetch(
-      `Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT same section structure and order as the original resume${titleRule}\n- SKILLS must stay organized in labeled categories (e.g. Leadership:, Design:, Product:, Engineering:). If the original has categories, keep them. If not, organize skills into logical categories.\n- When adding keywords to skills, place them in the correct category\n- Do NOT merge all skills into one flat list\n- FORMATTING IS SACRED: Output must use IDENTICAL format as input — same line breaks, spacing, bullet characters, section header style.\n- Do NOT reformat, restructure, merge lines, split lines, add/remove blank lines, or change bullet style.\n- Do NOT change the number of roles, reorder roles, or alter dates/companies.\n- ONLY change the specific text content requested. Everything else stays EXACTLY as-is.\n- NEVER FABRICATE metrics, percentages, revenue figures, or outcomes not present in the original resume. If the original says '26% MAU growth', keep that exact number. Never invent '40% user growth' or '$2M revenue' unless those exact figures exist in the original text.\n- NEVER USE competitor brand names anywhere in the resume. 'Commercial Card', 'Capital One brand', 'Chase', 'Amex', etc. are competitor product names. Replace with generic terms: use 'financial services products', 'credit card products', 'digital banking products' instead.\n- BEFORE returning the resume, scan every bullet and skill for: (1) any metric not in the original, (2) any competitor brand name. Remove or replace both.\n- SKILLS must stay in labeled categories (Leadership:, Design:, Product:, Engineering:). NEVER merge into one block.\n- Remove non-skills from the skills section: phrases like 'Business Goals', 'portfolio strategy', 'Experience Design organization' are NOT skills.\n- SUMMARY must be 50-75 words. If the current summary exceeds 75 words, trim it. NEVER let it grow beyond 75 words.\n- NEVER repeat the same phrase twice in the summary. Check for duplicates before returning.\n- The job title directly under the candidate's name MUST exactly match the JD title. Do not revert it.\n- Bullets target: 20-30 words each. Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n\n${promptBody}RESUME:\n${resume}`,
+      `Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT same section structure and order as the original resume${titleRule}\n- SKILLS must stay organized in labeled categories (e.g. Leadership:, Design:, Product:, Engineering:). If the original has categories, keep them. If not, organize skills into logical categories.\n- When adding keywords to skills, place them in the correct category\n- Do NOT merge all skills into one flat list\n- FORMATTING IS SACRED: Output must use IDENTICAL format as input — same line breaks, spacing, bullet characters, section header style.\n- Do NOT reformat, restructure, merge lines, split lines, add/remove blank lines, or change bullet style.\n- Do NOT change the number of roles, reorder roles, or alter dates/companies.\n- ONLY change the specific text content requested. Everything else stays EXACTLY as-is.
+- CRITICAL: Before returning, check for duplicate job entries. If any company + title + date combination appears more than once, remove the duplicate. Each role must appear exactly once.\n- NEVER FABRICATE metrics, percentages, revenue figures, or outcomes not present in the original resume. If the original says '26% MAU growth', keep that exact number. Never invent '40% user growth' or '$2M revenue' unless those exact figures exist in the original text.\n- NEVER USE competitor brand names anywhere in the resume. 'Commercial Card', 'Capital One brand', 'Chase', 'Amex', etc. are competitor product names. Replace with generic terms: use 'financial services products', 'credit card products', 'digital banking products' instead.\n- BEFORE returning the resume, scan every bullet and skill for: (1) any metric not in the original, (2) any competitor brand name. Remove or replace both.\n- SKILLS must stay in labeled categories (Leadership:, Design:, Product:, Engineering:). NEVER merge into one block.\n- Remove non-skills from the skills section: phrases like 'Business Goals', 'portfolio strategy', 'Experience Design organization' are NOT skills.\n- SUMMARY must be 50-75 words. If the current summary exceeds 75 words, trim it. NEVER let it grow beyond 75 words.\n- NEVER repeat the same phrase twice in the summary. Check for duplicates before returning.\n- The job title directly under the candidate's name MUST exactly match the JD title. Do not revert it.\n- Bullets target: 20-30 words each. Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n\n${promptBody}RESUME:\n${resume}`,
       4000
     );
-    const cleaned = result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim();
+    const cleaned = deduplicateResume(result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim());
     // Replace the latest draft instead of pushing a new one to avoid draft accumulation
     if (proj.drafts.length > 0) {
       proj.drafts[proj.drafts.length - 1] = cleaned;
@@ -5505,10 +5535,11 @@ async function autoOptimize() {
       const titleRule = jdTitle ? `\\n- The person's job title line (directly under their name) MUST be exactly: "${jdTitle}"` : '';
 
       const result = await claudeFetch(
-        `Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT same section structure and order as the original resume${titleRule}\n- SKILLS must stay organized in labeled categories (e.g. Leadership:, Design:, Product:, Engineering:). If the original has categories, keep them. If not, organize skills into logical categories.\n- When adding keywords to skills, place them in the correct category\n- Do NOT merge all skills into one flat list\n- FORMATTING IS SACRED: Output must use IDENTICAL format as input — same line breaks, spacing, bullet characters, section header style.\n- Do NOT reformat, restructure, merge lines, split lines, add/remove blank lines, or change bullet style.\n- Do NOT change the number of roles, reorder roles, or alter dates/companies.\n- ONLY change the specific text content requested. Everything else stays EXACTLY as-is.\n- NEVER FABRICATE metrics, percentages, revenue figures, or outcomes not present in the original resume. If the original says '26% MAU growth', keep that exact number. Never invent '40% user growth' or '$2M revenue' unless those exact figures exist in the original text.\n- NEVER USE competitor brand names anywhere in the resume. 'Commercial Card', 'Capital One brand', 'Chase', 'Amex', etc. are competitor product names. Replace with generic terms: use 'financial services products', 'credit card products', 'digital banking products' instead.\n- BEFORE returning the resume, scan every bullet and skill for: (1) any metric not in the original, (2) any competitor brand name. Remove or replace both.\n- SKILLS must stay in labeled categories (Leadership:, Design:, Product:, Engineering:). NEVER merge into one block.\n- Remove non-skills from the skills section: phrases like 'Business Goals', 'portfolio strategy', 'Experience Design organization' are NOT skills.\n- SUMMARY must be 50-75 words. If the current summary exceeds 75 words, trim it. NEVER let it grow beyond 75 words.\n- NEVER repeat the same phrase twice in the summary. Check for duplicates before returning.\n- The job title directly under the candidate's name MUST exactly match the JD title. Do not revert it.\n- Bullets target: 20-30 words each. Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n\n${promptBody}RESUME:\n${currentResume}`,
+        `Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT same section structure and order as the original resume${titleRule}\n- SKILLS must stay organized in labeled categories (e.g. Leadership:, Design:, Product:, Engineering:). If the original has categories, keep them. If not, organize skills into logical categories.\n- When adding keywords to skills, place them in the correct category\n- Do NOT merge all skills into one flat list\n- FORMATTING IS SACRED: Output must use IDENTICAL format as input — same line breaks, spacing, bullet characters, section header style.\n- Do NOT reformat, restructure, merge lines, split lines, add/remove blank lines, or change bullet style.\n- Do NOT change the number of roles, reorder roles, or alter dates/companies.\n- ONLY change the specific text content requested. Everything else stays EXACTLY as-is.
+- CRITICAL: Before returning, check for duplicate job entries. If any company + title + date combination appears more than once, remove the duplicate. Each role must appear exactly once.\n- NEVER FABRICATE metrics, percentages, revenue figures, or outcomes not present in the original resume. If the original says '26% MAU growth', keep that exact number. Never invent '40% user growth' or '$2M revenue' unless those exact figures exist in the original text.\n- NEVER USE competitor brand names anywhere in the resume. 'Commercial Card', 'Capital One brand', 'Chase', 'Amex', etc. are competitor product names. Replace with generic terms: use 'financial services products', 'credit card products', 'digital banking products' instead.\n- BEFORE returning the resume, scan every bullet and skill for: (1) any metric not in the original, (2) any competitor brand name. Remove or replace both.\n- SKILLS must stay in labeled categories (Leadership:, Design:, Product:, Engineering:). NEVER merge into one block.\n- Remove non-skills from the skills section: phrases like 'Business Goals', 'portfolio strategy', 'Experience Design organization' are NOT skills.\n- SUMMARY must be 50-75 words. If the current summary exceeds 75 words, trim it. NEVER let it grow beyond 75 words.\n- NEVER repeat the same phrase twice in the summary. Check for duplicates before returning.\n- The job title directly under the candidate's name MUST exactly match the JD title. Do not revert it.\n- Bullets target: 20-30 words each. Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n\n${promptBody}RESUME:\n${currentResume}`,
         4000
       );
-      const cleaned = result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim();
+      const cleaned = deduplicateResume(result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim());
 
       // Update draft
       if (proj.drafts.length > 0) {
