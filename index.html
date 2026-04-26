@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.4</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.5</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -5350,15 +5350,22 @@ function deduplicateResume(text) {
 // Fail-safe: if the call errors, returns the original text unchanged.
 async function dedupeBulletMetrics(text) {
   try {
-    const prompt = `Your only job: scan each role's bullets and remove repeated metrics.
+    const prompt = `Your only job: within each role, ensure every metric appears AT MOST ONCE across that role's content.
+
+A "role" is one job entry. Each role has:
+  (a) a role summary line (the sentence immediately after the role header, before the bullets) — may or may not be present
+  (b) a list of bullet points
+
+CHECK BOTH (a) AND (b) TOGETHER. A metric in the role summary that also appears in a bullet IS a duplicate. A metric in two different bullets IS a duplicate.
 
 RULES:
-- If a number, percentage, or specific metric (e.g. "26% MAU growth", "100M+ customers", "90% activation rate", "342M devices") appears in more than one bullet within the SAME role, KEEP it ONLY in the bullet where it has the most context and explanation, and REMOVE it from the other bullets.
-- After removing a metric from a bullet, rewrite that bullet so it still reads as a complete, natural sentence — do not leave dangling fragments or orphan clauses.
-- If a bullet becomes redundant after removing its metric (i.e. it now says nearly the same thing as another bullet), delete that bullet entirely.
-- Do NOT change anything else. Same sections, same role order, same dates, same companies, same titles, same skills, same summary, same formatting, same bullet character.
+- If a number, percentage, or specific metric (e.g. "26% MAU growth", "300% DAU growth", "100M+ customers", "90% activation rate", "342M devices") appears more than once anywhere within the SAME role (summary + bullets combined), KEEP it in ONLY ONE location: the place where it has the most context and explanation. REMOVE it from every other place in that role.
+- When removing a metric from the role summary or a bullet, rewrite that line so it still reads as a complete, natural sentence — do not leave dangling fragments, orphan clauses, or trailing prepositions.
+- If a bullet becomes redundant after removing its metric (i.e. it now says nearly the same thing as another bullet), delete the redundant bullet entirely.
+- Do NOT change anything else: same sections, same role order, same dates, same companies, same titles, same skills, same professional summary at the top of the resume, same formatting, same bullet character.
 - Do NOT add new metrics. Do NOT invent numbers. Do NOT alter metrics that appear only once.
-- If no duplicate metrics exist anywhere, return the resume completely unchanged.
+- The professional summary at the very top of the resume (above any role) is OUT OF SCOPE — leave it alone even if it shares a metric with a role.
+- If no duplicate metrics exist anywhere within any role, return the resume completely unchanged.
 
 Return ONLY the complete plain-text resume, no commentary, no code fences.
 
