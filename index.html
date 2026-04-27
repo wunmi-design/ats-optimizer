@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.7</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.8</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -1737,14 +1737,14 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
     <div style="margin-bottom:2px;">
       <div style="font-size:4px;font-weight:700;margin-bottom:0.4px;">Your Name</div>
       <div style="font-size:2.2px;color:#333;margin-bottom:1px;">Senior Product Design Manager</div>
-      <div style="font-size:1.7px;font-style:italic;color:#444;">you@example.com</div>
-      <div style="font-size:1.7px;font-style:italic;color:#444;">555-000-0000</div>
-      <div style="font-size:1.7px;font-style:italic;color:#444;">Arlington, VA</div>
+      <div style="font-size:1.7px;color:#444;">you@example.com</div>
+      <div style="font-size:1.7px;color:#444;">555-000-0000</div>
+      <div style="font-size:1.7px;color:#444;">Arlington, VA</div>
       <div style="font-size:1.7px;color:#1a5fa5;">www.example.com</div>
-    </div><div style="font-size:2.2px;font-weight:700;text-transform:uppercase;color:#111;margin:1.5px 0 0.8px;">SUMMARY</div><div style="font-size:1.8px;color:#444;margin-bottom:0.3px;">Senior Product Design Manager who leads cross-functional teams.</div><div style="font-size:2.2px;font-weight:700;text-transform:uppercase;color:#111;margin:1.5px 0 0.8px;">SKILLS</div><div style="font-size:1.8px;color:#555;margin-bottom:0.3px;">Leadership · UX Design · Figma</div><div style="font-size:2.2px;font-weight:700;text-transform:uppercase;color:#111;margin:1.5px 0 0.8px;">EXPERIENCE</div><div style="display:flex;justify-content:space-between;margin-bottom:0.3px;">
-          <span style="font-size:2.2px;font-weight:700;">Verizon</span>
-          <span style="font-size:1.8px;color:#888;">02/24–Present</span>
-        </div><div style="font-size:2px;font-weight:600;color:#333;margin-bottom:0.3px;">Senior Design Manager</div><div style="font-size:1.8px;color:#444;padding-left:2px;">· Led 9 designers across financial products</div>
+    </div><div style="font-size:2.2px;font-weight:700;text-transform:uppercase;color:#111;margin:2.5px 0 0.8px;">SUMMARY</div><div style="font-size:1.8px;color:#444;margin-bottom:0.3px;">Senior Product Design Manager who leads cross-functional teams.</div><div style="font-size:2.2px;font-weight:700;text-transform:uppercase;color:#111;margin:2.5px 0 0.8px;">SKILLS</div><div style="font-size:1.8px;color:#555;margin-bottom:0.3px;">Leadership · UX Design · Figma</div><div style="font-size:2.2px;font-weight:700;text-transform:uppercase;color:#111;margin:2.5px 0 0.8px;">EXPERIENCE</div><div style="display:flex;justify-content:space-between;margin-bottom:0.3px;">
+          <span style="font-size:2px;font-weight:700;">Senior Design Manager</span>
+          <span style="font-size:1.7px;color:#666;">02/24–Present</span>
+        </div><div style="font-size:1.8px;color:#444;margin-bottom:0.3px;"><span style="font-weight:600;">Verizon</span> · New York, NY</div><div style="font-size:1.8px;color:#444;padding-left:2px;">· Led 9 designers across financial products</div>
   </div></div>
       <div class="tmpl-name">Standard</div>
     </div>
@@ -6513,11 +6513,10 @@ function fmtLinkify(raw) {
         const trimmed=l.trim();
         const isLink=/http|www\.|\.com|\.io|\.co|linkedin|github/i.test(trimmed);
         const color=isLink?'#1a5fa5':'#444';
-        const style=isLink?'':'font-style:italic;';
-        return `<div style="font-size:.92em;font-family:${font},Arial,sans-serif;color:${color};${style}line-height:1.5;">${fmtLinkify(l)}</div>`;
+        return `<div style="font-size:.92em;font-family:${font},Arial,sans-serif;color:${color};line-height:1.55;">${fmtLinkify(l)}</div>`;
       }).join('');
       const titleHtml=title?`<div style="font-size:1.05em;font-weight:400;color:#333;margin-bottom:.08in;font-family:${font},Arial,sans-serif;">${e(title)}</div>`:'';
-      return`<div style="margin-bottom:.2in;">
+      return`<div style="margin-bottom:.3in;">
         <div style="font-size:${namePx};font-weight:700;letter-spacing:-.01em;font-family:${nameFont},Arial,sans-serif;color:#111;margin-bottom:.04in;">${e(name)}</div>
         ${titleHtml}
         ${contactHtml}
@@ -6619,20 +6618,35 @@ function fmtLinkify(raw) {
         const jh = parseJobHeader(t, nextIsJobLine ? nextT : null);
         if (jh) {
           const ESC = s => String(s||'').replace(/\s*·\s*$/, '').trim().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-          // Line 1: Company (larger bold) + comma + Location — render even if company blank
-          const companyLine = (jh.company || jh.location)
-            ? `<div style="margin-bottom:7px;">
-                ${jh.company ? `<span style="font-size:${expPx};font-weight:700;font-family:${expFont},Arial,sans-serif;">${ESC(jh.company)}</span>` : ''}${jh.location ? `<span style="font-size:${expPx};font-weight:400;">${jh.company ? ', ' : ''}${ESC(jh.location)}</span>` : ''}
-               </div>`
-            : '';
-          // Line 2: Title (bold) left + Dates (gray, regular) right
-          const titleLine = jh.role
-            ? `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:2px;">
-                <div style="font-size:${rolePx};font-weight:700;font-family:${roleFont},Arial,sans-serif;">${ESC(jh.role)}</div>
-                <div style="font-weight:400;color:#888;white-space:nowrap;flex-shrink:0;">${ESC(jh.dates)}</div>
-               </div>`
-            : '';
-          html += `<div style="margin-top:16px;margin-bottom:4px;">${companyLine}${titleLine}</div>`;
+          if (layout === 'standard') {
+            // Standard layout: role + date on top line (role larger), company + location underneath (smaller)
+            const topLine = jh.role
+              ? `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:3px;">
+                  <div style="font-size:1.1em;font-weight:700;font-family:${roleFont},Arial,sans-serif;color:#111;">${ESC(jh.role)}</div>
+                  <div style="font-size:.92em;font-weight:400;color:#666;white-space:nowrap;flex-shrink:0;">${ESC(jh.dates)}</div>
+                 </div>`
+              : '';
+            const subLine = (jh.company || jh.location)
+              ? `<div style="font-size:.92em;color:#444;margin-bottom:8px;">
+                  ${jh.company ? `<span style="font-weight:600;">${ESC(jh.company)}</span>` : ''}${jh.location ? `${jh.company ? ' · ' : ''}<span style="font-weight:400;">${ESC(jh.location)}</span>` : ''}
+                 </div>`
+              : '';
+            html += `<div style="margin-top:18px;margin-bottom:6px;">${topLine}${subLine}</div>`;
+          } else {
+            // Original layout (Professional + fallback): company on top, role+date underneath
+            const companyLine = (jh.company || jh.location)
+              ? `<div style="margin-bottom:7px;">
+                  ${jh.company ? `<span style="font-size:${expPx};font-weight:700;font-family:${expFont},Arial,sans-serif;">${ESC(jh.company)}</span>` : ''}${jh.location ? `<span style="font-size:${expPx};font-weight:400;">${jh.company ? ', ' : ''}${ESC(jh.location)}</span>` : ''}
+                 </div>`
+              : '';
+            const titleLine = jh.role
+              ? `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:2px;">
+                  <div style="font-size:${rolePx};font-weight:700;font-family:${roleFont},Arial,sans-serif;">${ESC(jh.role)}</div>
+                  <div style="font-weight:400;color:#888;white-space:nowrap;flex-shrink:0;">${ESC(jh.dates)}</div>
+                 </div>`
+              : '';
+            html += `<div style="margin-top:16px;margin-bottom:4px;">${companyLine}${titleLine}</div>`;
+          }
           // Skip consumed lines (1 or 2), plus skip any immediately following
           // empty lines that would otherwise render as spacers between header and bullets
           i = jh.consumed === 2 ? nextIdx + 1 : i + 1;
@@ -6677,7 +6691,7 @@ function fmtLinkify(raw) {
   else if(layout==='professional') headingHtml=`<div style="font-size:${headingPx};font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#888;font-family:${headingFont},Arial,sans-serif;margin-bottom:6px;margin-top:4px;">${e(sec.heading)}</div>`;
   else if(layout==='standard') headingHtml=`<div style="font-size:1.05em;font-weight:700;text-transform:uppercase;letter-spacing:.02em;color:#111;font-family:${headingFont},Arial,sans-serif;margin-bottom:6px;margin-top:4px;">${e(sec.heading)}</div>`;
   else headingHtml=`<div style="font-size:.7em;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:${accent};border-bottom:1px solid ${accent}44;padding-bottom:2px;margin-bottom:5px;">${e(sec.heading)}</div>`;
-  return`<div style="margin-bottom:${(layout==='professional'||layout==='standard')?'.16in':'.12in'}">${headingHtml}<div style="font-size:${size};font-family:${font},Arial,sans-serif;line-height:${layout==='compact'?'1.25':'1.45'};">${body}</div></div>`;}
+  return`<div style="margin-bottom:${layout==='standard'?'.24in':layout==='professional'?'.16in':'.12in'}">${headingHtml}<div style="font-size:${size};font-family:${font},Arial,sans-serif;line-height:${layout==='compact'?'1.25':'1.45'};">${body}</div></div>`;}
   // Two-column layouts
   // sidebar layout removed — single-column only
   // Professional + Standard templates: SUMMARY → CORE COMPETENCIES → EXPERIENCE → ... → EDUCATION/SKILLS
