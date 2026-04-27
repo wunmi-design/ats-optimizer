@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.10</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.11</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -622,6 +622,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
           <button onclick="fmtSaveDocx();closeDownloadMenu()" style="display:block;width:100%;text-align:left;padding:9px 14px;font-size:12px;background:none;border:none;cursor:pointer;color:var(--ink);" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='none'">↓ Save as .docx</button>
           <div style="height:1px;background:var(--border);margin:4px 0;"></div>
           <button onclick="closeDownloadMenu();setTimeout(exportWorkday,50)" style="display:block;width:100%;text-align:left;padding:9px 14px;font-size:12px;background:none;border:none;cursor:pointer;color:var(--ink);" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='none'">↓ Workday Export</button>
+          <button onclick="closeDownloadMenu();setTimeout(exportIcims,50)" style="display:block;width:100%;text-align:left;padding:9px 14px;font-size:12px;background:none;border:none;cursor:pointer;color:var(--ink);" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='none'">↓ iCIMS Export</button>
         </div>
       </div>
     </div>
@@ -6219,6 +6220,144 @@ function fmtWorkdayDate(dateStr) {
   const short = clean.match(/^(\d{2})\/(\d{2})$/);
   if (short) return short[1] + '/20' + short[2];
   return clean;
+}
+
+// Format date for iCIMS — prefers "Mon YYYY" (e.g. "Feb 2024"), the form iCIMS parses most reliably.
+function fmtIcimsDate(dateStr) {
+  if (!dateStr) return '';
+  const clean = dateStr.trim();
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  // MM/YYYY -> "Mon YYYY"
+  let m = clean.match(/^(\d{1,2})\/(\d{4})$/);
+  if (m) { const idx = parseInt(m[1],10)-1; if (idx>=0 && idx<12) return monthNames[idx] + ' ' + m[2]; }
+  // MM/YY -> "Mon 20YY"
+  m = clean.match(/^(\d{1,2})\/(\d{2})$/);
+  if (m) { const idx = parseInt(m[1],10)-1; if (idx>=0 && idx<12) return monthNames[idx] + ' 20' + m[2]; }
+  // "Feb 2024" already formatted — title-case it
+  m = clean.match(/^([a-z]{3,9})\s+(\d{4})$/i);
+  if (m) return m[1].charAt(0).toUpperCase() + m[1].slice(1, 3).toLowerCase() + ' ' + m[2];
+  return clean;
+}
+
+function exportIcims() {
+  try {
+    if (!proj) { alert('Open a project first'); return; }
+
+    const ce = proj.ce || {};
+    const contact = ce.contact || {};
+    const lines = [];
+
+    const name = ((contact.fname || '') + ' ' + (contact.lname || '')).trim();
+    const jobTitle = proj.jdTitle || contact.title || '';
+    const email = contact.email || '';
+    const phone = contact.phone || '';
+    const city = contact.city || '';
+    const state = contact.state || '';
+    const location = [city, state].filter(Boolean).join(', ');
+    const linkedin = contact.linkedin || '';
+    const website = contact.portfolio || '';
+
+    // Contact block — clean, one item per line, no separators
+    if (name) lines.push(name);
+    if (jobTitle) lines.push(jobTitle);
+    if (phone) lines.push(phone);
+    if (email) lines.push(email);
+    if (location) lines.push(location);
+    if (linkedin) lines.push(linkedin);
+    if (website) lines.push(website);
+    lines.push('');
+
+    // Professional Summary — Title Case heading parses cleanly
+    const summary = ce.summary || '';
+    if (summary) {
+      lines.push('Professional Summary');
+      lines.push(summary.trim());
+      lines.push('');
+    }
+
+    // Skills — keep category labels (iCIMS handles them well, unlike Workday)
+    const skillGroups = ce.skillGroups || [];
+    const skillsWithText = skillGroups.filter(sg => (sg.skills || []).some(s => (typeof s === 'string' ? s : s.text || '').trim()));
+    if (skillsWithText.length) {
+      lines.push('Skills');
+      skillsWithText.forEach(sg => {
+        const skillTexts = (sg.skills || []).map(s => typeof s === 'string' ? s : s.text || '').filter(Boolean);
+        if (skillTexts.length) {
+          const label = (sg.label || '').trim();
+          lines.push(label ? `${label}: ${skillTexts.join(', ')}` : skillTexts.join(', '));
+        }
+      });
+      lines.push('');
+    }
+
+    // Experience — keep titles intact (iCIMS handles commas fine)
+    // Format per role: title + company + location | start - end + bullets
+    const roles = ce.roles || [];
+    if (roles.length) {
+      lines.push('Experience');
+      lines.push('');
+      roles.forEach(role => {
+        const title = (role.title || '').trim();
+        const company = (role.company || '').trim();
+        const loc = (role.location || '').trim();
+        const startDate = fmtIcimsDate(role.startDate || '');
+        const endDate = (!role.endDate || /^present$/i.test(role.endDate)) ? 'Present' : fmtIcimsDate(role.endDate);
+        const dateRange = startDate ? (startDate + ' – ' + (endDate || 'Present')) : '';
+
+        // Line 1: title
+        if (title) lines.push(title);
+        // Line 2: Company, Location
+        const companyLine = [company, loc].filter(Boolean).join(', ');
+        if (companyLine) lines.push(companyLine);
+        // Line 3: dates
+        if (dateRange) lines.push(dateRange);
+        // Optional context paragraph
+        if (role.context && role.context.trim()) lines.push(role.context.trim());
+        // Bullets — use • character; iCIMS recognizes it as a bullet
+        (role.bullets || []).forEach(b => {
+          const text = (typeof b === 'string' ? b : b.text || b.content || '').replace(/^[•\-\*]\s*/, '').trim();
+          if (text) lines.push('• ' + text);
+        });
+        lines.push('');
+      });
+    }
+
+    // Education
+    const edu = ce.edu || [];
+    const eduWithContent = edu.filter(e => e.school || e.degree || e.field || e.year || e.endYear);
+    if (eduWithContent.length) {
+      lines.push('Education');
+      lines.push('');
+      eduWithContent.forEach(e => {
+        // Format: "Degree, Field — School, Year"  or whatever subset is present
+        const left = [e.degree, e.field].filter(Boolean).join(', ').trim();
+        const year = (e.year || e.endYear || '').toString().trim();
+        const right = [e.school, year].filter(Boolean).join(', ').trim();
+        if (left && right) lines.push(left + ' — ' + right);
+        else if (left) lines.push(left);
+        else if (right) lines.push(right);
+        lines.push('');
+      });
+    }
+
+    // Strip trailing blank lines, then join
+    while (lines.length && lines[lines.length - 1] === '') lines.pop();
+    const text = lines.join('\n');
+
+    const safeName = (name + (jobTitle ? '_' + jobTitle : '')).replace(/[^a-zA-Z0-9_]/g, '_').replace(/_+/g, '_');
+    const fname = safeName + '_iCIMS.txt';
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = fname;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { try { document.body.removeChild(a); } catch(e) {} URL.revokeObjectURL(url); }, 100);
+    if (typeof toast === 'function') toast('iCIMS export saved');
+  } catch(err) {
+    console.error('iCIMS export error:', err);
+    alert('Export failed: ' + err.message);
+  }
 }
 
 function toggleDownloadMenu(e) {
