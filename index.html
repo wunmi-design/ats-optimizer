@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.12</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.13</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -5227,27 +5227,111 @@ function renderAppliedFixes() {
 
 
 function deduplicateResume(text) {
-  // Split into lines and detect duplicate role blocks
+  // Detect and remove duplicate role blocks. A role's identity is title + company + start-date,
+  // not just the title line — same title at different employers is legitimate.
   const lines = text.split('\n');
   const seen = new Set();
   const result = [];
   let skip = 0;
 
+  // Collapse "X · X" or "X — X" patterns where the same phrase appears twice with a separator.
+  const collapseDoubledTitle = (s) => {
+    const m = s.match(/^(.{8,}?)\s*[·\-—]\s*\1\s*$/i);
+    return m ? m[1].trim() : s;
+  };
+
+  // Identify a role title line: bold or a substantial line that is NOT a company/date/bullet line.
+  const isTitleLine = (s) => {
+    const t = s.trim();
+    if (!t) return false;
+    if (/^\*\*[^*]+\*\*/.test(t)) return true;
+    // Title heuristic: starts with capital, decent length, no leading bullet, no leading date,
+    // no all-lowercase URLs, and not a Section heading like "EXPERIENCE" / "SKILLS"
+    if (/^[•\-\*]/.test(t)) return false;
+    if (/^\d/.test(t)) return false;
+    if (/^[A-Z\s]{4,}$/.test(t)) return false; // section heading
+    if (t.length < 8 || t.length > 160) return false;
+    if (!/^[A-Z]/.test(t)) return false;
+    return true;
+  };
+
+  // Identify a company/location/date line — typically "Company · Location MM/YY-MM/YY" or has "·"
+  const COMPANY_DATE_RE = /·.*\d{2}\/\d{2}|\d{2}\/\d{2}\s*[-–—]\s*(?:\d{2}\/\d{2}|Present|Current)/i;
+  const isCompanyDateLine = (s) => COMPANY_DATE_RE.test(s.trim());
+
+  // Extract a normalized identity key from a (title, companyDate) pair
+  const makeKey = (title, companyDate) => {
+    const t = collapseDoubledTitle(title.replace(/\*\*/g, '').trim()).toLowerCase().replace(/\s+/g, ' ');
+    const cd = (companyDate || '').toLowerCase().replace(/\s+/g, ' ');
+    // Pull out start date (first MM/YY) for the identity, since same title+company at different times = different role
+    const dateMatch = cd.match(/(\d{2}\/\d{2})/);
+    const startDate = dateMatch ? dateMatch[1] : '';
+    // Pull out company name (first chunk before first "·")
+    const company = cd.split('·')[0].trim();
+    return `${t}|${company}|${startDate}`;
+  };
+
   for (let i = 0; i < lines.length; i++) {
     if (skip > 0) { skip--; continue; }
     const line = lines[i].trim();
-    // Detect role header lines — bold company or title patterns
-    const isRoleHeader = /^\*\*[^*]+\*\*/.test(line) || /^[A-Z][^\n]{5,}·[^\n]{3,}\d{2}\/\d{2}/.test(line);
-    if (isRoleHeader) {
-      const key = line.replace(/\s+/g, ' ').toLowerCase();
+
+    if (isTitleLine(line)) {
+      // Look ahead to find the company/date line (could be on next line, or 2 lines down)
+      let companyDate = '';
+      let companyDateLineIdx = -1;
+      for (let lookAhead = 1; lookAhead <= 2; lookAhead++) {
+        const candidate = (lines[i + lookAhead] || '').trim();
+        if (isCompanyDateLine(candidate)) {
+          companyDate = candidate;
+          companyDateLineIdx = i + lookAhead;
+          break;
+        }
+        if (!candidate) break; // hit a blank line, stop looking
+      }
+
+      // Only treat as a role if we found a real company/date line OR title is bold-formatted
+      const isBoldHeader = /^\*\*[^*]+\*\*/.test(line);
+      if (!companyDate && !isBoldHeader) {
+        result.push(lines[i]);
+        continue;
+      }
+
+      const key = makeKey(line, companyDate);
       if (seen.has(key)) {
-        // Skip this duplicate block until next empty line or next role header
-        let j = i + 1;
-        while (j < lines.length && lines[j].trim() !== '' && !/^\*\*[^*]+\*\*/.test(lines[j].trim())) j++;
+        // Skip the duplicate block: skip the title, company/date, prose, and bullets — everything
+        // until we hit the next role header (a title line followed within 2 lines by a company/date line)
+        // or a section heading.
+        let j = (companyDateLineIdx >= 0 ? companyDateLineIdx : i) + 1;
+        while (j < lines.length) {
+          const next = lines[j].trim();
+          // Section heading (all-caps standalone) ends the block
+          if (/^[A-Z\s]{4,40}$/.test(next) && next === next.toUpperCase()) break;
+          // A new role header is title-like AND has a company/date line within 2 lines
+          if (isTitleLine(next)) {
+            let foundCompany = false;
+            for (let la = 1; la <= 2; la++) {
+              const peek = (lines[j + la] || '').trim();
+              if (isCompanyDateLine(peek)) { foundCompany = true; break; }
+              if (!peek) break;
+            }
+            if (foundCompany || /^\*\*[^*]+\*\*/.test(next)) break;
+          }
+          j++;
+        }
         skip = j - i - 1;
         continue;
       }
       seen.add(key);
+    }
+    // Apply doubled-title collapse to title lines we keep, in case the AI duplicated the title within a single line
+    if (isTitleLine(line)) {
+      const collapsed = collapseDoubledTitle(line.replace(/^\*\*/, '').replace(/\*\*$/, ''));
+      if (collapsed !== line.replace(/^\*\*/, '').replace(/\*\*$/, '')) {
+        // Preserve any bold markers around the collapsed title
+        const wasBold = /^\*\*.+\*\*$/.test(line);
+        result.push(wasBold ? `**${collapsed}**` : collapsed);
+        continue;
+      }
     }
     result.push(lines[i]);
   }
