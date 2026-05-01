@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.18</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.19</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -631,8 +631,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
   <!-- ═══ TAB BAR ═══ -->
   <div class="tabbar">
     <div class="tab active" id="tab-projects" onclick="switchTab(&#39;projects&#39;)">Projects</div>
-    <div class="tab" id="tab-jd" onclick="switchTab(&#39;jd&#39;)">Job Description</div>
-    <div class="tab" id="tab-questions" onclick="switchTab(&#39;questions&#39;)">Job Questions</div>
+    <div class="tab" id="tab-jd" onclick="switchTab('jd')">Job &amp; Questions</div>
     <div class="tab" id="tab-content" onclick="switchTab(&#39;content&#39;)">Content Editor</div>
     <div class="tab" id="tab-format" onclick="switchTab('format')">Template</div>
     <div class="tab" id="tab-analyzer" onclick="switchTab(&#39;analyzer&#39;)">Optimizer <span id="tab-analyzer-score" class="score-pill" style="font-size: 10px; padding: 1px 5px; margin-left: 4px;">82%</span></div>
@@ -1868,84 +1867,34 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
           <div id="jd-signals" style="display:none;"><div class="text-xs text-muted mt-1">💡 Manage and grow a team of product designers</div><div class="text-xs text-muted mt-1">💡 Lead design across OpenAI's Foundational Systems</div><div class="text-xs text-muted mt-1">💡 Set high bar for design quality</div><div class="text-xs text-muted mt-1">💡 Partner closely with engineering, product, and research</div><div class="text-xs text-muted mt-1">💡 Shape product direction and design culture</div><div class="text-xs text-muted mt-1">💡 Coach team to ship fast while elevating craft</div></div>
           <span id="jd-level-badge" style="display:none;">Senior</span>
         </div>
-      </div>
 
-      <!-- ── JOB QUESTIONS ── -->
-      <div class="panel-view" id="view-questions">
-        <div class="flex-between mb-3">
-          <div>
-            <div class="bold" style="font-size:15px;">Job Questions</div>
-            <div class="text-xs text-muted mt-1">Questions generated from gaps between your resume and the job description</div>
+        <!-- ── INLINE QUESTIONS SECTION (revealed after Analyze) ── -->
+        <div id="qa-section" style="display:none;margin-top:24px;padding-top:20px;border-top:1px solid var(--border);">
+          <div class="flex-between mb-3">
+            <div>
+              <div class="bold" style="font-size:15px;">Job Questions</div>
+              <div class="text-xs text-muted mt-1">Questions generated from gaps between your resume and the job description</div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="showAnswerModal()">✦ Answer with AI</button>
           </div>
-          <button class="btn btn-primary btn-sm" onclick="showAnswerModal()">✦ Answer with AI</button>
+
+          <div class="loading-row mb-2" id="autofill-loading">
+            <div class="spin"></div>
+            <span id="autofill-msg">Answering questions...</span>
+          </div>
+
+          <div id="autofill-result" style="display:none;" class="card mb-2">
+            <div style="font-size:12px;color:var(--ink2);line-height:1.6;" id="autofill-summary"></div>
+          </div>
+
+          <div id="questions-list"></div>
+
+          <div class="flex-c gap-2 mt-3" style="padding-top:16px;border-top:1px solid var(--border);">
+            <button class="btn btn-primary" onclick="optimizeFromJD()" id="optimize-from-jd-btn">⚡ Optimize Resume →</button>
+            <span class="text-xs text-muted">Analyzes and applies all suggestions in one pass</span>
+          </div>
         </div>
-
-        <div class="loading-row mb-2" id="autofill-loading">
-          <div class="spin"></div>
-          <span id="autofill-msg">Answering questions...</span>
-        </div>
-
-        <div id="autofill-result" style="display:none;" class="card mb-2">
-          <div style="font-size:12px;color:var(--ink2);line-height:1.6;" id="autofill-summary"></div>
-        </div>
-
-        <div id="questions-list">
-    <div class="q-item" id="qi-q1">
-      <div class="q-priority">experience · <span style="color:var(--teal)">high priority</span></div>
-      <div class="q-text">How many years of experience do you have managing product design teams, and what was the size of the largest design team you've managed?</div>
-      <textarea id="qa-q1" style="min-height:70px;font-size:12px;" placeholder="e.g., 6 years managing design teams, largest team was 8 designers across mobile and web products" oninput="markAnswered(&#39;q1&#39;)">Years managing design teams / largest team:** Roughly 11 years of design management experience, starting as Head of Product Design at efurb in 2015 and continuing through manager and director roles at Web.com and Verizon. The largest team I've led was 40 designers and engineers as Product Design Manager, Design Systems at Web.com; my largest pure design team was at Verizon Home, where I scaled the team from 5 to 9 designers after earning C-Suite approval.</textarea>
-      <div class="flex-c gap-2 mt-2">
-        <button class="btn btn-secondary btn-sm" onclick="saveAnswer(&#39;q1&#39;)">Save</button>
-        <span class="q-skip" onclick="skipQ(&#39;q1&#39;)">Skip</span>
       </div>
-    </div>
-    <div class="q-item" id="qi-q2">
-      <div class="q-priority">skills · <span style="color:var(--teal)">high priority</span></div>
-      <div class="q-text">Do you have experience with AI product design? If so, describe specific AI products or features you've designed.</div>
-      <textarea id="qa-q2" style="min-height:70px;font-size:12px;" placeholder="e.g., Led design for ML-powered recommendation engine, designed conversational AI interface for customer support bot" oninput="markAnswered(&#39;q2&#39;)">AI product design experience:** Yes. As Lead Experience Designer for Home Network Management at Verizon, I guided product design for a multimodal conversational AI assistant that integrated voice, vision, and text capabilities, focusing on AI-assisted workflows and system constraints. My current independent practice also leans heavily on AI-accelerated workflows and agentic AI patterns, though I'd want to add more specifics here if you have a particular AI product example you'd like me to expand on.</textarea>
-      <div class="flex-c gap-2 mt-2">
-        <button class="btn btn-secondary btn-sm" onclick="saveAnswer(&#39;q2&#39;)">Save</button>
-        <span class="q-skip" onclick="skipQ(&#39;q2&#39;)">Skip</span>
-      </div>
-    </div>
-    <div class="q-item" id="qi-q3">
-      <div class="q-priority">experience · <span style="color:var(--teal)">high priority</span></div>
-      <div class="q-text">Can you provide examples of design systems or foundational systems work you've led at scale?</div>
-      <textarea id="qa-q3" style="min-height:70px;font-size:12px;" placeholder="e.g., Built design system adopted across 15+ product teams, standardized component library serving 10M+ users" oninput="markAnswered(&#39;q3&#39;)">Design systems / foundational systems at scale:** I founded and scaled Web.com's design system, eliminating fragmentation across the portfolio and reducing component update time from 30 days to 30 minutes — recovering hundreds of billable hours. At Verizon, I led design for the Home platform reaching 41M customers and 342M connected devices, and in my current Director role I'm driving consistent design system adoption across distributed teams to ensure scalable, user-aligned solutions.</textarea>
-      <div class="flex-c gap-2 mt-2">
-        <button class="btn btn-secondary btn-sm" onclick="saveAnswer(&#39;q3&#39;)">Save</button>
-        <span class="q-skip" onclick="skipQ(&#39;q3&#39;)">Skip</span>
-      </div>
-    </div>
-    <div class="q-item" id="qi-q4">
-      <div class="q-priority">skills · <span style="color:var(--muted)">medium priority</span></div>
-      <div class="q-text">What specific design tools and prototyping software do you use regularly in your workflow?</div>
-      <textarea id="qa-q4" style="min-height:70px;font-size:12px;" placeholder="e.g., Figma for design and prototyping, Miro for workshops, Principle for advanced animations" oninput="markAnswered(&#39;q4&#39;)">Design tools:** Figma is my primary design and prototyping tool, supported by the full Adobe Creative Cloud suite. For product and delivery workflows I work daily in JIRA and Confluence, and my front-end fluency (JavaScript, CSS, HTML, Web Components) lets me prototype and collaborate directly with engineering when higher-fidelity interactions are needed.</textarea>
-      <div class="flex-c gap-2 mt-2">
-        <button class="btn btn-secondary btn-sm" onclick="saveAnswer(&#39;q4&#39;)">Save</button>
-        <span class="q-skip" onclick="skipQ(&#39;q4&#39;)">Skip</span>
-      </div>
-    </div>
-    <div class="q-item" id="qi-q5">
-      <div class="q-priority">experience · <span style="color:var(--muted)">medium priority</span></div>
-      <div class="q-text">Describe your experience with user research - do you conduct research yourself or primarily collaborate with researchers?</div>
-      <textarea id="qa-q5" style="min-height:70px;font-size:12px;" placeholder="e.g., Conduct usability testing and user interviews, partner with UX researchers for large studies" oninput="markAnswered(&#39;q5&#39;)">User research experience:** I both conduct research myself and partner with dedicated researchers, depending on team setup. I personally ran the heuristic evaluation at Verizon Financial Services that surfaced 37 experience gaps informing the remediation roadmap, and at Yodle I evaluated and prioritized 50+ features through usability testing. My toolkit spans usability testing, heuristic evaluation, and broader UX research methods.</textarea>
-      <div class="flex-c gap-2 mt-2">
-        <button class="btn btn-secondary btn-sm" onclick="saveAnswer(&#39;q5&#39;)">Save</button>
-        <span class="q-skip" onclick="skipQ(&#39;q5&#39;)">Skip</span>
-      </div>
-    </div>
-    <div class="q-item" id="qi-q6">
-      <div class="q-priority">metrics · <span style="color:var(--muted)">medium priority</span></div>
-      <div class="q-text">Can you share specific metrics or outcomes from design work you've led that demonstrate impact at scale?</div>
-      <textarea id="qa-q6" style="min-height:70px;font-size:12px;" placeholder="e.g., Redesign increased user engagement by 35%, design system reduced development time by 40%" oninput="markAnswered(&#39;q6&#39;)">Metrics demonstrating impact at scale:** At Verizon Financial Services I drove 26% MAU growth and a 90% card activation rate across two products in a 100M+ customer ecosystem, while improving team delivery velocity 40% and cutting defects 40%. At Verizon Home, design work I led drove 300% DAU growth on a platform reaching 41M customers and 342M connected devices. At Web.com, my design system reduced component update time from 30 days to 30 minutes, and at Yodle I cut design-to-implementation cycle time 30% partnering across 10 engineering teams.</textarea>
-      <div class="flex-c gap-2 mt-2">
-        <button class="btn btn-secondary btn-sm" onclick="saveAnswer(&#39;q6&#39;)">Save</button>
-        <span class="q-skip" onclick="skipQ(&#39;q6&#39;)">Skip</span>
-      </div>
-    </div></div>
-      </div>
-
       <!-- ── ANALYZER ── -->
       <div class="panel-view" id="view-analyzer">
         <div class="flex-between mb-3">
@@ -2699,8 +2648,8 @@ async function handleAuthCallback() {
 // Run auth on page load
 handleAuthCallback();
 
-const TABS = ['projects','jd','questions','content','format','analyzer'];
-const AUTH_TABS = ['jd','questions','content','format','analyzer']; // tabs that require login
+const TABS = ['projects','jd','content','format','analyzer'];
+const AUTH_TABS = ['jd','content','format','analyzer']; // tabs that require login
 function updateTabVisibility() {
   AUTH_TABS.forEach(t => {
     var tab = document.getElementById('tab-'+t);
@@ -3243,6 +3192,9 @@ function confirmNewProject() {
   // Wipe all JD fields and project-level JD state for the new project — never carry over from previous project
   s('jd-title', ''); s('jd-company', ''); s('jd-text', '');
   proj.jdTitle = ''; proj.jdCompany = ''; proj.jdText = ''; proj.jdAnalysis = null;
+  // Hide the inline questions section until this project is analyzed
+  const qaSection = document.getElementById('qa-section');
+  if (qaSection) qaSection.style.display = 'none';
   ProjectStore.save(proj, skipTimestamp);
   updateProjDisplay();
   initCEForProject();
@@ -3306,6 +3258,11 @@ function loadProject(id) {
   try { s('jd-title', proj.jdTitle||''); s('jd-company', proj.jdCompany||''); s('jd-text', proj.jdText||''); } catch(e) {}
   try { if (proj.jdAnalysis) renderJDAnalysis(proj.jdAnalysis); } catch(e) {}
   try { if (proj.questions?.length) renderQuestions(proj.questions); } catch(e) {}
+  // Reveal the inline qa-section if this project already has questions; hide it otherwise
+  try {
+    const qaSection = document.getElementById('qa-section');
+    if (qaSection) qaSection.style.display = proj.questions?.length ? 'block' : 'none';
+  } catch(e) {}
   const draft = proj.drafts?.[proj.drafts.length-1];
   console.log('loadProject: loaded', proj.id, 'with', proj.drafts?.length || 0, 'drafts, latest draft length:', draft?.length || 0);
   try { 
@@ -4510,12 +4467,9 @@ CANDIDATE HAS: ${ws.name}, ${ws.title}, ${ws.years}yrs, Skills: ${ws.hard?.slice
     const parsed=parseJson(raw);
     proj.questions=parsed.questions||[];
     renderQuestions(proj.questions);
-    if(proj.questions.length) {
-      document.getElementById('tab-questions').classList.add('has-badge');
-      document.getElementById('tab-questions').setAttribute('data-badge',proj.questions.length);
-      // Auto-switch to questions tab
-      setTimeout(() => switchTab('questions'), 300);
-    }
+    // Reveal the inline questions section + Optimize Resume button now that analysis is complete
+    const qaSection = document.getElementById('qa-section');
+    if (qaSection) qaSection.style.display = 'block';
   } catch(e){proj.questions=[];}
 }
 
@@ -5598,6 +5552,14 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
 // ─────────────────────────────────────────────────────────
 //  AUTO-OPTIMIZE TO 90+
 // ─────────────────────────────────────────────────────────
+// Triggered from the Optimize Resume button at the bottom of the Job & Questions page.
+// Switches the user to the Analyzer tab and runs the same single-pass Optimize.
+function optimizeFromJD() {
+  switchTab('analyzer');
+  // Small delay so the tab is visible before the overlay opens
+  setTimeout(() => autoOptimize(), 100);
+}
+
 async function autoOptimize() {
   const resume = getResumeText();
   const jdText = g('jd-text') || proj?.jdText || '';
