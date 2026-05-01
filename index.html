@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.14</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.15</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -4744,7 +4744,18 @@ PRIORITY ORDER — address these in order:
 4. BULLETS: If bullet_quality < 90, find every bullet >35 words and rewrite it to 20-28 words. If the original bullet has a real metric, lead with it. If it has no real metric, write the rewrite WITHOUT a percentage — do NOT invent metrics and do NOT use placeholders like "X%", "[number]%", "Y%", "TBD%", or "___%". A bullet with no metric is acceptable; a bullet with a placeholder metric is NOT.
 5. SKILLS: If hard_skills or soft_skills < 90, identify missing JD skills to add and non-skills to remove.
 BE EXHAUSTIVE: Do not stop at 3-4 suggestions. Flag EVERY issue that is holding the score below 90. The user will apply all suggestions at once.
-Rules: only flag real issues. Never fabricate metrics, skills, or competitor brand names. NEVER output placeholder tokens (X%, Y%, [number], [percent], ___, TBD) in any "stronger" or "suggestion" field — if you don't have a real metric from the resume, write the suggestion without a percentage.
+
+GOAL: Find the strongest HONEST angle this candidate has on this JD, and amplify it. The goal is NOT to make the resume look like the JD. Bridges to gaps must come from real transferable strengths, never from invented experience.
+
+TRUTH GROUNDING (highest-priority rule):
+- Suggestions must amplify what's already in the resume, not invent what's missing.
+- If the JD requires a domain the candidate has not worked in (gaming, social, fintech, healthcare, etc.), do NOT suggest adding bullets, skills, or summary phrases that claim that domain. The honest move is to suggest amplifying transferable strengths (scale, platform thinking, cross-functional leadership, strategic vision) that the candidate's resume actually demonstrates.
+- Do NOT suggest adding team members (researchers, content designers, engineers) to roles where they were not described.
+- Do NOT suggest changing team sizes or company affiliations from what the resume states.
+- Do NOT suggest lifting JD marketing phrases ("win-win-win", "talk and hang out", "players and users") into bullets describing unrelated work.
+- A missing keyword is acceptable. A fabricated bullet is not. When in doubt, suggest dropping the keyword rather than forcing it.
+
+Rules: only flag real issues. Never fabricate metrics, skills, brands, domains, team members, or accomplishments. NEVER output placeholder tokens (X%, Y%, [number], [percent], ___, TBD) in any "stronger" or "suggestion" field — if you don't have a real metric from the resume, write the suggestion without a percentage.
 JOB:\n${jdText.slice(0,2000)}\nRESUME:\n${resume.slice(0,2500)}`, 3000);
     const auditRaw = await claudeFetch(`Audit this resume for ATS issues. Return ONLY valid JSON:
 {"checks":[{"id":"c1","label":"Check name","status":"pass|fail|warn","issue":"description if fail/warn"}],"overall":"pass|warn|fail","summary":"..."}
@@ -5402,6 +5413,73 @@ function stripPlaceholders(text) {
   return out;
 }
 
+// Builds a "VERIFIED FACTS" block from the project's Content Editor data.
+// This is the closed world the optimizer must work within — companies, role titles, dates,
+// every existing bullet, every skill. The model may rephrase or amplify anything in this list
+// but may not introduce domains, team members, products, or metrics outside it.
+function buildVerifiedFacts() {
+  if (!proj || !proj.ce) return '';
+  const ce = proj.ce;
+  const lines = [];
+
+  if (Array.isArray(ce.roles) && ce.roles.length) {
+    lines.push('CAREER HISTORY (every role, exactly as it happened):');
+    ce.roles.forEach(r => {
+      const title = (r.title || '').trim();
+      const company = (r.company || '').trim();
+      const loc = (r.location || '').trim();
+      const start = (r.startDate || '').trim();
+      const end = (r.endDate || '').trim();
+      const dates = start || end ? `${start || '?'} – ${end || 'Present'}` : '';
+      const header = [title, company ? '@ ' + company : '', loc, dates].filter(Boolean).join(' | ');
+      lines.push('• ' + header);
+      if (r.context && r.context.trim()) lines.push('    Context: ' + r.context.trim());
+      if (Array.isArray(r.bullets) && r.bullets.length) {
+        r.bullets.forEach(b => {
+          const t = typeof b === 'string' ? b : (b.text || b.content || '');
+          if (t.trim()) lines.push('    - ' + t.trim());
+        });
+      }
+    });
+    lines.push('');
+  }
+
+  if (Array.isArray(ce.skillGroups) && ce.skillGroups.length) {
+    lines.push('SKILLS (only these are real — do not invent skills not on this list):');
+    ce.skillGroups.forEach(sg => {
+      const skills = (sg.skills || []).map(s => typeof s === 'string' ? s : s.text || '').filter(Boolean);
+      if (skills.length) lines.push('• ' + (sg.label || 'Skills') + ': ' + skills.join(', '));
+    });
+    lines.push('');
+  }
+
+  if (Array.isArray(ce.edu) && ce.edu.length) {
+    lines.push('EDUCATION:');
+    ce.edu.forEach(e => {
+      const parts = [e.degree, e.field, e.school, e.year || e.endYear].filter(Boolean);
+      if (parts.length) lines.push('• ' + parts.join(', '));
+    });
+    lines.push('');
+  }
+
+  return lines.length ? lines.join('\n') : '';
+}
+
+// Shared truth-grounding instruction used in both applySelectedFixes and Auto-Optimize.
+const TRUTH_GROUNDING_RULES = `
+TRUTH GROUNDING (highest-priority rule, overrides JD-matching):
+- The goal is to find the strongest HONEST angle this candidate has on this JD, and amplify it. The goal is NOT to make the resume look like the JD.
+- A VERIFIED FACTS block is included below. Treat it as the closed world of the candidate's actual experience. You may rephrase, reorder, emphasize, or sharpen any fact in it. You may NOT introduce anything outside it.
+- Specifically forbidden:
+  • Inventing domains the candidate has not worked in (gaming, social, fintech, healthcare, etc.) — if it's not in VERIFIED FACTS, it cannot appear in the resume.
+  • Inventing team members or roles (researchers, content designers, engineers) who are not described in the role's existing context or bullets.
+  • Changing team sizes from what the role's existing context or bullets state.
+  • Inventing products, features, or accomplishments (e.g. "social experiences and community features", "real-time chat", "moderation tools") that are not in VERIFIED FACTS.
+  • Lifting verbatim phrases from the JD (e.g. "win-win-win", "talk and hang out", "players and users", "intuitive scalable experiences") into bullets that describe work where those concepts didn't apply. JD vocabulary is fine where it genuinely matches; it is fabrication where it doesn't.
+- If a fix or keyword would require fabrication to apply cleanly, apply it only to the role(s) where the underlying experience actually supports it. If no role supports it, leave it out — a missing keyword is acceptable; a fabricated bullet is not.
+- When the JD asks for a domain the candidate lacks, the right move is transferable framing: lead with the candidate's real scale, platform thinking, cross-functional leadership, or strategic vision — never invent the missing domain.
+`;
+
 async function applySelectedFixes(){
   const fixCbs = Array.from(document.querySelectorAll('.fix-cb:checked'));
   const kwCbs = Array.from(document.querySelectorAll('.kw-missing-row input[data-kw]:checked'));
@@ -5442,12 +5520,16 @@ async function applySelectedFixes(){
 
     const jdTitle = g('jd-title') || proj?.jdTitle || '';
     const titleRule = jdTitle ? `\\n- The person's job title line (directly under their name) MUST be exactly: "${jdTitle}"` : '';
+    const verifiedFacts = buildVerifiedFacts();
+    const verifiedFactsBlock = verifiedFacts ? `\n\nVERIFIED FACTS — the closed world of this candidate's actual experience. You may rephrase, reorder, emphasize, or sharpen anything below. You may NOT introduce anything outside it.\n\n${verifiedFacts}` : '';
 
     const result = await claudeFetch(
-      `Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT same section structure and order as the original resume${titleRule}\n- SKILLS must stay organized in labeled categories (e.g. Leadership:, Design:, Product:, Engineering:). If the original has categories, keep them. If not, organize skills into logical categories.\n- When adding keywords to skills, place them in the correct category\n- Do NOT merge all skills into one flat list\n- FORMATTING IS SACRED: Output must use IDENTICAL format as input — same line breaks, spacing, bullet characters, section header style.\n- Do NOT reformat, restructure, merge lines, split lines, add/remove blank lines, or change bullet style.\n- Do NOT change the number of roles, reorder roles, or alter dates/companies.\n- ONLY change the specific text content requested. Everything else stays EXACTLY as-is.
+      `GOAL: Find the strongest HONEST angle this candidate has on this JD, and amplify it. The goal is NOT to make the resume look like the JD. Bridges to gaps must come from real transferable strengths, never from invented experience.
+${TRUTH_GROUNDING_RULES}
+Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT same section structure and order as the original resume${titleRule}\n- SKILLS must stay organized in labeled categories (e.g. Leadership:, Design:, Product:, Engineering:). If the original has categories, keep them. If not, organize skills into logical categories.\n- When adding keywords to skills, place them in the correct category\n- Do NOT merge all skills into one flat list\n- FORMATTING IS SACRED: Output must use IDENTICAL format as input — same line breaks, spacing, bullet characters, section header style.\n- Do NOT reformat, restructure, merge lines, split lines, add/remove blank lines, or change bullet style.\n- Do NOT change the number of roles, reorder roles, or alter dates/companies.\n- ONLY change the specific text content requested. Everything else stays EXACTLY as-is.
 - CRITICAL: Before returning, check for duplicate job entries. If any company + title + date combination appears more than once, remove the duplicate. Each role must appear exactly once.
 - CRITICAL: NEVER output placeholder metric tokens. Forbidden: "X%", "XX%", "Y%", "Z%", "[number]%", "[percent]%", "[metric]%", "___%", "TBD%", or any bracketed/blank stand-in for a number. If you don't have a real value from the original resume, write the bullet WITHOUT a percentage — a bullet with no metric is acceptable, a bullet with a placeholder metric is NOT.
-- CRITICAL: Within each role, check for repeated metrics or phrases across bullets. If the same metric (e.g. '26% MAU growth') appears in more than one bullet, remove it from the less specific bullet and keep it only in the bullet that explains it most clearly.\n- NEVER FABRICATE metrics, percentages, revenue figures, or outcomes not present in the original resume. If the original says '26% MAU growth', keep that exact number. Never invent '40% user growth' or '$2M revenue' unless those exact figures exist in the original text.\n- NEVER USE competitor brand names anywhere in the resume. 'Commercial Card', 'Capital One brand', 'Chase', 'Amex', etc. are competitor product names. Replace with generic terms: use 'financial services products', 'credit card products', 'digital banking products' instead.\n- BEFORE returning the resume, scan every bullet and skill for: (1) any metric not in the original, (2) any competitor brand name. Remove or replace both.\n- SKILLS must stay in labeled categories (Leadership:, Design:, Product:, Engineering:). NEVER merge into one block.\n- Remove non-skills from the skills section: phrases like 'Business Goals', 'portfolio strategy', 'Experience Design organization' are NOT skills.\n- SUMMARY must be 50-75 words. If the current summary exceeds 75 words, trim it. NEVER let it grow beyond 75 words.\n- NEVER repeat the same phrase twice in the summary. Check for duplicates before returning.\n- The job title directly under the candidate's name MUST exactly match the JD title. Do not revert it.\n- Bullets target: 20-30 words each. Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n\n${promptBody}RESUME:\n${resume}`,
+- CRITICAL: Within each role, check for repeated metrics or phrases across bullets. If the same metric (e.g. '26% MAU growth') appears in more than one bullet, remove it from the less specific bullet and keep it only in the bullet that explains it most clearly.\n- NEVER FABRICATE metrics, percentages, revenue figures, outcomes, team members, products, domains, or accomplishments not present in VERIFIED FACTS. If the original says '26% MAU growth', keep that exact number. Never invent '40% user growth' or '$2M revenue' unless those exact figures exist in VERIFIED FACTS.\n- NEVER USE competitor brand names anywhere in the resume. 'Commercial Card', 'Capital One brand', 'Chase', 'Amex', etc. are competitor product names. Replace with generic terms.\n- BEFORE returning the resume, scan every bullet, summary line, and skill for: (1) any metric not in VERIFIED FACTS, (2) any competitor brand name, (3) any domain/product/team-member that does not appear in VERIFIED FACTS, (4) any verbatim JD phrase grafted onto unrelated work. Remove or rewrite all four.\n- SKILLS must stay in labeled categories. NEVER merge into one block.\n- Remove non-skills from the skills section: phrases like 'Business Goals', 'portfolio strategy', 'Experience Design organization' are NOT skills.\n- SUMMARY must be 50-75 words. If the current summary exceeds 75 words, trim it. NEVER let it grow beyond 75 words.\n- NEVER repeat the same phrase twice in the summary. Check for duplicates before returning.\n- The job title directly under the candidate's name MUST exactly match the JD title. Do not revert it.\n- Bullets target: 20-30 words each. Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n${verifiedFactsBlock}\n\n${promptBody}RESUME:\n${resume}`,
       4000
     );
     const firstPass = deduplicateResume(result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim());
@@ -5601,12 +5683,16 @@ async function autoOptimize() {
       const currentResume = getResumeText();
       const jdTitle = g('jd-title') || proj?.jdTitle || '';
       const titleRule = jdTitle ? `\\n- The person's job title line (directly under their name) MUST be exactly: "${jdTitle}"` : '';
+      const verifiedFacts = buildVerifiedFacts();
+      const verifiedFactsBlock = verifiedFacts ? `\n\nVERIFIED FACTS — the closed world of this candidate's actual experience. You may rephrase, reorder, emphasize, or sharpen anything below. You may NOT introduce anything outside it.\n\n${verifiedFacts}` : '';
 
       const result = await claudeFetch(
-        `Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT same section structure and order as the original resume${titleRule}\n- SKILLS must stay organized in labeled categories (e.g. Leadership:, Design:, Product:, Engineering:). If the original has categories, keep them. If not, organize skills into logical categories.\n- When adding keywords to skills, place them in the correct category\n- Do NOT merge all skills into one flat list\n- FORMATTING IS SACRED: Output must use IDENTICAL format as input — same line breaks, spacing, bullet characters, section header style.\n- Do NOT reformat, restructure, merge lines, split lines, add/remove blank lines, or change bullet style.\n- Do NOT change the number of roles, reorder roles, or alter dates/companies.\n- ONLY change the specific text content requested. Everything else stays EXACTLY as-is.
+        `GOAL: Find the strongest HONEST angle this candidate has on this JD, and amplify it. The goal is NOT to make the resume look like the JD. Bridges to gaps must come from real transferable strengths, never from invented experience.
+${TRUTH_GROUNDING_RULES}
+Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT same section structure and order as the original resume${titleRule}\n- SKILLS must stay organized in labeled categories (e.g. Leadership:, Design:, Product:, Engineering:). If the original has categories, keep them. If not, organize skills into logical categories.\n- When adding keywords to skills, place them in the correct category\n- Do NOT merge all skills into one flat list\n- FORMATTING IS SACRED: Output must use IDENTICAL format as input — same line breaks, spacing, bullet characters, section header style.\n- Do NOT reformat, restructure, merge lines, split lines, add/remove blank lines, or change bullet style.\n- Do NOT change the number of roles, reorder roles, or alter dates/companies.\n- ONLY change the specific text content requested. Everything else stays EXACTLY as-is.
 - CRITICAL: Before returning, check for duplicate job entries. If any company + title + date combination appears more than once, remove the duplicate. Each role must appear exactly once.
 - CRITICAL: NEVER output placeholder metric tokens. Forbidden: "X%", "XX%", "Y%", "Z%", "[number]%", "[percent]%", "[metric]%", "___%", "TBD%", or any bracketed/blank stand-in for a number. If you don't have a real value from the original resume, write the bullet WITHOUT a percentage — a bullet with no metric is acceptable, a bullet with a placeholder metric is NOT.
-- CRITICAL: Within each role, check for repeated metrics or phrases across bullets. If the same metric (e.g. '26% MAU growth') appears in more than one bullet, remove it from the less specific bullet and keep it only in the bullet that explains it most clearly.\n- NEVER FABRICATE metrics, percentages, revenue figures, or outcomes not present in the original resume. If the original says '26% MAU growth', keep that exact number. Never invent '40% user growth' or '$2M revenue' unless those exact figures exist in the original text.\n- NEVER USE competitor brand names anywhere in the resume. 'Commercial Card', 'Capital One brand', 'Chase', 'Amex', etc. are competitor product names. Replace with generic terms: use 'financial services products', 'credit card products', 'digital banking products' instead.\n- BEFORE returning the resume, scan every bullet and skill for: (1) any metric not in the original, (2) any competitor brand name. Remove or replace both.\n- SKILLS must stay in labeled categories (Leadership:, Design:, Product:, Engineering:). NEVER merge into one block.\n- Remove non-skills from the skills section: phrases like 'Business Goals', 'portfolio strategy', 'Experience Design organization' are NOT skills.\n- SUMMARY must be 50-75 words. If the current summary exceeds 75 words, trim it. NEVER let it grow beyond 75 words.\n- NEVER repeat the same phrase twice in the summary. Check for duplicates before returning.\n- The job title directly under the candidate's name MUST exactly match the JD title. Do not revert it.\n- Bullets target: 20-30 words each. Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n\n${promptBody}RESUME:\n${currentResume}`,
+- CRITICAL: Within each role, check for repeated metrics or phrases across bullets. If the same metric (e.g. '26% MAU growth') appears in more than one bullet, remove it from the less specific bullet and keep it only in the bullet that explains it most clearly.\n- NEVER FABRICATE metrics, percentages, revenue figures, outcomes, team members, products, domains, or accomplishments not present in VERIFIED FACTS. If the original says '26% MAU growth', keep that exact number. Never invent '40% user growth' or '$2M revenue' unless those exact figures exist in VERIFIED FACTS.\n- NEVER USE competitor brand names anywhere in the resume. 'Commercial Card', 'Capital One brand', 'Chase', 'Amex', etc. are competitor product names. Replace with generic terms.\n- BEFORE returning the resume, scan every bullet, summary line, and skill for: (1) any metric not in VERIFIED FACTS, (2) any competitor brand name, (3) any domain/product/team-member that does not appear in VERIFIED FACTS, (4) any verbatim JD phrase grafted onto unrelated work. Remove or rewrite all four.\n- SKILLS must stay in labeled categories. NEVER merge into one block.\n- Remove non-skills from the skills section: phrases like 'Business Goals', 'portfolio strategy', 'Experience Design organization' are NOT skills.\n- SUMMARY must be 50-75 words. If the current summary exceeds 75 words, trim it. NEVER let it grow beyond 75 words.\n- NEVER repeat the same phrase twice in the summary. Check for duplicates before returning.\n- The job title directly under the candidate's name MUST exactly match the JD title. Do not revert it.\n- Bullets target: 20-30 words each. Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n${verifiedFactsBlock}\n\n${promptBody}RESUME:\n${currentResume}`,
         4000
       );
       const firstPass = deduplicateResume(result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim());
