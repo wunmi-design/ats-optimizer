@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.13</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.14</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -7940,7 +7940,12 @@ ${text.slice(0,3000)}`, 1500);
     msg.textContent = 'Extracting recent experience (1 of 2)...';
     const pass2aPrompt = `Extract ONLY the first 5 work experience entries from this resume. For each role, capture the intro/context sentence that appears between the job header and the first bullet point (many roles have a 1–2 sentence paragraph before the bullets — copy it exactly into "context"). Return ONLY a JSON array, nothing else:
 [{"company":"","title":"","startDate":"","endDate":"","location":"","context":"exact intro sentence(s) if present, empty string if not","bullets":["exact bullet text"]}]
-Rules: copy all text verbatim, include every bullet, preserve context sentences exactly.
+CRITICAL FIELD RULES:
+- "title" is the JOB TITLE only (e.g. "Lead Product Designer", "Senior Manager"). Never include the company name.
+- "company" is the EMPLOYER NAME only (e.g. "Yodle", "Web.com", "Verizon"). Never include the job title, never include "·" or "—" or ":" separators, never include dates, never include location.
+- If the source line shows a doubled or merged header like "Lead Product Designer · Yodle (Acquired by Web.com)" or "Lead Product Designer · Lead Product Designer", split it: title goes in title, company goes in company. NEVER copy the whole header verbatim into one field.
+- "location" is the city/state only. Never include dates or company.
+Rules: copy bullet text and context verbatim, include every bullet, preserve context sentences exactly.
 RESUME:\n${text}`;
     const raw2a = await claudeFetch(pass2aPrompt, 5000);
 
@@ -7948,9 +7953,61 @@ RESUME:\n${text}`;
     msg.textContent = 'Extracting earlier experience (2 of 2)...';
     const pass2bPrompt = `Extract ONLY work experience entries 6 through the end of this resume (skip the first 5). For each role, capture the intro/context sentence that appears between the job header and the first bullet point (copy it exactly into "context"). Return ONLY a JSON array, nothing else:
 [{"company":"","title":"","startDate":"","endDate":"","location":"","context":"exact intro sentence(s) if present, empty string if not","bullets":["exact bullet text"]}]
-Rules: copy all text verbatim, include every bullet, preserve context sentences exactly. If a role has no bullets, still include it.
+CRITICAL FIELD RULES:
+- "title" is the JOB TITLE only (e.g. "Lead Product Designer", "Senior Manager"). Never include the company name.
+- "company" is the EMPLOYER NAME only (e.g. "Yodle", "Web.com", "Verizon"). Never include the job title, never include "·" or "—" or ":" separators, never include dates, never include location.
+- If the source line shows a doubled or merged header like "Lead Product Designer · Yodle (Acquired by Web.com)" or "Lead Product Designer · Lead Product Designer", split it: title goes in title, company goes in company. NEVER copy the whole header verbatim into one field.
+- "location" is the city/state only. Never include dates or company.
+Rules: copy bullet text and context verbatim, include every bullet, preserve context sentences exactly. If a role has no bullets, still include it.
 RESUME:\n${text}`;
     const raw2b = await claudeFetch(pass2bPrompt, 5000);
+
+    // Sanitizes a parsed role object — fixes common AI extraction errors like dumping a whole
+    // header line into a single field. Mutates and returns the role.
+    function sanitizeRole(r) {
+      const co = (r.company || '').trim();
+      const ti = (r.title || '').trim();
+
+      // Case A: company contains the title + " · " separator → strip title from company
+      if (co && ti && co.includes(' · ' + ti)) {
+        r.company = co.replace(' · ' + ti, '').trim();
+      } else if (co && ti && co.startsWith(ti + ' · ')) {
+        r.company = co.slice((ti + ' · ').length).trim();
+      } else if (co && ti && co.includes(' · ') && co.toLowerCase().startsWith(ti.toLowerCase())) {
+        // Case B: company starts with title (case-insensitive) followed by separator
+        const sepIdx = co.indexOf(' · ');
+        const before = co.slice(0, sepIdx).trim();
+        if (before.toLowerCase() === ti.toLowerCase()) {
+          r.company = co.slice(sepIdx + 3).trim();
+        }
+      }
+
+      // Case C: company is "X · X" (doubled) → keep one copy
+      const doubled = (r.company || '').match(/^(.{3,}?)\s+·\s+\1\s*$/i);
+      if (doubled) r.company = doubled[1].trim();
+
+      // Case D: title doubled the same way
+      const tDoubled = (r.title || '').match(/^(.{3,}?)\s+·\s+\1\s*$/i);
+      if (tDoubled) r.title = tDoubled[1].trim();
+
+      // Case E: title contains " · " — only strip if what follows looks like a leaked company
+      // (parenthesized, has a TLD/domain, or is followed by another structural separator).
+      // A title like "Senior Manager, Financial Services" uses commas, not " · ", so this is rare,
+      // but we still want to be conservative when the after-segment could be a real qualifier.
+      if ((r.title || '').includes(' · ')) {
+        const parts = r.title.split(' · ');
+        const after = parts.slice(1).join(' · ').trim();
+        const looksLikeCompany = /\([^)]*\)|\.com|\.io|\.co\b|\bInc\b|\bLLC\b|\bLtd\b|^[A-Z][a-z]+\s+(?:Inc|LLC|Group)/i.test(after);
+        if (looksLikeCompany) {
+          r.title = parts[0].trim();
+        }
+      }
+
+      // Case F: company contains date-range pattern → strip it
+      r.company = (r.company || '').replace(/\s*[·\-—]\s*\d{1,2}\/\d{2,4}.*$/, '').trim();
+
+      return r;
+    }
 
     try {
       function parseRoles(raw) {
@@ -7958,14 +8015,14 @@ RESUME:\n${text}`;
         const arr = JSON.parse(cleaned);
         return Array.isArray(arr) ? arr : [];
       }
-      const roles2a = parseRoles(raw2a);
+      const roles2a = parseRoles(raw2a).map(sanitizeRole);
       let roles2b = [];
-      try { roles2b = parseRoles(raw2b); } catch(e) { console.warn('Pass 2b parse error:', e); }
+      try { roles2b = parseRoles(raw2b).map(sanitizeRole); } catch(e) { console.warn('Pass 2b parse error:', e); }
       const allRoles = [...roles2a, ...roles2b];
-      // Deduplicate by company+title
+      // Deduplicate by company+title+startDate (start date disambiguates two roles at same company with same title)
       const seen = new Set();
       const deduped = allRoles.filter(r => {
-        const key = (r.company||'').trim()+'|'+(r.title||'').trim();
+        const key = (r.company||'').trim().toLowerCase()+'|'+(r.title||'').trim().toLowerCase()+'|'+(r.startDate||'').trim();
         if (seen.has(key)) return false;
         seen.add(key); return true;
       });
