@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.17</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.18</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -2475,50 +2475,18 @@ NY Top Creative Winner · WIx and Vitamin T · 2014</div>
 <div class="ai-modal hidden" id="answer-modal" onclick="if(event.target===this)hideAnswerModal()">
   <div class="ai-modal-box">
     <h3>✦ Answer with AI</h3>
-    <p class="subtitle">Choose how you'd like to answer the job questions.</p>
+    <p class="subtitle">Copy the prompt, paste it into Claude or ChatGPT, then paste the answers back here.</p>
 
-    <div class="ai-option" id="ai-opt-1" onclick="selectAiOption(1)">
-      <div class="ai-option-title">1. Use my own AI agent</div>
-      <div class="ai-option-desc">Copy a prompt into your AI tool of choice (Claude, ChatGPT, etc.) and paste the answers back here.</div>
+    <button class="btn btn-secondary btn-sm mb-2" onclick="copyQuestionsPromptAndOpen()">📋 Copy Prompt</button>
+
+    <div class="field">
+      <label class="fl">Paste the AI's answers</label>
+      <textarea id="ai-paste-answers" style="min-height:140px;font-size:12px;"></textarea>
     </div>
 
-    <div class="ai-option" id="ai-opt-2" onclick="selectAiOption(2)">
-      <div class="ai-option-title">2. Answer with Resume Builder AI</div>
-      <div class="ai-option-desc">Let the Resume Builder answer all questions automatically using your resume and job description.</div>
-    </div>
-
-    <!-- Option 1 panel: copy prompt + paste answers -->
-    <div class="ai-panel" id="ai-panel-1">
-      <div class="ai-instruction">
-        <strong>How it works:</strong>
-        <ol>
-          <li>Click <strong>Copy Prompt</strong> below to copy a tailored prompt.</li>
-          <li>Paste it into your AI agent (Claude, ChatGPT, Gemini, etc.).</li>
-          <li>Copy the AI's answers and paste them into the field below.</li>
-          <li>Click <strong>Apply Answers</strong> to fill in the questions.</li>
-        </ol>
-      </div>
-      <button class="btn btn-secondary btn-sm mb-2" onclick="copyQuestionsPrompt();toast(&#39;Prompt copied!&#39;)">📋 Copy Prompt</button>
-      <div class="field">
-        <label class="fl">Paste your AI's answers here</label>
-        <textarea id="ai-paste-answers" style="min-height:120px;font-size:12px;" placeholder="Paste the full response from your AI agent here..."></textarea>
-      </div>
-      <div class="flex-c gap-2 mt-2">
-        <button class="btn btn-primary btn-sm" onclick="applyPastedAnswers()">Apply Answers →</button>
-        <button class="btn btn-ghost btn-sm" onclick="hideAnswerModal()">Cancel</button>
-      </div>
-    </div>
-
-    <!-- Option 2 panel: auto-answer -->
-    <div class="ai-panel" id="ai-panel-2">
-      <div class="ai-instruction">
-        The Resume Builder will use your resume content and the job description to generate contextual answers to each question.
-      </div>
-      <div class="loading-row mb-2" id="ai-auto-loading"><div class="spin"></div><span>Answering questions...</span></div>
-      <div class="flex-c gap-2">
-        <button class="btn btn-primary btn-sm" id="ai-auto-btn" onclick="autoAnswerQuestions()">Answer All Questions →</button>
-        <button class="btn btn-ghost btn-sm" onclick="hideAnswerModal()">Cancel</button>
-      </div>
+    <div class="flex-c gap-2 mt-2">
+      <button class="btn btn-primary btn-sm" id="apply-answers-btn" onclick="applyPastedAnswers()">Apply Answers →</button>
+      <button class="btn btn-ghost btn-sm" onclick="hideAnswerModal()">Cancel</button>
     </div>
   </div>
 </div>
@@ -4196,23 +4164,16 @@ ${bodyText.slice(0, 6000)}`, 2000);
 function showAnswerModal() {
   if (!proj?.questions?.length) { toast('Analyze a job description first to generate questions'); return; }
   document.getElementById('answer-modal')?.classList.remove('hidden');
-  // Reset panels
-  document.getElementById('ai-panel-1')?.classList.remove('show');
-  document.getElementById('ai-panel-2')?.classList.remove('show');
-  document.querySelectorAll('.ai-option').forEach(o => o.classList.remove('selected'));
 }
 
 function hideAnswerModal() {
   document.getElementById('answer-modal')?.classList.add('hidden');
-  document.getElementById('ai-auto-loading')?.classList.remove('show');
 }
 
-function selectAiOption(n) {
-  document.querySelectorAll('.ai-option').forEach(o => o.classList.remove('selected'));
-  document.getElementById('ai-opt-'+n)?.classList.add('selected');
-  document.getElementById('ai-panel-1')?.classList.remove('show');
-  document.getElementById('ai-panel-2')?.classList.remove('show');
-  document.getElementById('ai-panel-'+n)?.classList.add('show');
+// Copies the prompt to clipboard and toasts. Modal stays open so user can paste answers.
+function copyQuestionsPromptAndOpen() {
+  copyQuestionsPrompt();
+  toast('Prompt copied — paste it into Claude or ChatGPT');
 }
 
 async function applyPastedAnswers() {
@@ -4220,7 +4181,7 @@ async function applyPastedAnswers() {
   if (!text) { toast('Paste your AI answers first'); return; }
   if (!proj?.questions?.length) { toast('No questions — analyze a job description first'); return; }
 
-  const btn = document.querySelector('#ai-panel-1 .btn-primary');
+  const btn = document.getElementById('apply-answers-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Applying...'; }
 
   try {
