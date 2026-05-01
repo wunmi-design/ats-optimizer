@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.15</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.16</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -1076,8 +1076,8 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
             <span class="ce-section-title">Contact Information</span>
           </div>
           <div class="ce-section-body" style="padding:12px;">
-            <div class="two"><div class="field"><label class="fl">First Name</label><input type="text" id="ce-fname" placeholder="Jane" oninput="liveUpdate()"></div><div class="field"><label class="fl">Last Name</label><input type="text" id="ce-lname" placeholder="Smith" oninput="liveUpdate()"></div></div>
-            <div class="field"><label class="fl">Job Title</label><input type="text" id="ce-title" placeholder="Product Design Manager" oninput="liveUpdate()"></div>
+            <div class="two"><div class="field"><label class="fl">First Name</label><input type="text" id="ce-fname" oninput="liveUpdate()"></div><div class="field"><label class="fl">Last Name</label><input type="text" id="ce-lname" oninput="liveUpdate()"></div></div>
+            <div class="field"><label class="fl">Job Title</label><input type="text" id="ce-title" oninput="liveUpdate()"></div>
             <!-- city/state managed via Location field in contact order below -->
             <input type="hidden" id="ce-city" value="Arlington">
             <input type="hidden" id="ce-state" value="VA">
@@ -1089,7 +1089,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span class="drag-handle" style="font-size:13px;">⠿</span>
       <div class="field" style="flex:1;margin-bottom:0;">
         <label class="fl">Portfolio / Website</label>
-        <input type="text" id="ce-portfolio" value="" placeholder="yourportfolio.com" oninput="updateContactField(&#39;portfolio&#39;,this.value)">
+        <input type="text" id="ce-portfolio" value="" oninput="updateContactField(&#39;portfolio&#39;,this.value)">
       </div>
       <div style="flex-shrink:0;">
         <div class="text-xs text-muted" style="text-align:center;margin-bottom:2px;font-size:9px;">LINE</div>
@@ -1099,7 +1099,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span class="drag-handle" style="font-size:13px;">⠿</span>
       <div class="field" style="flex:1;margin-bottom:0;">
         <label class="fl">LinkedIn URL</label>
-        <input type="text" id="ce-linkedin" value="" placeholder="linkedin.com/in/yourname" oninput="updateContactField(&#39;linkedin&#39;,this.value)">
+        <input type="text" id="ce-linkedin" value="" oninput="updateContactField(&#39;linkedin&#39;,this.value)">
       </div>
       <div style="flex-shrink:0;">
         <div class="text-xs text-muted" style="text-align:center;margin-bottom:2px;font-size:9px;">LINE</div>
@@ -1109,7 +1109,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span class="drag-handle" style="font-size:13px;">⠿</span>
       <div class="field" style="flex:1;margin-bottom:0;">
         <label class="fl">Phone</label>
-        <input type="text" id="ce-phone" value="555-000-0000" placeholder="555-000-0000" oninput="updateContactField(&#39;phone&#39;,this.value)">
+        <input type="text" id="ce-phone" value="555-000-0000" oninput="updateContactField(&#39;phone&#39;,this.value)">
       </div>
       <div style="flex-shrink:0;">
         <div class="text-xs text-muted" style="text-align:center;margin-bottom:2px;font-size:9px;">LINE</div>
@@ -1119,7 +1119,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span class="drag-handle" style="font-size:13px;">⠿</span>
       <div class="field" style="flex:1;margin-bottom:0;">
         <label class="fl">Email</label>
-        <input type="text" id="ce-email" value="" placeholder="you@example.com" oninput="updateContactField(&#39;email&#39;,this.value)">
+        <input type="text" id="ce-email" value="" oninput="updateContactField(&#39;email&#39;,this.value)">
       </div>
       <div style="flex-shrink:0;">
         <div class="text-xs text-muted" style="text-align:center;margin-bottom:2px;font-size:9px;">LINE</div>
@@ -1129,7 +1129,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span class="drag-handle" style="font-size:13px;">⠿</span>
       <div class="field" style="flex:1;margin-bottom:0;">
         <label class="fl">Location (City, State)</label>
-        <input type="text" id="ce-location-combined" value="Arlington, VA" placeholder="Arlington, VA" oninput="updateContactField(&#39;location&#39;,this.value)">
+        <input type="text" id="ce-location-combined" value="Arlington, VA" oninput="updateContactField(&#39;location&#39;,this.value)">
       </div>
       <div style="flex-shrink:0;">
         <div class="text-xs text-muted" style="text-align:center;margin-bottom:2px;font-size:9px;">LINE</div>
@@ -1146,7 +1146,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
             <span class="ce-section-title">Professional Summary</span>
           </div>
           <div class="ce-section-body" style="padding:12px;">
-            <textarea id="ce-summary-text" style="min-height:100px;font-size:12px;" placeholder="3–5 lines · 50–100 words · Lead with your title and strongest result · Use exact keywords from the JD · No filler phrases" oninput="liveUpdate()"></textarea>
+            <textarea id="ce-summary-text" style="min-height:100px;font-size:12px;" oninput="liveUpdate()"></textarea>
           </div>
         </div>
 
@@ -1168,7 +1168,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       </div>
       <div class="skill-chips" id="chips-sg17764683313520.4143804341933788">
         <span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.08136292007281287" data-group-id="sg17764683313520.4143804341933788" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.08136292007281287&#39;,&#39;sg17764683313520.4143804341933788&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.08136292007281287&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.08136292007281287&#39;,&#39;sg17764683313520.4143804341933788&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>Strategy<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.4143804341933788&#39;,&#39;sk17764683313520.08136292007281287&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.9862166411216875" data-group-id="sg17764683313520.4143804341933788" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.9862166411216875&#39;,&#39;sg17764683313520.4143804341933788&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.9862166411216875&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.9862166411216875&#39;,&#39;sg17764683313520.4143804341933788&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>Vision and Inspiration<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.4143804341933788&#39;,&#39;sk17764683313520.9862166411216875&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.8817656067391898" data-group-id="sg17764683313520.4143804341933788" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.8817656067391898&#39;,&#39;sg17764683313520.4143804341933788&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.8817656067391898&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.8817656067391898&#39;,&#39;sg17764683313520.4143804341933788&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>Cross Team Collaboration<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.4143804341933788&#39;,&#39;sk17764683313520.8817656067391898&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.17435022798503452" data-group-id="sg17764683313520.4143804341933788" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.17435022798503452&#39;,&#39;sg17764683313520.4143804341933788&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.17435022798503452&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.17435022798503452&#39;,&#39;sg17764683313520.4143804341933788&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>Distributed Team Leadership<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.4143804341933788&#39;,&#39;sk17764683313520.17435022798503452&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.5824327665835052" data-group-id="sg17764683313520.4143804341933788" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.5824327665835052&#39;,&#39;sg17764683313520.4143804341933788&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.5824327665835052&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.5824327665835052&#39;,&#39;sg17764683313520.4143804341933788&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>People Development<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.4143804341933788&#39;,&#39;sk17764683313520.5824327665835052&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.1739951689607655" data-group-id="sg17764683313520.4143804341933788" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.1739951689607655&#39;,&#39;sg17764683313520.4143804341933788&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.1739951689607655&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.1739951689607655&#39;,&#39;sg17764683313520.4143804341933788&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>Capacity Planning<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.4143804341933788&#39;,&#39;sk17764683313520.1739951689607655&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.6670668215154415" data-group-id="sg17764683313520.4143804341933788" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.6670668215154415&#39;,&#39;sg17764683313520.4143804341933788&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.6670668215154415&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.6670668215154415&#39;,&#39;sg17764683313520.4143804341933788&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>Design Reviews<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.4143804341933788&#39;,&#39;sk17764683313520.6670668215154415&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.6828831653524285" data-group-id="sg17764683313520.4143804341933788" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.6828831653524285&#39;,&#39;sg17764683313520.4143804341933788&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.6828831653524285&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.6828831653524285&#39;,&#39;sg17764683313520.4143804341933788&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>Conflict Resolution<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.4143804341933788&#39;,&#39;sk17764683313520.6828831653524285&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.8126635942584219" data-group-id="sg17764683313520.4143804341933788" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.8126635942584219&#39;,&#39;sg17764683313520.4143804341933788&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.8126635942584219&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.8126635942584219&#39;,&#39;sg17764683313520.4143804341933788&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>Hiring<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.4143804341933788&#39;,&#39;sk17764683313520.8126635942584219&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.2914597943677174" data-group-id="sg17764683313520.4143804341933788" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.2914597943677174&#39;,&#39;sg17764683313520.4143804341933788&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.2914597943677174&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.2914597943677174&#39;,&#39;sg17764683313520.4143804341933788&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>Communications<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.4143804341933788&#39;,&#39;sk17764683313520.2914597943677174&#39;)" title="Remove">×</button></span>
-        <input class="skill-chip-input" type="text" placeholder="+ Add skill or paste list" onkeydown="handleSkillKey(event,&#39;sg17764683313520.4143804341933788&#39;,this)" onpaste="handleSkillPaste(event,&#39;sg17764683313520.4143804341933788&#39;,this)" onblur="if(this.value.trim()){addSkillsBulk(&#39;sg17764683313520.4143804341933788&#39;,this.value);this.value=&#39;&#39;;}">
+        <input class="skill-chip-input" type="text" onkeydown="handleSkillKey(event,&#39;sg17764683313520.4143804341933788&#39;,this)" onpaste="handleSkillPaste(event,&#39;sg17764683313520.4143804341933788&#39;,this)" onblur="if(this.value.trim()){addSkillsBulk(&#39;sg17764683313520.4143804341933788&#39;,this.value);this.value=&#39;&#39;;}">
       </div>
     </div><div class="skill-group" ondragover="groupDragOver(event,&#39;sg17764683313520.6929972148029283&#39;)" ondrop="groupDrop(event,&#39;sg17764683313520.6929972148029283&#39;)" ondragleave="groupDragLeave(event)">
       <div class="skill-group-head">
@@ -1178,7 +1178,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       </div>
       <div class="skill-chips" id="chips-sg17764683313520.6929972148029283">
         <span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.998785277438293" data-group-id="sg17764683313520.6929972148029283" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.998785277438293&#39;,&#39;sg17764683313520.6929972148029283&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.998785277438293&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.998785277438293&#39;,&#39;sg17764683313520.6929972148029283&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>UX/UI Design<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.6929972148029283&#39;,&#39;sk17764683313520.998785277438293&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.547800154447626" data-group-id="sg17764683313520.6929972148029283" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.547800154447626&#39;,&#39;sg17764683313520.6929972148029283&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.547800154447626&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.547800154447626&#39;,&#39;sg17764683313520.6929972148029283&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>Interaction Design<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.6929972148029283&#39;,&#39;sk17764683313520.547800154447626&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.2511230352125282" data-group-id="sg17764683313520.6929972148029283" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.2511230352125282&#39;,&#39;sg17764683313520.6929972148029283&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.2511230352125282&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.2511230352125282&#39;,&#39;sg17764683313520.6929972148029283&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>Information Architecture<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.6929972148029283&#39;,&#39;sk17764683313520.2511230352125282&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.43247279820459983" data-group-id="sg17764683313520.6929972148029283" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.43247279820459983&#39;,&#39;sg17764683313520.6929972148029283&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.43247279820459983&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.43247279820459983&#39;,&#39;sg17764683313520.6929972148029283&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>Design Systems<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.6929972148029283&#39;,&#39;sk17764683313520.43247279820459983&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.8921327246232379" data-group-id="sg17764683313520.6929972148029283" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.8921327246232379&#39;,&#39;sg17764683313520.6929972148029283&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.8921327246232379&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.8921327246232379&#39;,&#39;sg17764683313520.6929972148029283&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>Data Visualization<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.6929972148029283&#39;,&#39;sk17764683313520.8921327246232379&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.932851019815402" data-group-id="sg17764683313520.6929972148029283" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.932851019815402&#39;,&#39;sg17764683313520.6929972148029283&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.932851019815402&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.932851019815402&#39;,&#39;sg17764683313520.6929972148029283&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>Prototyping<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.6929972148029283&#39;,&#39;sk17764683313520.932851019815402&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.518135252481626" data-group-id="sg17764683313520.6929972148029283" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.518135252481626&#39;,&#39;sg17764683313520.6929972148029283&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.518135252481626&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.518135252481626&#39;,&#39;sg17764683313520.6929972148029283&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>Wireframing<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.6929972148029283&#39;,&#39;sk17764683313520.518135252481626&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.3488926605704661" data-group-id="sg17764683313520.6929972148029283" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.3488926605704661&#39;,&#39;sg17764683313520.6929972148029283&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.3488926605704661&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.3488926605704661&#39;,&#39;sg17764683313520.6929972148029283&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>Heuristic Evaluation<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.6929972148029283&#39;,&#39;sk17764683313520.3488926605704661&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.5915281682906317" data-group-id="sg17764683313520.6929972148029283" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.5915281682906317&#39;,&#39;sg17764683313520.6929972148029283&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.5915281682906317&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.5915281682906317&#39;,&#39;sg17764683313520.6929972148029283&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>Design Thinking<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.6929972148029283&#39;,&#39;sk17764683313520.5915281682906317&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.40688124580608476" data-group-id="sg17764683313520.6929972148029283" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.40688124580608476&#39;,&#39;sg17764683313520.6929972148029283&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.40688124580608476&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.40688124580608476&#39;,&#39;sg17764683313520.6929972148029283&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>Usability Testing<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.6929972148029283&#39;,&#39;sk17764683313520.40688124580608476&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.1984831830734035" data-group-id="sg17764683313520.6929972148029283" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.1984831830734035&#39;,&#39;sg17764683313520.6929972148029283&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.1984831830734035&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.1984831830734035&#39;,&#39;sg17764683313520.6929972148029283&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>User Research<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.6929972148029283&#39;,&#39;sk17764683313520.1984831830734035&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.3364825041556977" data-group-id="sg17764683313520.6929972148029283" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.3364825041556977&#39;,&#39;sg17764683313520.6929972148029283&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.3364825041556977&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.3364825041556977&#39;,&#39;sg17764683313520.6929972148029283&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>WCAG (Accessibility)<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.6929972148029283&#39;,&#39;sk17764683313520.3364825041556977&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.366270866856079" data-group-id="sg17764683313520.6929972148029283" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.366270866856079&#39;,&#39;sg17764683313520.6929972148029283&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.366270866856079&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.366270866856079&#39;,&#39;sg17764683313520.6929972148029283&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>AI-Accelerated Workflows<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.6929972148029283&#39;,&#39;sk17764683313520.366270866856079&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.72065071001235" data-group-id="sg17764683313520.6929972148029283" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.72065071001235&#39;,&#39;sg17764683313520.6929972148029283&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.72065071001235&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.72065071001235&#39;,&#39;sg17764683313520.6929972148029283&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>Agentic AI<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.6929972148029283&#39;,&#39;sk17764683313520.72065071001235&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.5886296350347618" data-group-id="sg17764683313520.6929972148029283" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.5886296350347618&#39;,&#39;sg17764683313520.6929972148029283&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.5886296350347618&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.5886296350347618&#39;,&#39;sg17764683313520.6929972148029283&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>Figma<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.6929972148029283&#39;,&#39;sk17764683313520.5886296350347618&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.26807943653474875" data-group-id="sg17764683313520.6929972148029283" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.26807943653474875&#39;,&#39;sg17764683313520.6929972148029283&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.26807943653474875&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.26807943653474875&#39;,&#39;sg17764683313520.6929972148029283&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>Adobe CC<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.6929972148029283&#39;,&#39;sk17764683313520.26807943653474875&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17765343895940.6837489626650481" data-group-id="sg17764683313520.6929972148029283" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17765343895940.6837489626650481&#39;,&#39;sg17764683313520.6929972148029283&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17765343895940.6837489626650481&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17765343895940.6837489626650481&#39;,&#39;sg17764683313520.6929972148029283&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>UX Research<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.6929972148029283&#39;,&#39;sk17765343895940.6837489626650481&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17765343895940.3865345414483017" data-group-id="sg17764683313520.6929972148029283" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17765343895940.3865345414483017&#39;,&#39;sg17764683313520.6929972148029283&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17765343895940.3865345414483017&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17765343895940.3865345414483017&#39;,&#39;sg17764683313520.6929972148029283&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>Content Design<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.6929972148029283&#39;,&#39;sk17765343895940.3865345414483017&#39;)" title="Remove">×</button></span>
-        <input class="skill-chip-input" type="text" placeholder="+ Add skill or paste list" onkeydown="handleSkillKey(event,&#39;sg17764683313520.6929972148029283&#39;,this)" onpaste="handleSkillPaste(event,&#39;sg17764683313520.6929972148029283&#39;,this)" onblur="if(this.value.trim()){addSkillsBulk(&#39;sg17764683313520.6929972148029283&#39;,this.value);this.value=&#39;&#39;;}">
+        <input class="skill-chip-input" type="text" onkeydown="handleSkillKey(event,&#39;sg17764683313520.6929972148029283&#39;,this)" onpaste="handleSkillPaste(event,&#39;sg17764683313520.6929972148029283&#39;,this)" onblur="if(this.value.trim()){addSkillsBulk(&#39;sg17764683313520.6929972148029283&#39;,this.value);this.value=&#39;&#39;;}">
       </div>
     </div><div class="skill-group" ondragover="groupDragOver(event,&#39;sg17764683313520.6810148831138022&#39;)" ondrop="groupDrop(event,&#39;sg17764683313520.6810148831138022&#39;)" ondragleave="groupDragLeave(event)">
       <div class="skill-group-head">
@@ -1188,7 +1188,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       </div>
       <div class="skill-chips" id="chips-sg17764683313520.6810148831138022">
         <span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.34105082138524334" data-group-id="sg17764683313520.6810148831138022" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.34105082138524334&#39;,&#39;sg17764683313520.6810148831138022&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.34105082138524334&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.34105082138524334&#39;,&#39;sg17764683313520.6810148831138022&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>Roadmap Prioritization<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.6810148831138022&#39;,&#39;sk17764683313520.34105082138524334&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.9058335734027764" data-group-id="sg17764683313520.6810148831138022" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.9058335734027764&#39;,&#39;sg17764683313520.6810148831138022&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.9058335734027764&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.9058335734027764&#39;,&#39;sg17764683313520.6810148831138022&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>KPI Development<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.6810148831138022&#39;,&#39;sk17764683313520.9058335734027764&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.5622036458640151" data-group-id="sg17764683313520.6810148831138022" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.5622036458640151&#39;,&#39;sg17764683313520.6810148831138022&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.5622036458640151&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.5622036458640151&#39;,&#39;sg17764683313520.6810148831138022&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>Agile Methodologies<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.6810148831138022&#39;,&#39;sk17764683313520.5622036458640151&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.12104469957778363" data-group-id="sg17764683313520.6810148831138022" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.12104469957778363&#39;,&#39;sg17764683313520.6810148831138022&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.12104469957778363&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.12104469957778363&#39;,&#39;sg17764683313520.6810148831138022&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>Iterative Planning<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.6810148831138022&#39;,&#39;sk17764683313520.12104469957778363&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.7893688413254696" data-group-id="sg17764683313520.6810148831138022" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.7893688413254696&#39;,&#39;sg17764683313520.6810148831138022&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.7893688413254696&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.7893688413254696&#39;,&#39;sg17764683313520.6810148831138022&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>Analytics<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.6810148831138022&#39;,&#39;sk17764683313520.7893688413254696&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.32403834531398157" data-group-id="sg17764683313520.6810148831138022" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.32403834531398157&#39;,&#39;sg17764683313520.6810148831138022&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.32403834531398157&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.32403834531398157&#39;,&#39;sg17764683313520.6810148831138022&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>JIRA<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.6810148831138022&#39;,&#39;sk17764683313520.32403834531398157&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.8449559586894934" data-group-id="sg17764683313520.6810148831138022" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.8449559586894934&#39;,&#39;sg17764683313520.6810148831138022&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.8449559586894934&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.8449559586894934&#39;,&#39;sg17764683313520.6810148831138022&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>Confluence<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.6810148831138022&#39;,&#39;sk17764683313520.8449559586894934&#39;)" title="Remove">×</button></span>
-        <input class="skill-chip-input" type="text" placeholder="+ Add skill or paste list" onkeydown="handleSkillKey(event,&#39;sg17764683313520.6810148831138022&#39;,this)" onpaste="handleSkillPaste(event,&#39;sg17764683313520.6810148831138022&#39;,this)" onblur="if(this.value.trim()){addSkillsBulk(&#39;sg17764683313520.6810148831138022&#39;,this.value);this.value=&#39;&#39;;}">
+        <input class="skill-chip-input" type="text" onkeydown="handleSkillKey(event,&#39;sg17764683313520.6810148831138022&#39;,this)" onpaste="handleSkillPaste(event,&#39;sg17764683313520.6810148831138022&#39;,this)" onblur="if(this.value.trim()){addSkillsBulk(&#39;sg17764683313520.6810148831138022&#39;,this.value);this.value=&#39;&#39;;}">
       </div>
     </div><div class="skill-group" ondragover="groupDragOver(event,&#39;sg17764683313520.20485551802848645&#39;)" ondrop="groupDrop(event,&#39;sg17764683313520.20485551802848645&#39;)" ondragleave="groupDragLeave(event)">
       <div class="skill-group-head">
@@ -1198,7 +1198,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       </div>
       <div class="skill-chips" id="chips-sg17764683313520.20485551802848645">
         <span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.7491706703896996" data-group-id="sg17764683313520.20485551802848645" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.7491706703896996&#39;,&#39;sg17764683313520.20485551802848645&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.7491706703896996&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.7491706703896996&#39;,&#39;sg17764683313520.20485551802848645&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>JavaScript<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.20485551802848645&#39;,&#39;sk17764683313520.7491706703896996&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.48843122189619725" data-group-id="sg17764683313520.20485551802848645" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.48843122189619725&#39;,&#39;sg17764683313520.20485551802848645&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.48843122189619725&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.48843122189619725&#39;,&#39;sg17764683313520.20485551802848645&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>CSS<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.20485551802848645&#39;,&#39;sk17764683313520.48843122189619725&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.1210673608699635" data-group-id="sg17764683313520.20485551802848645" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.1210673608699635&#39;,&#39;sg17764683313520.20485551802848645&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.1210673608699635&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.1210673608699635&#39;,&#39;sg17764683313520.20485551802848645&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>HTML<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.20485551802848645&#39;,&#39;sk17764683313520.1210673608699635&#39;)" title="Remove">×</button></span><span class="skill-chip" draggable="true" data-skill-id="sk17764683313520.7613010541831475" data-group-id="sg17764683313520.20485551802848645" ondragstart="event.stopPropagation();chipDragStart(event,&#39;sk17764683313520.7613010541831475&#39;,&#39;sg17764683313520.20485551802848645&#39;)" ondragend="event.stopPropagation();dragEnd(event)" ondragover="event.stopPropagation();event.preventDefault();chipDragOver(event,&#39;sk17764683313520.7613010541831475&#39;)" ondrop="event.stopPropagation();chipDrop(event,&#39;sk17764683313520.7613010541831475&#39;,&#39;sg17764683313520.20485551802848645&#39;)"><span style="cursor:grab;color:var(--dim);margin-right:2px;font-size:10px;" ondragstart="event.stopPropagation()">⠿</span>Web Components<button class="skill-chip-del" onclick="removeSkill(&#39;sg17764683313520.20485551802848645&#39;,&#39;sk17764683313520.7613010541831475&#39;)" title="Remove">×</button></span>
-        <input class="skill-chip-input" type="text" placeholder="+ Add skill or paste list" onkeydown="handleSkillKey(event,&#39;sg17764683313520.20485551802848645&#39;,this)" onpaste="handleSkillPaste(event,&#39;sg17764683313520.20485551802848645&#39;,this)" onblur="if(this.value.trim()){addSkillsBulk(&#39;sg17764683313520.20485551802848645&#39;,this.value);this.value=&#39;&#39;;}">
+        <input class="skill-chip-input" type="text" onkeydown="handleSkillKey(event,&#39;sg17764683313520.20485551802848645&#39;,this)" onpaste="handleSkillPaste(event,&#39;sg17764683313520.20485551802848645&#39;,this)" onblur="if(this.value.trim()){addSkillsBulk(&#39;sg17764683313520.20485551802848645&#39;,this.value);this.value=&#39;&#39;;}">
       </div>
     </div></div>
             <div style="padding:8px 12px;">
@@ -1228,18 +1228,18 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       </div>
       <div class="role-fields">
         <div class="role-grid">
-          <div class="field"><label class="fl">Company</label><input type="text" value="" placeholder="Company Name" oninput="updateRole(&#39;r17764683286890.3985997390227506&#39;,&#39;company&#39;,this.value)"></div>
-          <div class="field"><label class="fl">Job Title</label><input type="text" value="Independent Product Design Director" placeholder="Senior Design Manager" oninput="updateRole(&#39;r17764683286890.3985997390227506&#39;,&#39;title&#39;,this.value)"></div>
-          <div class="field"><label class="fl">Start Date</label><input type="text" value="09/25" placeholder="02/24" oninput="updateRole(&#39;r17764683286890.3985997390227506&#39;,&#39;startDate&#39;,this.value)"></div>
-          <div class="field"><label class="fl">End Date</label><input type="text" value="Present" placeholder="02/26 or Present" oninput="updateRole(&#39;r17764683286890.3985997390227506&#39;,&#39;endDate&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Company</label><input type="text" value="" oninput="updateRole(&#39;r17764683286890.3985997390227506&#39;,&#39;company&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Job Title</label><input type="text" value="Independent Product Design Director" oninput="updateRole(&#39;r17764683286890.3985997390227506&#39;,&#39;title&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Start Date</label><input type="text" value="09/25" oninput="updateRole(&#39;r17764683286890.3985997390227506&#39;,&#39;startDate&#39;,this.value)"></div>
+          <div class="field"><label class="fl">End Date</label><input type="text" value="Present" oninput="updateRole(&#39;r17764683286890.3985997390227506&#39;,&#39;endDate&#39;,this.value)"></div>
         </div>
-        <div class="field"><label class="fl">Location</label><input type="text" value="Arlington, VA" placeholder="Washington, DC" oninput="updateRole(&#39;r17764683286890.3985997390227506&#39;,&#39;location&#39;,this.value)"></div>
-        <div class="field"><label class="fl">Role summary (optional — appears before bullets)</label><textarea style="min-height:54px;font-size:12px;" placeholder="e.g. Led design across Verizon&#39;s financial products portfolio, managing a distributed team of 9 designers within a 100M+ customer ecosystem." oninput="updateRole(&#39;r17764683286890.3985997390227506&#39;,&#39;context&#39;,this.value)">Partner with startups, studios, and enterprise teams to tackle high-impact problems, delivering experiences that drive measurable business impact.</textarea></div>
+        <div class="field"><label class="fl">Location</label><input type="text" value="Arlington, VA" oninput="updateRole(&#39;r17764683286890.3985997390227506&#39;,&#39;location&#39;,this.value)"></div>
+        <div class="field"><label class="fl">Role summary (optional — appears before bullets)</label><textarea style="min-height:54px;font-size:12px;" oninput="updateRole(&#39;r17764683286890.3985997390227506&#39;,&#39;context&#39;,this.value)">Partner with startups, studios, and enterprise teams to tackle high-impact problems, delivering experiences that drive measurable business impact.</textarea></div>
         <div class="bullet-list">
       <div class="bullet-row">
         <span style="color:var(--muted);margin-top:10px;font-size:13px;">•</span>
         <div style="flex:1;">
-          <textarea data-role-id="r17764683286890.3985997390227506" data-bullet-id="b17764683286890.9082460276665413" oninput="updateBullet(&#39;r17764683286890.3985997390227506&#39;,&#39;b17764683286890.9082460276665413&#39;,this.value);updateCharCount(this)" placeholder="Add a bullet point...">Lead geographically distributed design teams across multiple product areas, guiding execution of product design priorities in partnership with cross-functional teams</textarea>
+          <textarea data-role-id="r17764683286890.3985997390227506" data-bullet-id="b17764683286890.9082460276665413" oninput="updateBullet(&#39;r17764683286890.3985997390227506&#39;,&#39;b17764683286890.9082460276665413&#39;,this.value);updateCharCount(this)">Lead geographically distributed design teams across multiple product areas, guiding execution of product design priorities in partnership with cross-functional teams</textarea>
           <div class="char-count over">165/150</div>
         </div>
         <button class="bullet-del" onclick="removeBullet(&#39;r17764683286890.3985997390227506&#39;,&#39;b17764683286890.9082460276665413&#39;)" title="Remove bullet">×</button>
@@ -1247,7 +1247,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <div class="bullet-row">
         <span style="color:var(--muted);margin-top:10px;font-size:13px;">•</span>
         <div style="flex:1;">
-          <textarea data-role-id="r17764683286890.3985997390227506" data-bullet-id="b17764683286890.5657534608059422" oninput="updateBullet(&#39;r17764683286890.3985997390227506&#39;,&#39;b17764683286890.5657534608059422&#39;,this.value);updateCharCount(this)" placeholder="Add a bullet point...">Design complex enterprise workflows and data visualizations that help B2B revenue teams work smarter, faster, and more effectively</textarea>
+          <textarea data-role-id="r17764683286890.3985997390227506" data-bullet-id="b17764683286890.5657534608059422" oninput="updateBullet(&#39;r17764683286890.3985997390227506&#39;,&#39;b17764683286890.5657534608059422&#39;,this.value);updateCharCount(this)">Design complex enterprise workflows and data visualizations that help B2B revenue teams work smarter, faster, and more effectively</textarea>
           <div class="char-count ">130/150</div>
         </div>
         <button class="bullet-del" onclick="removeBullet(&#39;r17764683286890.3985997390227506&#39;,&#39;b17764683286890.5657534608059422&#39;)" title="Remove bullet">×</button>
@@ -1255,7 +1255,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <div class="bullet-row">
         <span style="color:var(--muted);margin-top:10px;font-size:13px;">•</span>
         <div style="flex:1;">
-          <textarea data-role-id="r17764683286890.3985997390227506" data-bullet-id="b17764683286890.7951749401502286" oninput="updateBullet(&#39;r17764683286890.3985997390227506&#39;,&#39;b17764683286890.7951749401502286&#39;,this.value);updateCharCount(this)" placeholder="Add a bullet point...">Hire, onboard, and develop designers while promoting consistent use of design system across team's work to ensure scalable, user-aligned solutions</textarea>
+          <textarea data-role-id="r17764683286890.3985997390227506" data-bullet-id="b17764683286890.7951749401502286" oninput="updateBullet(&#39;r17764683286890.3985997390227506&#39;,&#39;b17764683286890.7951749401502286&#39;,this.value);updateCharCount(this)">Hire, onboard, and develop designers while promoting consistent use of design system across team's work to ensure scalable, user-aligned solutions</textarea>
           <div class="char-count ">146/150</div>
         </div>
         <button class="bullet-del" onclick="removeBullet(&#39;r17764683286890.3985997390227506&#39;,&#39;b17764683286890.7951749401502286&#39;)" title="Remove bullet">×</button>
@@ -1273,18 +1273,18 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       </div>
       <div class="role-fields">
         <div class="role-grid">
-          <div class="field"><label class="fl">Company</label><input type="text" value="Verizon" placeholder="Company Name" oninput="updateRole(&#39;r17764683286890.7919608875457109&#39;,&#39;company&#39;,this.value)"></div>
-          <div class="field"><label class="fl">Job Title</label><input type="text" value="Senior Experience Design Manager, Financial Services" placeholder="Senior Design Manager" oninput="updateRole(&#39;r17764683286890.7919608875457109&#39;,&#39;title&#39;,this.value)"></div>
-          <div class="field"><label class="fl">Start Date</label><input type="text" value="02/24" placeholder="02/24" oninput="updateRole(&#39;r17764683286890.7919608875457109&#39;,&#39;startDate&#39;,this.value)"></div>
-          <div class="field"><label class="fl">End Date</label><input type="text" value="04/26" placeholder="02/26 or Present" oninput="updateRole(&#39;r17764683286890.7919608875457109&#39;,&#39;endDate&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Company</label><input type="text" value="Verizon" oninput="updateRole(&#39;r17764683286890.7919608875457109&#39;,&#39;company&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Job Title</label><input type="text" value="Senior Experience Design Manager, Financial Services" oninput="updateRole(&#39;r17764683286890.7919608875457109&#39;,&#39;title&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Start Date</label><input type="text" value="02/24" oninput="updateRole(&#39;r17764683286890.7919608875457109&#39;,&#39;startDate&#39;,this.value)"></div>
+          <div class="field"><label class="fl">End Date</label><input type="text" value="04/26" oninput="updateRole(&#39;r17764683286890.7919608875457109&#39;,&#39;endDate&#39;,this.value)"></div>
         </div>
-        <div class="field"><label class="fl">Location</label><input type="text" value="New York, NY" placeholder="Washington, DC" oninput="updateRole(&#39;r17764683286890.7919608875457109&#39;,&#39;location&#39;,this.value)"></div>
-        <div class="field"><label class="fl">Role summary (optional — appears before bullets)</label><textarea style="min-height:54px;font-size:12px;" placeholder="e.g. Led design across Verizon&#39;s financial products portfolio, managing a distributed team of 9 designers within a 100M+ customer ecosystem." oninput="updateRole(&#39;r17764683286890.7919608875457109&#39;,&#39;context&#39;,this.value)">Promoted to lead multidisciplinary design teams across two financial products in Verizon's 100M+ customer ecosystem, delivering 26% MAU growth and 90% card activation rate.</textarea></div>
+        <div class="field"><label class="fl">Location</label><input type="text" value="New York, NY" oninput="updateRole(&#39;r17764683286890.7919608875457109&#39;,&#39;location&#39;,this.value)"></div>
+        <div class="field"><label class="fl">Role summary (optional — appears before bullets)</label><textarea style="min-height:54px;font-size:12px;" oninput="updateRole(&#39;r17764683286890.7919608875457109&#39;,&#39;context&#39;,this.value)">Promoted to lead multidisciplinary design teams across two financial products in Verizon's 100M+ customer ecosystem, delivering 26% MAU growth and 90% card activation rate.</textarea></div>
         <div class="bullet-list">
       <div class="bullet-row">
         <span style="color:var(--muted);margin-top:10px;font-size:13px;">•</span>
         <div style="flex:1;">
-          <textarea data-role-id="r17764683286890.7919608875457109" data-bullet-id="b17764683286890.49423248653926255" oninput="updateBullet(&#39;r17764683286890.7919608875457109&#39;,&#39;b17764683286890.49423248653926255&#39;,this.value);updateCharCount(this)" placeholder="Add a bullet point...">Led distributed team of 6 product designers across two financial products within Verizon's 100M+ customer ecosystem to drive engagement and retention</textarea>
+          <textarea data-role-id="r17764683286890.7919608875457109" data-bullet-id="b17764683286890.49423248653926255" oninput="updateBullet(&#39;r17764683286890.7919608875457109&#39;,&#39;b17764683286890.49423248653926255&#39;,this.value);updateCharCount(this)">Led distributed team of 6 product designers across two financial products within Verizon's 100M+ customer ecosystem to drive engagement and retention</textarea>
           <div class="char-count ">149/150</div>
         </div>
         <button class="bullet-del" onclick="removeBullet(&#39;r17764683286890.7919608875457109&#39;,&#39;b17764683286890.49423248653926255&#39;)" title="Remove bullet">×</button>
@@ -1292,7 +1292,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <div class="bullet-row">
         <span style="color:var(--muted);margin-top:10px;font-size:13px;">•</span>
         <div style="flex:1;">
-          <textarea data-role-id="r17764683286890.7919608875457109" data-bullet-id="b17764683286890.9547576611527443" oninput="updateBullet(&#39;r17764683286890.7919608875457109&#39;,&#39;b17764683286890.9547576611527443&#39;,this.value);updateCharCount(this)" placeholder="Add a bullet point...">Drove 26% MAU growth and 90% card activation rate through data-driven design execution in partnership with cross-functional teams</textarea>
+          <textarea data-role-id="r17764683286890.7919608875457109" data-bullet-id="b17764683286890.9547576611527443" oninput="updateBullet(&#39;r17764683286890.7919608875457109&#39;,&#39;b17764683286890.9547576611527443&#39;,this.value);updateCharCount(this)">Drove 26% MAU growth and 90% card activation rate through data-driven design execution in partnership with cross-functional teams</textarea>
           <div class="char-count ">129/150</div>
         </div>
         <button class="bullet-del" onclick="removeBullet(&#39;r17764683286890.7919608875457109&#39;,&#39;b17764683286890.9547576611527443&#39;)" title="Remove bullet">×</button>
@@ -1300,7 +1300,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <div class="bullet-row">
         <span style="color:var(--muted);margin-top:10px;font-size:13px;">•</span>
         <div style="flex:1;">
-          <textarea data-role-id="r17764683286890.7919608875457109" data-bullet-id="b17764683286890.9755669255291451" oninput="updateBullet(&#39;r17764683286890.7919608875457109&#39;,&#39;b17764683286890.9755669255291451&#39;,this.value);updateCharCount(this)" placeholder="Add a bullet point...">Surfaced 37 experience gaps through comprehensive evaluation, directly informing product design priorities and remediation roadmap</textarea>
+          <textarea data-role-id="r17764683286890.7919608875457109" data-bullet-id="b17764683286890.9755669255291451" oninput="updateBullet(&#39;r17764683286890.7919608875457109&#39;,&#39;b17764683286890.9755669255291451&#39;,this.value);updateCharCount(this)">Surfaced 37 experience gaps through comprehensive evaluation, directly informing product design priorities and remediation roadmap</textarea>
           <div class="char-count ">130/150</div>
         </div>
         <button class="bullet-del" onclick="removeBullet(&#39;r17764683286890.7919608875457109&#39;,&#39;b17764683286890.9755669255291451&#39;)" title="Remove bullet">×</button>
@@ -1308,7 +1308,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <div class="bullet-row">
         <span style="color:var(--muted);margin-top:10px;font-size:13px;">•</span>
         <div style="flex:1;">
-          <textarea data-role-id="r17764683286890.7919608875457109" data-bullet-id="b17764683286890.9495476702036285" oninput="updateBullet(&#39;r17764683286890.7919608875457109&#39;,&#39;b17764683286890.9495476702036285&#39;,this.value);updateCharCount(this)" placeholder="Add a bullet point...">Improved team delivery velocity 40% and cut defects 40% by scaling design team processes and cross-functional collaboration</textarea>
+          <textarea data-role-id="r17764683286890.7919608875457109" data-bullet-id="b17764683286890.9495476702036285" oninput="updateBullet(&#39;r17764683286890.7919608875457109&#39;,&#39;b17764683286890.9495476702036285&#39;,this.value);updateCharCount(this)">Improved team delivery velocity 40% and cut defects 40% by scaling design team processes and cross-functional collaboration</textarea>
           <div class="char-count ">123/150</div>
         </div>
         <button class="bullet-del" onclick="removeBullet(&#39;r17764683286890.7919608875457109&#39;,&#39;b17764683286890.9495476702036285&#39;)" title="Remove bullet">×</button>
@@ -1316,7 +1316,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <div class="bullet-row">
         <span style="color:var(--muted);margin-top:10px;font-size:13px;">•</span>
         <div style="flex:1;">
-          <textarea data-role-id="r17764683286890.7919608875457109" data-bullet-id="b17764683286890.9789915115513832" oninput="updateBullet(&#39;r17764683286890.7919608875457109&#39;,&#39;b17764683286890.9789915115513832&#39;,this.value);updateCharCount(this)" placeholder="Add a bullet point...">Mentored designers across multiple product areas while fostering culture of collaboration and continuous improvement through capacity planning</textarea>
+          <textarea data-role-id="r17764683286890.7919608875457109" data-bullet-id="b17764683286890.9789915115513832" oninput="updateBullet(&#39;r17764683286890.7919608875457109&#39;,&#39;b17764683286890.9789915115513832&#39;,this.value);updateCharCount(this)">Mentored designers across multiple product areas while fostering culture of collaboration and continuous improvement through capacity planning</textarea>
           <div class="char-count ">142/150</div>
         </div>
         <button class="bullet-del" onclick="removeBullet(&#39;r17764683286890.7919608875457109&#39;,&#39;b17764683286890.9789915115513832&#39;)" title="Remove bullet">×</button>
@@ -1334,18 +1334,18 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       </div>
       <div class="role-fields">
         <div class="role-grid">
-          <div class="field"><label class="fl">Company</label><input type="text" value="Verizon" placeholder="Company Name" oninput="updateRole(&#39;r17764683286890.03734684268617583&#39;,&#39;company&#39;,this.value)"></div>
-          <div class="field"><label class="fl">Job Title</label><input type="text" value="Experience Design Manager, Home Apps and Services" placeholder="Senior Design Manager" oninput="updateRole(&#39;r17764683286890.03734684268617583&#39;,&#39;title&#39;,this.value)"></div>
-          <div class="field"><label class="fl">Start Date</label><input type="text" value="06/22" placeholder="02/24" oninput="updateRole(&#39;r17764683286890.03734684268617583&#39;,&#39;startDate&#39;,this.value)"></div>
-          <div class="field"><label class="fl">End Date</label><input type="text" value="02/24" placeholder="02/26 or Present" oninput="updateRole(&#39;r17764683286890.03734684268617583&#39;,&#39;endDate&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Company</label><input type="text" value="Verizon" oninput="updateRole(&#39;r17764683286890.03734684268617583&#39;,&#39;company&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Job Title</label><input type="text" value="Experience Design Manager, Home Apps and Services" oninput="updateRole(&#39;r17764683286890.03734684268617583&#39;,&#39;title&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Start Date</label><input type="text" value="06/22" oninput="updateRole(&#39;r17764683286890.03734684268617583&#39;,&#39;startDate&#39;,this.value)"></div>
+          <div class="field"><label class="fl">End Date</label><input type="text" value="02/24" oninput="updateRole(&#39;r17764683286890.03734684268617583&#39;,&#39;endDate&#39;,this.value)"></div>
         </div>
-        <div class="field"><label class="fl">Location</label><input type="text" value="New York, NY" placeholder="Washington, DC" oninput="updateRole(&#39;r17764683286890.03734684268617583&#39;,&#39;location&#39;,this.value)"></div>
-        <div class="field"><label class="fl">Role summary (optional — appears before bullets)</label><textarea style="min-height:54px;font-size:12px;" placeholder="e.g. Led design across Verizon&#39;s financial products portfolio, managing a distributed team of 9 designers within a 100M+ customer ecosystem." oninput="updateRole(&#39;r17764683286890.03734684268617583&#39;,&#39;context&#39;,this.value)">Leading design for Verizon's home products and driving the zero-to-one launch of Verizon Home that achieved 300% DAU growth.</textarea></div>
+        <div class="field"><label class="fl">Location</label><input type="text" value="New York, NY" oninput="updateRole(&#39;r17764683286890.03734684268617583&#39;,&#39;location&#39;,this.value)"></div>
+        <div class="field"><label class="fl">Role summary (optional — appears before bullets)</label><textarea style="min-height:54px;font-size:12px;" oninput="updateRole(&#39;r17764683286890.03734684268617583&#39;,&#39;context&#39;,this.value)">Leading design for Verizon's home products and driving the zero-to-one launch of Verizon Home that achieved 300% DAU growth.</textarea></div>
         <div class="bullet-list">
       <div class="bullet-row">
         <span style="color:var(--muted);margin-top:10px;font-size:13px;">•</span>
         <div style="flex:1;">
-          <textarea data-role-id="r17764683286890.03734684268617583" data-bullet-id="b17764683286890.9989888755105584" oninput="updateBullet(&#39;r17764683286890.03734684268617583&#39;,&#39;b17764683286890.9989888755105584&#39;,this.value);updateCharCount(this)" placeholder="Add a bullet point...">Led geographically distributed team of 30 designers and engineers to ship Verizon Home platform reaching 41M customers and 342M connected devices</textarea>
+          <textarea data-role-id="r17764683286890.03734684268617583" data-bullet-id="b17764683286890.9989888755105584" oninput="updateBullet(&#39;r17764683286890.03734684268617583&#39;,&#39;b17764683286890.9989888755105584&#39;,this.value);updateCharCount(this)">Led geographically distributed team of 30 designers and engineers to ship Verizon Home platform reaching 41M customers and 342M connected devices</textarea>
           <div class="char-count ">145/150</div>
         </div>
         <button class="bullet-del" onclick="removeBullet(&#39;r17764683286890.03734684268617583&#39;,&#39;b17764683286890.9989888755105584&#39;)" title="Remove bullet">×</button>
@@ -1353,7 +1353,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <div class="bullet-row">
         <span style="color:var(--muted);margin-top:10px;font-size:13px;">•</span>
         <div style="flex:1;">
-          <textarea data-role-id="r17764683286890.03734684268617583" data-bullet-id="b17764683286890.3542048458420958" oninput="updateBullet(&#39;r17764683286890.03734684268617583&#39;,&#39;b17764683286890.3542048458420958&#39;,this.value);updateCharCount(this)" placeholder="Add a bullet point...">Guided execution of product design priorities in partnership with cross-functional teams to drive customer satisfaction and engagement goals</textarea>
+          <textarea data-role-id="r17764683286890.03734684268617583" data-bullet-id="b17764683286890.3542048458420958" oninput="updateBullet(&#39;r17764683286890.03734684268617583&#39;,&#39;b17764683286890.3542048458420958&#39;,this.value);updateCharCount(this)">Guided execution of product design priorities in partnership with cross-functional teams to drive customer satisfaction and engagement goals</textarea>
           <div class="char-count ">140/150</div>
         </div>
         <button class="bullet-del" onclick="removeBullet(&#39;r17764683286890.03734684268617583&#39;,&#39;b17764683286890.3542048458420958&#39;)" title="Remove bullet">×</button>
@@ -1361,7 +1361,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <div class="bullet-row">
         <span style="color:var(--muted);margin-top:10px;font-size:13px;">•</span>
         <div style="flex:1;">
-          <textarea data-role-id="r17764683286890.03734684268617583" data-bullet-id="b17764683286890.23733948448256825" oninput="updateBullet(&#39;r17764683286890.03734684268617583&#39;,&#39;b17764683286890.23733948448256825&#39;,this.value);updateCharCount(this)" placeholder="Add a bullet point...">Drove 300% DAU growth through design of complex enterprise workflows that reduced customer support dependency and improved task success</textarea>
+          <textarea data-role-id="r17764683286890.03734684268617583" data-bullet-id="b17764683286890.23733948448256825" oninput="updateBullet(&#39;r17764683286890.03734684268617583&#39;,&#39;b17764683286890.23733948448256825&#39;,this.value);updateCharCount(this)">Drove 300% DAU growth through design of complex enterprise workflows that reduced customer support dependency and improved task success</textarea>
           <div class="char-count ">135/150</div>
         </div>
         <button class="bullet-del" onclick="removeBullet(&#39;r17764683286890.03734684268617583&#39;,&#39;b17764683286890.23733948448256825&#39;)" title="Remove bullet">×</button>
@@ -1369,7 +1369,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <div class="bullet-row">
         <span style="color:var(--muted);margin-top:10px;font-size:13px;">•</span>
         <div style="flex:1;">
-          <textarea data-role-id="r17764683286890.03734684268617583" data-bullet-id="b17764683286890.9914648406205041" oninput="updateBullet(&#39;r17764683286890.03734684268617583&#39;,&#39;b17764683286890.9914648406205041&#39;,this.value);updateCharCount(this)" placeholder="Add a bullet point...">Ensured designs were scalable and aligned with business needs across 75 team members in agile environments to reduce call-center drivers</textarea>
+          <textarea data-role-id="r17764683286890.03734684268617583" data-bullet-id="b17764683286890.9914648406205041" oninput="updateBullet(&#39;r17764683286890.03734684268617583&#39;,&#39;b17764683286890.9914648406205041&#39;,this.value);updateCharCount(this)">Ensured designs were scalable and aligned with business needs across 75 team members in agile environments to reduce call-center drivers</textarea>
           <div class="char-count ">136/150</div>
         </div>
         <button class="bullet-del" onclick="removeBullet(&#39;r17764683286890.03734684268617583&#39;,&#39;b17764683286890.9914648406205041&#39;)" title="Remove bullet">×</button>
@@ -1377,7 +1377,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <div class="bullet-row">
         <span style="color:var(--muted);margin-top:10px;font-size:13px;">•</span>
         <div style="flex:1;">
-          <textarea data-role-id="r17764683286890.03734684268617583" data-bullet-id="b17764683286890.8482030518747002" oninput="updateBullet(&#39;r17764683286890.03734684268617583&#39;,&#39;b17764683286890.8482030518747002&#39;,this.value);updateCharCount(this)" placeholder="Add a bullet point...">Hired and developed design team from 5 to 9 designers after earning C-Suite approval, fostering culture of collaboration and improvement</textarea>
+          <textarea data-role-id="r17764683286890.03734684268617583" data-bullet-id="b17764683286890.8482030518747002" oninput="updateBullet(&#39;r17764683286890.03734684268617583&#39;,&#39;b17764683286890.8482030518747002&#39;,this.value);updateCharCount(this)">Hired and developed design team from 5 to 9 designers after earning C-Suite approval, fostering culture of collaboration and improvement</textarea>
           <div class="char-count ">136/150</div>
         </div>
         <button class="bullet-del" onclick="removeBullet(&#39;r17764683286890.03734684268617583&#39;,&#39;b17764683286890.8482030518747002&#39;)" title="Remove bullet">×</button>
@@ -1395,18 +1395,18 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       </div>
       <div class="role-fields">
         <div class="role-grid">
-          <div class="field"><label class="fl">Company</label><input type="text" value="Verizon" placeholder="Company Name" oninput="updateRole(&#39;r17764683286890.6512920868555082&#39;,&#39;company&#39;,this.value)"></div>
-          <div class="field"><label class="fl">Job Title</label><input type="text" value="Lead Experience Designer, Home Network Management" placeholder="Senior Design Manager" oninput="updateRole(&#39;r17764683286890.6512920868555082&#39;,&#39;title&#39;,this.value)"></div>
-          <div class="field"><label class="fl">Start Date</label><input type="text" value="02/20" placeholder="02/24" oninput="updateRole(&#39;r17764683286890.6512920868555082&#39;,&#39;startDate&#39;,this.value)"></div>
-          <div class="field"><label class="fl">End Date</label><input type="text" value="06/22" placeholder="02/26 or Present" oninput="updateRole(&#39;r17764683286890.6512920868555082&#39;,&#39;endDate&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Company</label><input type="text" value="Verizon" oninput="updateRole(&#39;r17764683286890.6512920868555082&#39;,&#39;company&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Job Title</label><input type="text" value="Lead Experience Designer, Home Network Management" oninput="updateRole(&#39;r17764683286890.6512920868555082&#39;,&#39;title&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Start Date</label><input type="text" value="02/20" oninput="updateRole(&#39;r17764683286890.6512920868555082&#39;,&#39;startDate&#39;,this.value)"></div>
+          <div class="field"><label class="fl">End Date</label><input type="text" value="06/22" oninput="updateRole(&#39;r17764683286890.6512920868555082&#39;,&#39;endDate&#39;,this.value)"></div>
         </div>
-        <div class="field"><label class="fl">Location</label><input type="text" value="New York, NY" placeholder="Washington, DC" oninput="updateRole(&#39;r17764683286890.6512920868555082&#39;,&#39;location&#39;,this.value)"></div>
-        <div class="field"><label class="fl">Role summary (optional — appears before bullets)</label><textarea style="min-height:54px;font-size:12px;" placeholder="e.g. Led design across Verizon&#39;s financial products portfolio, managing a distributed team of 9 designers within a 100M+ customer ecosystem." oninput="updateRole(&#39;r17764683286890.6512920868555082&#39;,&#39;context&#39;,this.value)">Joined Verizon to design conversational AI, network management, parental controls, and cybersecurity products for 16M+ households.</textarea></div>
+        <div class="field"><label class="fl">Location</label><input type="text" value="New York, NY" oninput="updateRole(&#39;r17764683286890.6512920868555082&#39;,&#39;location&#39;,this.value)"></div>
+        <div class="field"><label class="fl">Role summary (optional — appears before bullets)</label><textarea style="min-height:54px;font-size:12px;" oninput="updateRole(&#39;r17764683286890.6512920868555082&#39;,&#39;context&#39;,this.value)">Joined Verizon to design conversational AI, network management, parental controls, and cybersecurity products for 16M+ households.</textarea></div>
         <div class="bullet-list">
       <div class="bullet-row">
         <span style="color:var(--muted);margin-top:10px;font-size:13px;">•</span>
         <div style="flex:1;">
-          <textarea data-role-id="r17764683286890.6512920868555082" data-bullet-id="b17764683286890.6014157136073801" oninput="updateBullet(&#39;r17764683286890.6512920868555082&#39;,&#39;b17764683286890.6014157136073801&#39;,this.value);updateCharCount(this)" placeholder="Add a bullet point...">Led team of 4 product designers across multiple product areas and workstreams for router firmware, mobile apps, and connected devices</textarea>
+          <textarea data-role-id="r17764683286890.6512920868555082" data-bullet-id="b17764683286890.6014157136073801" oninput="updateBullet(&#39;r17764683286890.6512920868555082&#39;,&#39;b17764683286890.6014157136073801&#39;,this.value);updateCharCount(this)">Led team of 4 product designers across multiple product areas and workstreams for router firmware, mobile apps, and connected devices</textarea>
           <div class="char-count ">133/150</div>
         </div>
         <button class="bullet-del" onclick="removeBullet(&#39;r17764683286890.6512920868555082&#39;,&#39;b17764683286890.6014157136073801&#39;)" title="Remove bullet">×</button>
@@ -1414,7 +1414,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <div class="bullet-row">
         <span style="color:var(--muted);margin-top:10px;font-size:13px;">•</span>
         <div style="flex:1;">
-          <textarea data-role-id="r17764683286890.6512920868555082" data-bullet-id="b17764683286890.06771504406526341" oninput="updateBullet(&#39;r17764683286890.6512920868555082&#39;,&#39;b17764683286890.06771504406526341&#39;,this.value);updateCharCount(this)" placeholder="Add a bullet point...">Guided execution of product design priorities for multimodal conversational AI assistant integrating voice, vision, and text capabilities</textarea>
+          <textarea data-role-id="r17764683286890.6512920868555082" data-bullet-id="b17764683286890.06771504406526341" oninput="updateBullet(&#39;r17764683286890.6512920868555082&#39;,&#39;b17764683286890.06771504406526341&#39;,this.value);updateCharCount(this)">Guided execution of product design priorities for multimodal conversational AI assistant integrating voice, vision, and text capabilities</textarea>
           <div class="char-count ">137/150</div>
         </div>
         <button class="bullet-del" onclick="removeBullet(&#39;r17764683286890.6512920868555082&#39;,&#39;b17764683286890.06771504406526341&#39;)" title="Remove bullet">×</button>
@@ -1422,7 +1422,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <div class="bullet-row">
         <span style="color:var(--muted);margin-top:10px;font-size:13px;">•</span>
         <div style="flex:1;">
-          <textarea data-role-id="r17764683286890.6512920868555082" data-bullet-id="b17764683286890.4320442717208687" oninput="updateBullet(&#39;r17764683286890.6512920868555082&#39;,&#39;b17764683286890.4320442717208687&#39;,this.value);updateCharCount(this)" placeholder="Add a bullet point...">Ensured designs were usable, scalable, and aligned with user and business needs for AI-assisted workflows and system constraints</textarea>
+          <textarea data-role-id="r17764683286890.6512920868555082" data-bullet-id="b17764683286890.4320442717208687" oninput="updateBullet(&#39;r17764683286890.6512920868555082&#39;,&#39;b17764683286890.4320442717208687&#39;,this.value);updateCharCount(this)">Ensured designs were usable, scalable, and aligned with user and business needs for AI-assisted workflows and system constraints</textarea>
           <div class="char-count ">128/150</div>
         </div>
         <button class="bullet-del" onclick="removeBullet(&#39;r17764683286890.6512920868555082&#39;,&#39;b17764683286890.4320442717208687&#39;)" title="Remove bullet">×</button>
@@ -1430,7 +1430,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <div class="bullet-row">
         <span style="color:var(--muted);margin-top:10px;font-size:13px;">•</span>
         <div style="flex:1;">
-          <textarea data-role-id="r17764683286890.6512920868555082" data-bullet-id="b17764683286890.6329219773232295" oninput="updateBullet(&#39;r17764683286890.6512920868555082&#39;,&#39;b17764683286890.6329219773232295&#39;,this.value);updateCharCount(this)" placeholder="Add a bullet point...">Shaped user experience for complex enterprise workflows while building tools that help teams work smarter, faster, and more effectively</textarea>
+          <textarea data-role-id="r17764683286890.6512920868555082" data-bullet-id="b17764683286890.6329219773232295" oninput="updateBullet(&#39;r17764683286890.6512920868555082&#39;,&#39;b17764683286890.6329219773232295&#39;,this.value);updateCharCount(this)">Shaped user experience for complex enterprise workflows while building tools that help teams work smarter, faster, and more effectively</textarea>
           <div class="char-count ">135/150</div>
         </div>
         <button class="bullet-del" onclick="removeBullet(&#39;r17764683286890.6512920868555082&#39;,&#39;b17764683286890.6329219773232295&#39;)" title="Remove bullet">×</button>
@@ -1448,18 +1448,18 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       </div>
       <div class="role-fields">
         <div class="role-grid">
-          <div class="field"><label class="fl">Company</label><input type="text" value="Web.com" placeholder="Company Name" oninput="updateRole(&#39;r17764683286890.5401198683113039&#39;,&#39;company&#39;,this.value)"></div>
-          <div class="field"><label class="fl">Job Title</label><input type="text" value="Product Design Manager, Design Systems" placeholder="Senior Design Manager" oninput="updateRole(&#39;r17764683286890.5401198683113039&#39;,&#39;title&#39;,this.value)"></div>
-          <div class="field"><label class="fl">Start Date</label><input type="text" value="06/17" placeholder="02/24" oninput="updateRole(&#39;r17764683286890.5401198683113039&#39;,&#39;startDate&#39;,this.value)"></div>
-          <div class="field"><label class="fl">End Date</label><input type="text" value="02/20" placeholder="02/26 or Present" oninput="updateRole(&#39;r17764683286890.5401198683113039&#39;,&#39;endDate&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Company</label><input type="text" value="Web.com" oninput="updateRole(&#39;r17764683286890.5401198683113039&#39;,&#39;company&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Job Title</label><input type="text" value="Product Design Manager, Design Systems" oninput="updateRole(&#39;r17764683286890.5401198683113039&#39;,&#39;title&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Start Date</label><input type="text" value="06/17" oninput="updateRole(&#39;r17764683286890.5401198683113039&#39;,&#39;startDate&#39;,this.value)"></div>
+          <div class="field"><label class="fl">End Date</label><input type="text" value="02/20" oninput="updateRole(&#39;r17764683286890.5401198683113039&#39;,&#39;endDate&#39;,this.value)"></div>
         </div>
-        <div class="field"><label class="fl">Location</label><input type="text" value="New York, NY" placeholder="Washington, DC" oninput="updateRole(&#39;r17764683286890.5401198683113039&#39;,&#39;location&#39;,this.value)"></div>
-        <div class="field"><label class="fl">Role summary (optional — appears before bullets)</label><textarea style="min-height:54px;font-size:12px;" placeholder="e.g. Led design across Verizon&#39;s financial products portfolio, managing a distributed team of 9 designers within a 100M+ customer ecosystem." oninput="updateRole(&#39;r17764683286890.5401198683113039&#39;,&#39;context&#39;,this.value)">My cross-functional impact earned promotion to management, where I built the company's design systems practice across 15 product teams serving 50,000+ small businesses.</textarea></div>
+        <div class="field"><label class="fl">Location</label><input type="text" value="New York, NY" oninput="updateRole(&#39;r17764683286890.5401198683113039&#39;,&#39;location&#39;,this.value)"></div>
+        <div class="field"><label class="fl">Role summary (optional — appears before bullets)</label><textarea style="min-height:54px;font-size:12px;" oninput="updateRole(&#39;r17764683286890.5401198683113039&#39;,&#39;context&#39;,this.value)">My cross-functional impact earned promotion to management, where I built the company's design systems practice across 15 product teams serving 50,000+ small businesses.</textarea></div>
         <div class="bullet-list">
       <div class="bullet-row">
         <span style="color:var(--muted);margin-top:10px;font-size:13px;">•</span>
         <div style="flex:1;">
-          <textarea data-role-id="r17764683286890.5401198683113039" data-bullet-id="b17764683286890.1970530498438542" oninput="updateBullet(&#39;r17764683286890.5401198683113039&#39;,&#39;b17764683286890.1970530498438542&#39;,this.value);updateCharCount(this)" placeholder="Add a bullet point...">Founded and scaled Web.com's design systems, eliminating fragmentation across portfolio and reducing brand inconsistencies</textarea>
+          <textarea data-role-id="r17764683286890.5401198683113039" data-bullet-id="b17764683286890.1970530498438542" oninput="updateBullet(&#39;r17764683286890.5401198683113039&#39;,&#39;b17764683286890.1970530498438542&#39;,this.value);updateCharCount(this)">Founded and scaled Web.com's design systems, eliminating fragmentation across portfolio and reducing brand inconsistencies</textarea>
           <div class="char-count ">122/150</div>
         </div>
         <button class="bullet-del" onclick="removeBullet(&#39;r17764683286890.5401198683113039&#39;,&#39;b17764683286890.1970530498438542&#39;)" title="Remove bullet">×</button>
@@ -1467,7 +1467,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <div class="bullet-row">
         <span style="color:var(--muted);margin-top:10px;font-size:13px;">•</span>
         <div style="flex:1;">
-          <textarea data-role-id="r17764683286890.5401198683113039" data-bullet-id="b17764683286890.5665581111291568" oninput="updateBullet(&#39;r17764683286890.5401198683113039&#39;,&#39;b17764683286890.5665581111291568&#39;,this.value);updateCharCount(this)" placeholder="Add a bullet point...">Led geographically distributed team of 40 designers and engineers, maintaining alignment through clear process and collaboration</textarea>
+          <textarea data-role-id="r17764683286890.5401198683113039" data-bullet-id="b17764683286890.5665581111291568" oninput="updateBullet(&#39;r17764683286890.5401198683113039&#39;,&#39;b17764683286890.5665581111291568&#39;,this.value);updateCharCount(this)">Led geographically distributed team of 40 designers and engineers, maintaining alignment through clear process and collaboration</textarea>
           <div class="char-count ">128/150</div>
         </div>
         <button class="bullet-del" onclick="removeBullet(&#39;r17764683286890.5401198683113039&#39;,&#39;b17764683286890.5665581111291568&#39;)" title="Remove bullet">×</button>
@@ -1475,7 +1475,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <div class="bullet-row">
         <span style="color:var(--muted);margin-top:10px;font-size:13px;">•</span>
         <div style="flex:1;">
-          <textarea data-role-id="r17764683286890.5401198683113039" data-bullet-id="b17764683286890.11190691680126796" oninput="updateBullet(&#39;r17764683286890.5401198683113039&#39;,&#39;b17764683286890.11190691680126796&#39;,this.value);updateCharCount(this)" placeholder="Add a bullet point...">Won executive buy-in by framing focused opportunities, then guided cross-functional teams to deliver scalable solutions</textarea>
+          <textarea data-role-id="r17764683286890.5401198683113039" data-bullet-id="b17764683286890.11190691680126796" oninput="updateBullet(&#39;r17764683286890.5401198683113039&#39;,&#39;b17764683286890.11190691680126796&#39;,this.value);updateCharCount(this)">Won executive buy-in by framing focused opportunities, then guided cross-functional teams to deliver scalable solutions</textarea>
           <div class="char-count ">119/150</div>
         </div>
         <button class="bullet-del" onclick="removeBullet(&#39;r17764683286890.5401198683113039&#39;,&#39;b17764683286890.11190691680126796&#39;)" title="Remove bullet">×</button>
@@ -1483,7 +1483,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <div class="bullet-row">
         <span style="color:var(--muted);margin-top:10px;font-size:13px;">•</span>
         <div style="flex:1;">
-          <textarea data-role-id="r17764683286890.5401198683113039" data-bullet-id="b17764683286890.572170262629463" oninput="updateBullet(&#39;r17764683286890.5401198683113039&#39;,&#39;b17764683286890.572170262629463&#39;,this.value);updateCharCount(this)" placeholder="Add a bullet point...">Reduced component update time from 30 days to 30 minutes, recovering hundreds of billable hours for higher-priority efforts</textarea>
+          <textarea data-role-id="r17764683286890.5401198683113039" data-bullet-id="b17764683286890.572170262629463" oninput="updateBullet(&#39;r17764683286890.5401198683113039&#39;,&#39;b17764683286890.572170262629463&#39;,this.value);updateCharCount(this)">Reduced component update time from 30 days to 30 minutes, recovering hundreds of billable hours for higher-priority efforts</textarea>
           <div class="char-count ">123/150</div>
         </div>
         <button class="bullet-del" onclick="removeBullet(&#39;r17764683286890.5401198683113039&#39;,&#39;b17764683286890.572170262629463&#39;)" title="Remove bullet">×</button>
@@ -1501,18 +1501,18 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       </div>
       <div class="role-fields">
         <div class="role-grid">
-          <div class="field"><label class="fl">Company</label><input type="text" value="Yodle (Acquired by Web.com)" placeholder="Company Name" oninput="updateRole(&#39;r17764683286890.4674297581184166&#39;,&#39;company&#39;,this.value)"></div>
-          <div class="field"><label class="fl">Job Title</label><input type="text" value="Lead Product Designer" placeholder="Senior Design Manager" oninput="updateRole(&#39;r17764683286890.4674297581184166&#39;,&#39;title&#39;,this.value)"></div>
-          <div class="field"><label class="fl">Start Date</label><input type="text" value="01/16" placeholder="02/24" oninput="updateRole(&#39;r17764683286890.4674297581184166&#39;,&#39;startDate&#39;,this.value)"></div>
-          <div class="field"><label class="fl">End Date</label><input type="text" value="06/17" placeholder="02/26 or Present" oninput="updateRole(&#39;r17764683286890.4674297581184166&#39;,&#39;endDate&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Company</label><input type="text" value="Yodle (Acquired by Web.com)" oninput="updateRole(&#39;r17764683286890.4674297581184166&#39;,&#39;company&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Job Title</label><input type="text" value="Lead Product Designer" oninput="updateRole(&#39;r17764683286890.4674297581184166&#39;,&#39;title&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Start Date</label><input type="text" value="01/16" oninput="updateRole(&#39;r17764683286890.4674297581184166&#39;,&#39;startDate&#39;,this.value)"></div>
+          <div class="field"><label class="fl">End Date</label><input type="text" value="06/17" oninput="updateRole(&#39;r17764683286890.4674297581184166&#39;,&#39;endDate&#39;,this.value)"></div>
         </div>
-        <div class="field"><label class="fl">Location</label><input type="text" value="New York, NY" placeholder="Washington, DC" oninput="updateRole(&#39;r17764683286890.4674297581184166&#39;,&#39;location&#39;,this.value)"></div>
-        <div class="field"><label class="fl">Role summary (optional — appears before bullets)</label><textarea style="min-height:54px;font-size:12px;" placeholder="e.g. Led design across Verizon&#39;s financial products portfolio, managing a distributed team of 9 designers within a 100M+ customer ecosystem." oninput="updateRole(&#39;r17764683286890.4674297581184166&#39;,&#39;context&#39;,this.value)">Joined Yodle to build design practices from the ground up for complex data-heavy SaaS products, cutting design-to-implementation cycle time by 30%.</textarea></div>
+        <div class="field"><label class="fl">Location</label><input type="text" value="New York, NY" oninput="updateRole(&#39;r17764683286890.4674297581184166&#39;,&#39;location&#39;,this.value)"></div>
+        <div class="field"><label class="fl">Role summary (optional — appears before bullets)</label><textarea style="min-height:54px;font-size:12px;" oninput="updateRole(&#39;r17764683286890.4674297581184166&#39;,&#39;context&#39;,this.value)">Joined Yodle to build design practices from the ground up for complex data-heavy SaaS products, cutting design-to-implementation cycle time by 30%.</textarea></div>
         <div class="bullet-list">
       <div class="bullet-row">
         <span style="color:var(--muted);margin-top:10px;font-size:13px;">•</span>
         <div style="flex:1;">
-          <textarea data-role-id="r17764683286890.4674297581184166" data-bullet-id="b17764683286890.47703841872741415" oninput="updateBullet(&#39;r17764683286890.4674297581184166&#39;,&#39;b17764683286890.47703841872741415&#39;,this.value);updateCharCount(this)" placeholder="Add a bullet point...">Designed complex enterprise workflows and data visualizations for small business management SaaS applications across cloud infrastructure and ERP systems</textarea>
+          <textarea data-role-id="r17764683286890.4674297581184166" data-bullet-id="b17764683286890.47703841872741415" oninput="updateBullet(&#39;r17764683286890.4674297581184166&#39;,&#39;b17764683286890.47703841872741415&#39;,this.value);updateCharCount(this)">Designed complex enterprise workflows and data visualizations for small business management SaaS applications across cloud infrastructure and ERP systems</textarea>
           <div class="char-count over">153/150</div>
         </div>
         <button class="bullet-del" onclick="removeBullet(&#39;r17764683286890.4674297581184166&#39;,&#39;b17764683286890.47703841872741415&#39;)" title="Remove bullet">×</button>
@@ -1520,7 +1520,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <div class="bullet-row">
         <span style="color:var(--muted);margin-top:10px;font-size:13px;">•</span>
         <div style="flex:1;">
-          <textarea data-role-id="r17764683286890.4674297581184166" data-bullet-id="b17764683286890.8263692905479489" oninput="updateBullet(&#39;r17764683286890.4674297581184166&#39;,&#39;b17764683286890.8263692905479489&#39;,this.value);updateCharCount(this)" placeholder="Add a bullet point...">Evaluated and prioritized 50+ features through usability testing to ensure highest-impact work moved forward in fast-paced sprint cycles</textarea>
+          <textarea data-role-id="r17764683286890.4674297581184166" data-bullet-id="b17764683286890.8263692905479489" oninput="updateBullet(&#39;r17764683286890.4674297581184166&#39;,&#39;b17764683286890.8263692905479489&#39;,this.value);updateCharCount(this)">Evaluated and prioritized 50+ features through usability testing to ensure highest-impact work moved forward in fast-paced sprint cycles</textarea>
           <div class="char-count ">136/150</div>
         </div>
         <button class="bullet-del" onclick="removeBullet(&#39;r17764683286890.4674297581184166&#39;,&#39;b17764683286890.8263692905479489&#39;)" title="Remove bullet">×</button>
@@ -1528,7 +1528,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <div class="bullet-row">
         <span style="color:var(--muted);margin-top:10px;font-size:13px;">•</span>
         <div style="flex:1;">
-          <textarea data-role-id="r17764683286890.4674297581184166" data-bullet-id="b17764683286890.5788917826895967" oninput="updateBullet(&#39;r17764683286890.4674297581184166&#39;,&#39;b17764683286890.5788917826895967&#39;,this.value);updateCharCount(this)" placeholder="Add a bullet point...">Partnered with 10 engineering teams to cut design-to-implementation cycle time by 30%, building tools that help teams work faster and more effectively</textarea>
+          <textarea data-role-id="r17764683286890.4674297581184166" data-bullet-id="b17764683286890.5788917826895967" oninput="updateBullet(&#39;r17764683286890.4674297581184166&#39;,&#39;b17764683286890.5788917826895967&#39;,this.value);updateCharCount(this)">Partnered with 10 engineering teams to cut design-to-implementation cycle time by 30%, building tools that help teams work faster and more effectively</textarea>
           <div class="char-count ">150/150</div>
         </div>
         <button class="bullet-del" onclick="removeBullet(&#39;r17764683286890.4674297581184166&#39;,&#39;b17764683286890.5788917826895967&#39;)" title="Remove bullet">×</button>
@@ -1546,18 +1546,18 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       </div>
       <div class="role-fields">
         <div class="role-grid">
-          <div class="field"><label class="fl">Company</label><input type="text" value="efurb" placeholder="Company Name" oninput="updateRole(&#39;r17764683286890.7440295321075864&#39;,&#39;company&#39;,this.value)"></div>
-          <div class="field"><label class="fl">Job Title</label><input type="text" value="Head of Product Design" placeholder="Senior Design Manager" oninput="updateRole(&#39;r17764683286890.7440295321075864&#39;,&#39;title&#39;,this.value)"></div>
-          <div class="field"><label class="fl">Start Date</label><input type="text" value="01/15" placeholder="02/24" oninput="updateRole(&#39;r17764683286890.7440295321075864&#39;,&#39;startDate&#39;,this.value)"></div>
-          <div class="field"><label class="fl">End Date</label><input type="text" value="12/15" placeholder="02/26 or Present" oninput="updateRole(&#39;r17764683286890.7440295321075864&#39;,&#39;endDate&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Company</label><input type="text" value="efurb" oninput="updateRole(&#39;r17764683286890.7440295321075864&#39;,&#39;company&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Job Title</label><input type="text" value="Head of Product Design" oninput="updateRole(&#39;r17764683286890.7440295321075864&#39;,&#39;title&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Start Date</label><input type="text" value="01/15" oninput="updateRole(&#39;r17764683286890.7440295321075864&#39;,&#39;startDate&#39;,this.value)"></div>
+          <div class="field"><label class="fl">End Date</label><input type="text" value="12/15" oninput="updateRole(&#39;r17764683286890.7440295321075864&#39;,&#39;endDate&#39;,this.value)"></div>
         </div>
-        <div class="field"><label class="fl">Location</label><input type="text" value="New York, NY" placeholder="Washington, DC" oninput="updateRole(&#39;r17764683286890.7440295321075864&#39;,&#39;location&#39;,this.value)"></div>
-        <div class="field"><label class="fl">Role summary (optional — appears before bullets)</label><textarea style="min-height:54px;font-size:12px;" placeholder="e.g. Led design across Verizon&#39;s financial products portfolio, managing a distributed team of 9 designers within a 100M+ customer ecosystem." oninput="updateRole(&#39;r17764683286890.7440295321075864&#39;,&#39;context&#39;,this.value)">I built efurb's design team foundation from the ground up as the company's first design leader.</textarea></div>
+        <div class="field"><label class="fl">Location</label><input type="text" value="New York, NY" oninput="updateRole(&#39;r17764683286890.7440295321075864&#39;,&#39;location&#39;,this.value)"></div>
+        <div class="field"><label class="fl">Role summary (optional — appears before bullets)</label><textarea style="min-height:54px;font-size:12px;" oninput="updateRole(&#39;r17764683286890.7440295321075864&#39;,&#39;context&#39;,this.value)">I built efurb's design team foundation from the ground up as the company's first design leader.</textarea></div>
         <div class="bullet-list">
       <div class="bullet-row">
         <span style="color:var(--muted);margin-top:10px;font-size:13px;">•</span>
         <div style="flex:1;">
-          <textarea data-role-id="r17764683286890.7440295321075864" data-bullet-id="b17764683286890.6521840697079663" oninput="updateBullet(&#39;r17764683286890.7440295321075864&#39;,&#39;b17764683286890.6521840697079663&#39;,this.value);updateCharCount(this)" placeholder="Add a bullet point...">Led end-to-end product design for e-commerce platform serving enterprise and consumer markets, ensuring designs aligned with user and business needs</textarea>
+          <textarea data-role-id="r17764683286890.7440295321075864" data-bullet-id="b17764683286890.6521840697079663" oninput="updateBullet(&#39;r17764683286890.7440295321075864&#39;,&#39;b17764683286890.6521840697079663&#39;,this.value);updateCharCount(this)">Led end-to-end product design for e-commerce platform serving enterprise and consumer markets, ensuring designs aligned with user and business needs</textarea>
           <div class="char-count ">148/150</div>
         </div>
         <button class="bullet-del" onclick="removeBullet(&#39;r17764683286890.7440295321075864&#39;,&#39;b17764683286890.6521840697079663&#39;)" title="Remove bullet">×</button>
@@ -1565,7 +1565,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <div class="bullet-row">
         <span style="color:var(--muted);margin-top:10px;font-size:13px;">•</span>
         <div style="flex:1;">
-          <textarea data-role-id="r17764683286890.7440295321075864" data-bullet-id="b17764683286890.44900720727870835" oninput="updateBullet(&#39;r17764683286890.7440295321075864&#39;,&#39;b17764683286890.44900720727870835&#39;,this.value);updateCharCount(this)" placeholder="Add a bullet point...">Built foundational design workflow, tooling, and documentation enabling team growth and establishing scalable design practice across product areas</textarea>
+          <textarea data-role-id="r17764683286890.7440295321075864" data-bullet-id="b17764683286890.44900720727870835" oninput="updateBullet(&#39;r17764683286890.7440295321075864&#39;,&#39;b17764683286890.44900720727870835&#39;,this.value);updateCharCount(this)">Built foundational design workflow, tooling, and documentation enabling team growth and establishing scalable design practice across product areas</textarea>
           <div class="char-count ">146/150</div>
         </div>
         <button class="bullet-del" onclick="removeBullet(&#39;r17764683286890.7440295321075864&#39;,&#39;b17764683286890.44900720727870835&#39;)" title="Remove bullet">×</button>
@@ -1583,13 +1583,13 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       </div>
       <div class="role-fields">
         <div class="role-grid">
-          <div class="field"><label class="fl">Company</label><input type="text" value="Quirky" placeholder="Company Name" oninput="updateRole(&#39;r17764683286890.9259640709800864&#39;,&#39;company&#39;,this.value)"></div>
-          <div class="field"><label class="fl">Job Title</label><input type="text" value="Lead Product Designer" placeholder="Senior Design Manager" oninput="updateRole(&#39;r17764683286890.9259640709800864&#39;,&#39;title&#39;,this.value)"></div>
-          <div class="field"><label class="fl">Start Date</label><input type="text" value="03/13" placeholder="02/24" oninput="updateRole(&#39;r17764683286890.9259640709800864&#39;,&#39;startDate&#39;,this.value)"></div>
-          <div class="field"><label class="fl">End Date</label><input type="text" value="12/14" placeholder="02/26 or Present" oninput="updateRole(&#39;r17764683286890.9259640709800864&#39;,&#39;endDate&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Company</label><input type="text" value="Quirky" oninput="updateRole(&#39;r17764683286890.9259640709800864&#39;,&#39;company&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Job Title</label><input type="text" value="Lead Product Designer" oninput="updateRole(&#39;r17764683286890.9259640709800864&#39;,&#39;title&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Start Date</label><input type="text" value="03/13" oninput="updateRole(&#39;r17764683286890.9259640709800864&#39;,&#39;startDate&#39;,this.value)"></div>
+          <div class="field"><label class="fl">End Date</label><input type="text" value="12/14" oninput="updateRole(&#39;r17764683286890.9259640709800864&#39;,&#39;endDate&#39;,this.value)"></div>
         </div>
-        <div class="field"><label class="fl">Location</label><input type="text" value="New York, NY" placeholder="Washington, DC" oninput="updateRole(&#39;r17764683286890.9259640709800864&#39;,&#39;location&#39;,this.value)"></div>
-        <div class="field"><label class="fl">Role summary (optional — appears before bullets)</label><textarea style="min-height:54px;font-size:12px;" placeholder="e.g. Led design across Verizon&#39;s financial products portfolio, managing a distributed team of 9 designers within a 100M+ customer ecosystem." oninput="updateRole(&#39;r17764683286890.9259640709800864&#39;,&#39;context&#39;,this.value)">Built Quirky's first responsive experience through close collaboration with engineering teams, applying agency design expertise to product development.</textarea></div>
+        <div class="field"><label class="fl">Location</label><input type="text" value="New York, NY" oninput="updateRole(&#39;r17764683286890.9259640709800864&#39;,&#39;location&#39;,this.value)"></div>
+        <div class="field"><label class="fl">Role summary (optional — appears before bullets)</label><textarea style="min-height:54px;font-size:12px;" oninput="updateRole(&#39;r17764683286890.9259640709800864&#39;,&#39;context&#39;,this.value)">Built Quirky's first responsive experience through close collaboration with engineering teams, applying agency design expertise to product development.</textarea></div>
         <div class="bullet-list"></div>
         <button class="btn-add-bullet" onclick="addBullet(&#39;r17764683286890.9259640709800864&#39;)">+ Add Bullet</button>
       </div>
@@ -1604,13 +1604,13 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       </div>
       <div class="role-fields">
         <div class="role-grid">
-          <div class="field"><label class="fl">Company</label><input type="text" value="Huge" placeholder="Company Name" oninput="updateRole(&#39;r17764683286890.5198918632266619&#39;,&#39;company&#39;,this.value)"></div>
-          <div class="field"><label class="fl">Job Title</label><input type="text" value="Art Director" placeholder="Senior Design Manager" oninput="updateRole(&#39;r17764683286890.5198918632266619&#39;,&#39;title&#39;,this.value)"></div>
-          <div class="field"><label class="fl">Start Date</label><input type="text" value="08/11" placeholder="02/24" oninput="updateRole(&#39;r17764683286890.5198918632266619&#39;,&#39;startDate&#39;,this.value)"></div>
-          <div class="field"><label class="fl">End Date</label><input type="text" value="02/13" placeholder="02/26 or Present" oninput="updateRole(&#39;r17764683286890.5198918632266619&#39;,&#39;endDate&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Company</label><input type="text" value="Huge" oninput="updateRole(&#39;r17764683286890.5198918632266619&#39;,&#39;company&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Job Title</label><input type="text" value="Art Director" oninput="updateRole(&#39;r17764683286890.5198918632266619&#39;,&#39;title&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Start Date</label><input type="text" value="08/11" oninput="updateRole(&#39;r17764683286890.5198918632266619&#39;,&#39;startDate&#39;,this.value)"></div>
+          <div class="field"><label class="fl">End Date</label><input type="text" value="02/13" oninput="updateRole(&#39;r17764683286890.5198918632266619&#39;,&#39;endDate&#39;,this.value)"></div>
         </div>
-        <div class="field"><label class="fl">Location</label><input type="text" value="Brooklyn, NY" placeholder="Washington, DC" oninput="updateRole(&#39;r17764683286890.5198918632266619&#39;,&#39;location&#39;,this.value)"></div>
-        <div class="field"><label class="fl">Role summary (optional — appears before bullets)</label><textarea style="min-height:54px;font-size:12px;" placeholder="e.g. Led design across Verizon&#39;s financial products portfolio, managing a distributed team of 9 designers within a 100M+ customer ecosystem." oninput="updateRole(&#39;r17764683286890.5198918632266619&#39;,&#39;context&#39;,this.value)">Led creative design for global enterprise clients, managing teams to deliver brand experiences and digital platforms that drive business growth.</textarea></div>
+        <div class="field"><label class="fl">Location</label><input type="text" value="Brooklyn, NY" oninput="updateRole(&#39;r17764683286890.5198918632266619&#39;,&#39;location&#39;,this.value)"></div>
+        <div class="field"><label class="fl">Role summary (optional — appears before bullets)</label><textarea style="min-height:54px;font-size:12px;" oninput="updateRole(&#39;r17764683286890.5198918632266619&#39;,&#39;context&#39;,this.value)">Led creative design for global enterprise clients, managing teams to deliver brand experiences and digital platforms that drive business growth.</textarea></div>
         <div class="bullet-list"></div>
         <button class="btn-add-bullet" onclick="addBullet(&#39;r17764683286890.5198918632266619&#39;)">+ Add Bullet</button>
       </div>
@@ -1625,13 +1625,13 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       </div>
       <div class="role-fields">
         <div class="role-grid">
-          <div class="field"><label class="fl">Company</label><input type="text" value="" placeholder="Company Name" oninput="updateRole(&#39;r17764683286890.94020460227724&#39;,&#39;company&#39;,this.value)"></div>
-          <div class="field"><label class="fl">Job Title</label><input type="text" value="Independent Art Director" placeholder="Senior Design Manager" oninput="updateRole(&#39;r17764683286890.94020460227724&#39;,&#39;title&#39;,this.value)"></div>
-          <div class="field"><label class="fl">Start Date</label><input type="text" value="06/07" placeholder="02/24" oninput="updateRole(&#39;r17764683286890.94020460227724&#39;,&#39;startDate&#39;,this.value)"></div>
-          <div class="field"><label class="fl">End Date</label><input type="text" value="07/11" placeholder="02/26 or Present" oninput="updateRole(&#39;r17764683286890.94020460227724&#39;,&#39;endDate&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Company</label><input type="text" value="" oninput="updateRole(&#39;r17764683286890.94020460227724&#39;,&#39;company&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Job Title</label><input type="text" value="Independent Art Director" oninput="updateRole(&#39;r17764683286890.94020460227724&#39;,&#39;title&#39;,this.value)"></div>
+          <div class="field"><label class="fl">Start Date</label><input type="text" value="06/07" oninput="updateRole(&#39;r17764683286890.94020460227724&#39;,&#39;startDate&#39;,this.value)"></div>
+          <div class="field"><label class="fl">End Date</label><input type="text" value="07/11" oninput="updateRole(&#39;r17764683286890.94020460227724&#39;,&#39;endDate&#39;,this.value)"></div>
         </div>
-        <div class="field"><label class="fl">Location</label><input type="text" value="Brooklyn, NY" placeholder="Washington, DC" oninput="updateRole(&#39;r17764683286890.94020460227724&#39;,&#39;location&#39;,this.value)"></div>
-        <div class="field"><label class="fl">Role summary (optional — appears before bullets)</label><textarea style="min-height:54px;font-size:12px;" placeholder="e.g. Led design across Verizon&#39;s financial products portfolio, managing a distributed team of 9 designers within a 100M+ customer ecosystem." oninput="updateRole(&#39;r17764683286890.94020460227724&#39;,&#39;context&#39;,this.value)">Delivered award-winning interactive brand experiences for Nike, Reebok, FedEx, and BMW as independent Art Director across top-tier agencies including RGA, Atmosphere, and BBDO.</textarea></div>
+        <div class="field"><label class="fl">Location</label><input type="text" value="Brooklyn, NY" oninput="updateRole(&#39;r17764683286890.94020460227724&#39;,&#39;location&#39;,this.value)"></div>
+        <div class="field"><label class="fl">Role summary (optional — appears before bullets)</label><textarea style="min-height:54px;font-size:12px;" oninput="updateRole(&#39;r17764683286890.94020460227724&#39;,&#39;context&#39;,this.value)">Delivered award-winning interactive brand experiences for Nike, Reebok, FedEx, and BMW as independent Art Director across top-tier agencies including RGA, Atmosphere, and BBDO.</textarea></div>
         <div class="bullet-list"></div>
         <button class="btn-add-bullet" onclick="addBullet(&#39;r17764683286890.94020460227724&#39;)">+ Add Bullet</button>
       </div>
@@ -1659,12 +1659,12 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <button class="btn btn-ghost btn-sm btn-icon" onclick="removeEdu(&#39;e1776265367314&#39;)" style="color:var(--red);">×</button>
       </div>
       <div class="role-grid">
-        <div class="field"><label class="fl">Degree / Certificate</label><input type="text" value="Bachelor of Fine Arts, Communication Design" placeholder="B.F.A., Communications Design" oninput="updateEdu(&#39;e1776265367314&#39;,&#39;degree&#39;,this.value)"></div>
-        <div class="field"><label class="fl">School</label><input type="text" value="Syracuse University" placeholder="Syracuse University" oninput="updateEdu(&#39;e1776265367314&#39;,&#39;school&#39;,this.value)"></div>
+        <div class="field"><label class="fl">Degree / Certificate</label><input type="text" value="Bachelor of Fine Arts, Communication Design" oninput="updateEdu(&#39;e1776265367314&#39;,&#39;degree&#39;,this.value)"></div>
+        <div class="field"><label class="fl">School</label><input type="text" value="Syracuse University" oninput="updateEdu(&#39;e1776265367314&#39;,&#39;school&#39;,this.value)"></div>
       </div>
       <div class="role-grid">
-        <div class="field"><label class="fl">Year</label><input type="text" value="" placeholder="2004" oninput="updateEdu(&#39;e1776265367314&#39;,&#39;year&#39;,this.value)"></div>
-        <div class="field"><label class="fl">Notes (honors, GPA, etc.)</label><input type="text" value="" placeholder="" oninput="updateEdu(&#39;e1776265367314&#39;,&#39;notes&#39;,this.value)"></div>
+        <div class="field"><label class="fl">Year</label><input type="text" value="" oninput="updateEdu(&#39;e1776265367314&#39;,&#39;year&#39;,this.value)"></div>
+        <div class="field"><label class="fl">Notes (honors, GPA, etc.)</label><input type="text" value="" oninput="updateEdu(&#39;e1776265367314&#39;,&#39;notes&#39;,this.value)"></div>
       </div>
     </div></div>
             <div style="padding:8px 12px;">
@@ -1691,12 +1691,12 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <button class="btn btn-ghost btn-sm btn-icon" onclick="removeAward(&#39;aw1776265474901&#39;)" style="color:var(--red);">×</button>
       </div>
       <div class="role-grid">
-        <div class="field"><label class="fl">Award / Honor</label><input type="text" value="NY Top Creative Winner" placeholder="NY Top Creative Winner" oninput="updateAward(&#39;aw1776265474901&#39;,&#39;title&#39;,this.value)"></div>
-        <div class="field"><label class="fl">Organization</label><input type="text" value="WIx and Vitamin T" placeholder="Vitamin T" oninput="updateAward(&#39;aw1776265474901&#39;,&#39;org&#39;,this.value)"></div>
+        <div class="field"><label class="fl">Award / Honor</label><input type="text" value="NY Top Creative Winner" oninput="updateAward(&#39;aw1776265474901&#39;,&#39;title&#39;,this.value)"></div>
+        <div class="field"><label class="fl">Organization</label><input type="text" value="WIx and Vitamin T" oninput="updateAward(&#39;aw1776265474901&#39;,&#39;org&#39;,this.value)"></div>
       </div>
       <div class="role-grid">
-        <div class="field"><label class="fl">Year</label><input type="text" value="2014" placeholder="2014" oninput="updateAward(&#39;aw1776265474901&#39;,&#39;year&#39;,this.value)"></div>
-        <div class="field"><label class="fl">Description (optional)</label><input type="text" value="" placeholder="" oninput="updateAward(&#39;aw1776265474901&#39;,&#39;desc&#39;,this.value)"></div>
+        <div class="field"><label class="fl">Year</label><input type="text" value="2014" oninput="updateAward(&#39;aw1776265474901&#39;,&#39;year&#39;,this.value)"></div>
+        <div class="field"><label class="fl">Description (optional)</label><input type="text" value="" oninput="updateAward(&#39;aw1776265474901&#39;,&#39;desc&#39;,this.value)"></div>
       </div>
     </div></div>
             <div style="padding:8px 12px;">
@@ -1712,11 +1712,11 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
             <span class="ce-section-title">Notes &amp; Preferences</span>
           </div>
           <div class="ce-section-body" style="padding:12px;">
-            <div class="field"><label class="fl">Words to never use</label><input type="text" id="ce-ban" placeholder="spearheaded · leveraged · utilized" oninput="liveUpdate()"></div>
+            <div class="field"><label class="fl">Words to never use</label><input type="text" id="ce-ban" oninput="liveUpdate()"></div>
             <div class="field"><label class="fl">Career narrative (for resume generation context)</label><textarea id="ce-thread" style="min-height:60px;font-size:12px;" oninput="liveUpdate()"></textarea></div>
             <div class="field">
               <div style="font-size:12px;font-weight:600;color:var(--teal-dark);margin-bottom:4px;">🧠 Brain Dump</div>
-              <textarea id="ws-braindump" style="min-height:80px;font-size:12px;font-family:monospace;" placeholder="Paste Claude&#39;s answers here after using Copy Prompt in Job Questions..." oninput="liveUpdate()"></textarea>
+              <textarea id="ws-braindump" style="min-height:80px;font-size:12px;font-family:monospace;" oninput="liveUpdate()"></textarea>
             </div>
           </div>
         </div>
@@ -1840,7 +1840,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
           <div class="field">
             <label class="fl">Job posting URL</label>
             <div style="display:flex;gap:8px;">
-              <input type="url" id="jd-url" placeholder="https://jobs.lever.co/company/job-id" style="flex:1;" onkeydown="if(event.key===&#39;Enter&#39;)fetchJobFromUrl()">
+              <input type="url" id="jd-url" style="flex:1;" onkeydown="if(event.key===&#39;Enter&#39;)fetchJobFromUrl()">
               <button class="btn btn-secondary btn-sm" onclick="fetchJobFromUrl()" style="white-space:nowrap;">Fetch →</button>
             </div>
           </div>
@@ -1851,8 +1851,8 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <!-- Manual fallback -->
         <div class="card mb-3">
           <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Or enter manually</div>
-          <div class="two"><div class="field"><label class="fl">Job title</label><input type="text" id="jd-title" placeholder="Senior Manager, UX" oninput="syncJDToWorkspace()"></div><div class="field"><label class="fl">Company</label><input type="text" id="jd-company" placeholder="Deloitte" oninput="syncJDToWorkspace()"></div></div>
-          <div class="field"><label class="fl">Full job description</label><textarea id="jd-text" style="min-height:180px;" placeholder="Paste the complete job posting here..."></textarea></div>
+          <div class="two"><div class="field"><label class="fl">Job title</label><input type="text" id="jd-title" oninput="syncJDToWorkspace()"></div><div class="field"><label class="fl">Company</label><input type="text" id="jd-company" oninput="syncJDToWorkspace()"></div></div>
+          <div class="field"><label class="fl">Full job description</label><textarea id="jd-text" style="min-height:180px;"></textarea></div>
         </div>
 
         <div class="flex-c gap-2">
@@ -1951,7 +1951,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <div class="flex-between mb-3">
           <div><div class="bold" style="font-size:15px;">Analyzer</div><div class="text-xs text-muted mt-1">Score, gaps, and suggested fixes against the job description</div></div>
           <div class="flex-c gap-2">
-            <button class="btn btn-secondary" onclick="autoOptimize()" id="auto-opt-btn" title="Automatically apply suggestions until score reaches 90+">⚡ Auto-Optimize to 90+</button>
+            <button class="btn btn-secondary" onclick="autoOptimize()" id="auto-opt-btn" title="Analyze the resume once and apply all suggestions in one pass">⚡ Optimize</button>
             <button class="btn btn-primary" onclick="runFullAnalysis()">🔍 Analyze Resume →</button>
           </div>
         </div>
@@ -3245,6 +3245,9 @@ function confirmNewProject() {
   const name = g('new-proj-name').trim()||'Untitled Project';
   document.getElementById('new-proj-modal').classList.remove('show');
   proj = ProjectStore.newProject(name);
+  // Wipe all JD fields and project-level JD state for the new project — never carry over from previous project
+  s('jd-title', ''); s('jd-company', ''); s('jd-text', '');
+  proj.jdTitle = ''; proj.jdCompany = ''; proj.jdText = ''; proj.jdAnalysis = null;
   ProjectStore.save(proj, skipTimestamp);
   updateProjDisplay();
   initCEForProject();
@@ -5614,8 +5617,6 @@ async function autoOptimize() {
   if (!jdText) { toast('Paste a job description in the Job Description tab first'); return; }
   if (!proj) { toast('Create a project first'); return; }
 
-  const TARGET_SCORE = 90;
-  const MAX_ROUNDS = 4;
   const overlay = document.getElementById('apply-overlay');
   const overlayMsg = document.getElementById('overlay-msg');
   const overlaySub = document.getElementById('overlay-sub');
@@ -5624,140 +5625,107 @@ async function autoOptimize() {
 
   overlay.style.display = 'flex';
 
-  // Track whether we've pushed a new version draft for this Auto-Optimize run.
-  // First successful round pushes, subsequent rounds replace — so one click = one version bump.
-  let pushedThisRun = false;
-
   try {
-    for (let round = 1; round <= MAX_ROUNDS; round++) {
-      // Phase 1: Score & analyze
-      overlayMsg.textContent = `Round ${round}/${MAX_ROUNDS}: Scoring resume...`;
-      overlaySub.textContent = 'Evaluating your resume against the job description';
+    // Phase 1: Score & analyze (single pass)
+    overlayMsg.textContent = 'Analyzing resume...';
+    overlaySub.textContent = 'Evaluating your resume against the job description';
 
-      // Force fresh analysis
-      proj._cachedScore = null; proj._analysisHash = null; proj.scores = [];
-      await runFullAnalysis(true);
+    proj._cachedScore = null; proj._analysisHash = null; proj.scores = [];
+    await runFullAnalysis(true);
 
-      // Check current score
-      const currentScore = proj._cachedScore?.overall || 0;
-      overlayMsg.textContent = `Round ${round}/${MAX_ROUNDS}: Score is ${currentScore}`;
+    const scoreBefore = proj._cachedScore?.overall || 0;
 
-      if (currentScore >= TARGET_SCORE) {
-        overlaySub.textContent = `Target reached! Score: ${currentScore}`;
-        await new Promise(r => setTimeout(r, 1500));
-        break;
-      }
+    // Phase 2: Gather all suggestions + missing keywords
+    const fixes = proj._currentFixes || [];
+    const unappliedFixes = fixes.filter((f, i) => {
+      const cb = document.querySelector(`.fix-cb[data-idx="${i}"]`);
+      return cb && !cb.disabled;
+    });
+    const unappliedKws = Array.from(document.querySelectorAll('.kw-missing-row input[data-kw]'))
+      .filter(cb => !cb.disabled)
+      .map(cb => cb.dataset.kw);
 
-      // Phase 2: Gather all suggestions + missing keywords
-      const fixes = proj._currentFixes || [];
-      const unappliedFixes = fixes.filter((f, i) => {
-        const cb = document.querySelector(`.fix-cb[data-idx="${i}"]`);
-        return cb && !cb.disabled;
-      });
-      const unappliedKws = Array.from(document.querySelectorAll('.kw-missing-row input[data-kw]'))
-        .filter(cb => !cb.disabled)
-        .map(cb => cb.dataset.kw);
+    if (!unappliedFixes.length && !unappliedKws.length) {
+      overlaySub.textContent = `No suggestions to apply. Score: ${scoreBefore}`;
+      await new Promise(r => setTimeout(r, 1500));
+      overlay.style.display = 'none';
+      autoBtn.disabled = false;
+      switchTab('analyzer');
+      return;
+    }
 
-      if (!unappliedFixes.length && !unappliedKws.length) {
-        overlaySub.textContent = `No more suggestions to apply. Final score: ${currentScore}`;
-        await new Promise(r => setTimeout(r, 1500));
-        break;
-      }
+    // Phase 3: Apply all suggestions in a single pass
+    overlayMsg.textContent = 'Optimizing resume...';
+    overlaySub.textContent = `Applying ${unappliedFixes.length} fix${unappliedFixes.length===1?'':'es'} and ${unappliedKws.length} keyword${unappliedKws.length===1?'':'s'}`;
 
-      // Phase 3: Apply all suggestions
-      overlayMsg.textContent = `Round ${round}/${MAX_ROUNDS}: Optimizing resume...`;
-      overlaySub.textContent = `Applying ${unappliedFixes.length} fixes and ${unappliedKws.length} keywords`;
+    let promptBody = '';
+    if (unappliedFixes.length) {
+      const fixInstructions = unappliedFixes.map((f, i) => {
+        if (f.before && f.after) return `FIX ${i+1} — ${f.title}\nREPLACE: ${f.before}\nWITH: ${f.after}`;
+        return `FIX ${i+1} — ${f.title}: ${f.desc}`;
+      }).join('\n\n');
+      promptBody += `FIXES TO APPLY:\n${fixInstructions}\n\n`;
+    }
+    if (unappliedKws.length) {
+      promptBody += `KEYWORDS TO INSERT (weave naturally into existing sentences or skill lists — no fabricated accomplishments):\n${unappliedKws.map(k => '• ' + k).join('\n')}\n\n`;
+    }
 
-      let promptBody = '';
-      if (unappliedFixes.length) {
-        const fixInstructions = unappliedFixes.map((f, i) => {
-          if (f.before && f.after) return `FIX ${i+1} — ${f.title}\nREPLACE: ${f.before}\nWITH: ${f.after}`;
-          return `FIX ${i+1} — ${f.title}: ${f.desc}`;
-        }).join('\n\n');
-        promptBody += `FIXES TO APPLY:\n${fixInstructions}\n\n`;
-      }
-      if (unappliedKws.length) {
-        promptBody += `KEYWORDS TO INSERT (weave naturally into existing sentences or skill lists — no fabricated accomplishments):\n${unappliedKws.map(k => '• ' + k).join('\n')}\n\n`;
-      }
+    const currentResume = getResumeText();
+    const jdTitle = g('jd-title') || proj?.jdTitle || '';
+    const titleRule = jdTitle ? `\\n- The person's job title line (directly under their name) MUST be exactly: "${jdTitle}"` : '';
+    const verifiedFacts = buildVerifiedFacts();
+    const verifiedFactsBlock = verifiedFacts ? `\n\nVERIFIED FACTS — the closed world of this candidate's actual experience. You may rephrase, reorder, emphasize, or sharpen anything below. You may NOT introduce anything outside it.\n\n${verifiedFacts}` : '';
 
-      const currentResume = getResumeText();
-      const jdTitle = g('jd-title') || proj?.jdTitle || '';
-      const titleRule = jdTitle ? `\\n- The person's job title line (directly under their name) MUST be exactly: "${jdTitle}"` : '';
-      const verifiedFacts = buildVerifiedFacts();
-      const verifiedFactsBlock = verifiedFacts ? `\n\nVERIFIED FACTS — the closed world of this candidate's actual experience. You may rephrase, reorder, emphasize, or sharpen anything below. You may NOT introduce anything outside it.\n\n${verifiedFacts}` : '';
-
-      const result = await claudeFetch(
-        `GOAL: Find the strongest HONEST angle this candidate has on this JD, and amplify it. The goal is NOT to make the resume look like the JD. Bridges to gaps must come from real transferable strengths, never from invented experience.
+    const result = await claudeFetch(
+      `GOAL: Find the strongest HONEST angle this candidate has on this JD, and amplify it. The goal is NOT to make the resume look like the JD. Bridges to gaps must come from real transferable strengths, never from invented experience.
 ${TRUTH_GROUNDING_RULES}
 Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT same section structure and order as the original resume${titleRule}\n- SKILLS must stay organized in labeled categories (e.g. Leadership:, Design:, Product:, Engineering:). If the original has categories, keep them. If not, organize skills into logical categories.\n- When adding keywords to skills, place them in the correct category\n- Do NOT merge all skills into one flat list\n- FORMATTING IS SACRED: Output must use IDENTICAL format as input — same line breaks, spacing, bullet characters, section header style.\n- Do NOT reformat, restructure, merge lines, split lines, add/remove blank lines, or change bullet style.\n- Do NOT change the number of roles, reorder roles, or alter dates/companies.\n- ONLY change the specific text content requested. Everything else stays EXACTLY as-is.
 - CRITICAL: Before returning, check for duplicate job entries. If any company + title + date combination appears more than once, remove the duplicate. Each role must appear exactly once.
 - CRITICAL: NEVER output placeholder metric tokens. Forbidden: "X%", "XX%", "Y%", "Z%", "[number]%", "[percent]%", "[metric]%", "___%", "TBD%", or any bracketed/blank stand-in for a number. If you don't have a real value from the original resume, write the bullet WITHOUT a percentage — a bullet with no metric is acceptable, a bullet with a placeholder metric is NOT.
 - CRITICAL: Within each role, check for repeated metrics or phrases across bullets. If the same metric (e.g. '26% MAU growth') appears in more than one bullet, remove it from the less specific bullet and keep it only in the bullet that explains it most clearly.\n- NEVER FABRICATE metrics, percentages, revenue figures, outcomes, team members, products, domains, or accomplishments not present in VERIFIED FACTS. If the original says '26% MAU growth', keep that exact number. Never invent '40% user growth' or '$2M revenue' unless those exact figures exist in VERIFIED FACTS.\n- NEVER USE competitor brand names anywhere in the resume. 'Commercial Card', 'Capital One brand', 'Chase', 'Amex', etc. are competitor product names. Replace with generic terms.\n- BEFORE returning the resume, scan every bullet, summary line, and skill for: (1) any metric not in VERIFIED FACTS, (2) any competitor brand name, (3) any domain/product/team-member that does not appear in VERIFIED FACTS, (4) any verbatim JD phrase grafted onto unrelated work. Remove or rewrite all four.\n- SKILLS must stay in labeled categories. NEVER merge into one block.\n- Remove non-skills from the skills section: phrases like 'Business Goals', 'portfolio strategy', 'Experience Design organization' are NOT skills.\n- SUMMARY must be 50-75 words. If the current summary exceeds 75 words, trim it. NEVER let it grow beyond 75 words.\n- NEVER repeat the same phrase twice in the summary. Check for duplicates before returning.\n- The job title directly under the candidate's name MUST exactly match the JD title. Do not revert it.\n- Bullets target: 20-30 words each. Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n${verifiedFactsBlock}\n\n${promptBody}RESUME:\n${currentResume}`,
-        4000
-      );
-      const firstPass = deduplicateResume(result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim());
+      4000
+    );
+    const firstPass = deduplicateResume(result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim());
 
-      // Focused second-pass to remove repeated metrics across bullets within the same role.
-      overlaySub.textContent = `Round ${round}/${MAX_ROUNDS}: Polishing — removing duplicate metrics`;
-      const deduped = await dedupeBulletMetrics(firstPass);
+    overlayMsg.textContent = 'Polishing...';
+    overlaySub.textContent = 'Removing duplicate metrics across bullets';
+    const deduped = await dedupeBulletMetrics(firstPass);
+    const cleaned = stripPlaceholders(deduped);
 
-      // Regex safety net — strip any placeholder tokens that may have leaked through.
-      const cleaned = stripPlaceholders(deduped);
+    // Push as a new draft so the version increments by exactly one
+    proj.drafts.push(cleaned);
+    proj._redoStack = [];
+    proj._aiApplied = true;
+    proj._cachedScore = null; proj._analysisHash = null; proj.scores = [];
+    autoSave();
+    showResume(cleaned, proj.drafts.length);
 
-      // First round in this Auto-Optimize run pushes a new version; later rounds replace it,
-      // so one click = one version bump regardless of how many rounds run.
-      if (!pushedThisRun) {
-        proj.drafts.push(cleaned);
-        pushedThisRun = true;
-      } else {
-        proj.drafts[proj.drafts.length - 1] = cleaned;
-      }
-      proj._redoStack = [];
-      proj._aiApplied = true;
-      proj._cachedScore = null; proj._analysisHash = null; proj.scores = [];
+    // Mark all applied
+    unappliedFixes.forEach(f => recordAppliedFix('fix', f.title, f.title));
+    document.querySelectorAll('.fix-cb').forEach(cb => { cb.checked = false; cb.disabled = true; });
+    document.querySelectorAll('.fix-item').forEach(el => el.classList.add('applied'));
+    unappliedKws.forEach(kw => recordAppliedFix('keyword', kw, kw));
+    document.querySelectorAll('.kw-missing-row input[data-kw]').forEach(cb => {
+      cb.checked = false; cb.disabled = true;
+      cb.closest('.kw-missing-row')?.style.setProperty('opacity', '0.5');
+    });
+    renderAppliedFixes();
+    updateFixBar();
+
+    // Sync CE
+    try {
+      await parseToCE(cleaned);
+      fillCE(proj.ce);
+      if (proj.jdTitle) document.getElementById('ce-title').value = proj.jdTitle;
       autoSave();
-      showResume(cleaned, proj.drafts.length);
+    } catch(ceErr) { console.warn('CE sync:', ceErr); }
 
-      // Mark all applied
-      unappliedFixes.forEach((f, i) => {
-        recordAppliedFix('fix', f.title, f.title);
-      });
-      document.querySelectorAll('.fix-cb').forEach(cb => { cb.checked = false; cb.disabled = true; });
-      document.querySelectorAll('.fix-item').forEach(el => el.classList.add('applied'));
-      unappliedKws.forEach(kw => recordAppliedFix('keyword', kw, kw));
-      document.querySelectorAll('.kw-missing-row input[data-kw]').forEach(cb => {
-        cb.checked = false; cb.disabled = true;
-        cb.closest('.kw-missing-row')?.style.setProperty('opacity', '0.5');
-      });
-      renderAppliedFixes();
-      updateFixBar();
-
-      // Sync CE
-      try {
-        await parseToCE(cleaned);
-        fillCE(proj.ce);
-        // Auto-fill Job Title from posting — always match exactly
-        if (proj.jdTitle) {
-          document.getElementById('ce-title').value = proj.jdTitle;
-        }
-        autoSave();
-      } catch(ceErr) { console.warn('CE sync:', ceErr); }
-
-      // Brief pause before next round
-      if (round < MAX_ROUNDS) {
-        overlayMsg.textContent = `Round ${round} complete. Score: ${currentScore}. Starting round ${round+1}...`;
-        overlaySub.textContent = 'Preparing next optimization pass';
-        await new Promise(r => setTimeout(r, 1000));
-      }
-    }
-
-    // Final score display
-    const finalScore = proj._cachedScore?.overall || 0;
-    if (finalScore >= TARGET_SCORE) {
-      toast(`Auto-optimize complete! Score: ${finalScore}`);
-    } else {
-      toast(`Optimization done after ${MAX_ROUNDS} rounds. Score: ${finalScore}. You can continue manually.`);
-    }
+    // Re-score so the user sees the new number after this single pass
+    overlayMsg.textContent = 'Scoring updated resume...';
+    overlaySub.textContent = '';
+    await runFullAnalysis(true);
+    const scoreAfter = proj._cachedScore?.overall || 0;
+    toast(`Optimize complete. Score: ${scoreBefore} → ${scoreAfter}`);
   } catch(e) {
     let msg;
     if (e.message === 'RATE_LIMIT') msg = 'Rate limit reached — try again in 1 minute';
@@ -7322,7 +7290,7 @@ function renderRoles() {
         <div style="flex:1;">
           <textarea data-role-id="${r.id}" data-bullet-id="${b.id}" 
             oninput="updateBullet('${r.id}','${b.id}',this.value);updateCharCount(this)" 
-            placeholder="Add a bullet point...">${esc(b.text)}</textarea>
+>${esc(b.text)}</textarea>
           <div class="char-count ${b.text.length > 150 ? 'over' : ''}">${b.text.length}/150</div>
         </div>
         <button class="bullet-del" onclick="removeBullet('${r.id}','${b.id}')" title="Remove bullet">×</button>
@@ -7343,13 +7311,13 @@ function renderRoles() {
       </div>
       <div class="role-fields">
         <div class="role-grid">
-          <div class="field"><label class="fl">Company</label><input type="text" value="${esc(r.company)}" placeholder="Company Name" oninput="updateRole('${r.id}','company',this.value)"></div>
-          <div class="field"><label class="fl">Job Title</label><input type="text" value="${esc(r.title)}" placeholder="Senior Design Manager" oninput="updateRole('${r.id}','title',this.value)"></div>
-          <div class="field"><label class="fl">Start Date</label><input type="text" value="${esc(r.startDate)}" placeholder="02/24" oninput="updateRole('${r.id}','startDate',this.value)"></div>
-          <div class="field"><label class="fl">End Date</label><input type="text" value="${esc(r.endDate)}" placeholder="02/26 or Present" oninput="updateRole('${r.id}','endDate',this.value)"></div>
+          <div class="field"><label class="fl">Company</label><input type="text" value="${esc(r.company)}" oninput="updateRole('${r.id}','company',this.value)"></div>
+          <div class="field"><label class="fl">Job Title</label><input type="text" value="${esc(r.title)}" oninput="updateRole('${r.id}','title',this.value)"></div>
+          <div class="field"><label class="fl">Start Date</label><input type="text" value="${esc(r.startDate)}" oninput="updateRole('${r.id}','startDate',this.value)"></div>
+          <div class="field"><label class="fl">End Date</label><input type="text" value="${esc(r.endDate)}" oninput="updateRole('${r.id}','endDate',this.value)"></div>
         </div>
-        <div class="field"><label class="fl">Location</label><input type="text" value="${esc(r.location)}" placeholder="Washington, DC" oninput="updateRole('${r.id}','location',this.value)"></div>
-        <div class="field"><label class="fl">Role summary (optional — appears before bullets)</label><textarea style="min-height:54px;font-size:12px;" placeholder="e.g. Led design across Verizon's financial products portfolio, managing a distributed team of 9 designers within a 100M+ customer ecosystem." oninput="updateRole('${r.id}','context',this.value)">${esc(r.context||'')}</textarea></div>
+        <div class="field"><label class="fl">Location</label><input type="text" value="${esc(r.location)}" oninput="updateRole('${r.id}','location',this.value)"></div>
+        <div class="field"><label class="fl">Role summary (optional — appears before bullets)</label><textarea style="min-height:54px;font-size:12px;" oninput="updateRole('${r.id}','context',this.value)">${esc(r.context||'')}</textarea></div>
         <div class="bullet-list">${bulletsHtml}</div>
         <button class="btn-add-bullet" onclick="addBullet('${r.id}')">+ Add Bullet</button>
       </div>
@@ -7411,12 +7379,12 @@ function renderEdu() {
         <button class="btn btn-ghost btn-sm btn-icon" onclick="removeEdu('${e.id}')" style="color:var(--red);">×</button>
       </div>
       <div class="role-grid">
-        <div class="field"><label class="fl">Degree / Certificate</label><input type="text" value="${esc(e.degree)}" placeholder="B.F.A., Communications Design" oninput="updateEdu('${e.id}','degree',this.value)"></div>
-        <div class="field"><label class="fl">School</label><input type="text" value="${esc(e.school)}" placeholder="Syracuse University" oninput="updateEdu('${e.id}','school',this.value)"></div>
+        <div class="field"><label class="fl">Degree / Certificate</label><input type="text" value="${esc(e.degree)}" oninput="updateEdu('${e.id}','degree',this.value)"></div>
+        <div class="field"><label class="fl">School</label><input type="text" value="${esc(e.school)}" oninput="updateEdu('${e.id}','school',this.value)"></div>
       </div>
       <div class="role-grid">
-        <div class="field"><label class="fl">Year</label><input type="text" value="${esc(e.year)}" placeholder="2004" oninput="updateEdu('${e.id}','year',this.value)"></div>
-        <div class="field"><label class="fl">Notes (honors, GPA, etc.)</label><input type="text" value="${esc(e.notes)}" placeholder="" oninput="updateEdu('${e.id}','notes',this.value)"></div>
+        <div class="field"><label class="fl">Year</label><input type="text" value="${esc(e.year)}" oninput="updateEdu('${e.id}','year',this.value)"></div>
+        <div class="field"><label class="fl">Notes (honors, GPA, etc.)</label><input type="text" value="${esc(e.notes)}" oninput="updateEdu('${e.id}','notes',this.value)"></div>
       </div>
     </div>`).join('');
 }
@@ -7606,7 +7574,7 @@ function renderContactFields() {
       <span class="drag-handle" style="font-size:13px;">⠿</span>
       <div class="field" style="flex:1;margin-bottom:0;">
         <label class="fl">${meta.label}</label>
-        <input type="text" id="${meta.id}" value="${esc(val)}" placeholder="${meta.placeholder}"
+        <input type="text" id="${meta.id}" value="${esc(val)}"
           oninput="updateContactField('${key}',this.value)">
       </div>
       <div style="flex-shrink:0;">
@@ -7712,12 +7680,12 @@ function renderAwards() {
         <button class="btn btn-ghost btn-sm btn-icon" onclick="removeAward('${a.id}')" style="color:var(--red);">×</button>
       </div>
       <div class="role-grid">
-        <div class="field"><label class="fl">Award / Honor</label><input type="text" value="${esc(a.title)}" placeholder="NY Top Creative Winner" oninput="updateAward('${a.id}','title',this.value)"></div>
-        <div class="field"><label class="fl">Organization</label><input type="text" value="${esc(a.org)}" placeholder="Vitamin T" oninput="updateAward('${a.id}','org',this.value)"></div>
+        <div class="field"><label class="fl">Award / Honor</label><input type="text" value="${esc(a.title)}" oninput="updateAward('${a.id}','title',this.value)"></div>
+        <div class="field"><label class="fl">Organization</label><input type="text" value="${esc(a.org)}" oninput="updateAward('${a.id}','org',this.value)"></div>
       </div>
       <div class="role-grid">
-        <div class="field"><label class="fl">Year</label><input type="text" value="${esc(a.year)}" placeholder="2014" oninput="updateAward('${a.id}','year',this.value)"></div>
-        <div class="field"><label class="fl">Description (optional)</label><input type="text" value="${esc(a.desc)}" placeholder="" oninput="updateAward('${a.id}','desc',this.value)"></div>
+        <div class="field"><label class="fl">Year</label><input type="text" value="${esc(a.year)}" oninput="updateAward('${a.id}','year',this.value)"></div>
+        <div class="field"><label class="fl">Description (optional)</label><input type="text" value="${esc(a.desc)}" oninput="updateAward('${a.id}','desc',this.value)"></div>
       </div>
     </div>`).join('');
 }
@@ -7866,7 +7834,7 @@ function renderSkillGroups() {
       </div>
       <div class="skill-chips" id="chips-${sg.id}">
         ${chipsHtml}
-        <input class="skill-chip-input" type="text" placeholder="+ Add skill or paste list" 
+        <input class="skill-chip-input" type="text" 
           onkeydown="handleSkillKey(event,'${sg.id}',this)"
           onpaste="handleSkillPaste(event,'${sg.id}',this)"
           onblur="if(this.value.trim()){addSkillsBulk('${sg.id}',this.value);this.value='';}">
