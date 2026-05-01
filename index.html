@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.16</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.17</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -2885,7 +2885,25 @@ const ProjectStore = {
   _cache: null,
   getAll(){
     if (this._cache) return this._cache;
-    try { return JSON.parse(localStorage.getItem(this._key)||'[]'); } catch(e) { return []; }
+    try {
+      const raw = JSON.parse(localStorage.getItem(this._key)||'[]');
+      // Sanitize: assign a real id to any project whose id is missing/null/'undefined'/'null'
+      // so it can be deleted via the normal flow.
+      let mutated = false;
+      const fixed = raw.map(p => {
+        if (!p || typeof p !== 'object') return null;
+        const bad = p.id == null || p.id === 'undefined' || p.id === 'null' || p.id === '';
+        if (bad) {
+          p.id = 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+          mutated = true;
+        }
+        return p;
+      }).filter(Boolean);
+      if (mutated) {
+        try { localStorage.setItem(this._key, JSON.stringify(fixed)); } catch(e) {}
+      }
+      return fixed;
+    } catch(e) { return []; }
   },
   save(p, skipTimestamp){
     if (!skipTimestamp) p.updatedAt = Date.now();
@@ -2899,16 +2917,25 @@ const ProjectStore = {
   },
   load(id){ return this.getAll().find(p => p.id === id) || null; },
   delete(id){
-    const all = this.getAll().filter(p => p.id !== id);
+    // Robust matching: handle real id, the literal string 'undefined', null, and missing-id projects
+    const isMatch = (p) => {
+      if (!p) return true; // drop garbage entries
+      if (p.id === id) return true;
+      // If caller passed 'undefined'/'null' as a string, also catch projects whose id is actually missing
+      if ((id === 'undefined' || id === 'null' || id == null) &&
+          (p.id == null || p.id === 'undefined' || p.id === 'null' || p.id === '')) return true;
+      return false;
+    };
+    const all = this.getAll().filter(p => !isMatch(p));
     this._cache = all;
     try { localStorage.setItem(this._key, JSON.stringify(all)); } catch(e) {}
     // Track deleted IDs so syncFromCloud doesn't restore them
     try {
       const deleted = JSON.parse(localStorage.getItem('ats_deleted_ids') || '[]');
-      if (!deleted.includes(id)) deleted.push(id);
+      if (id && !deleted.includes(id)) deleted.push(id);
       localStorage.setItem('ats_deleted_ids', JSON.stringify(deleted.slice(-100)));
     } catch(e) {}
-    this.deleteFromCloud(id);
+    if (id) this.deleteFromCloud(id);
   },
   newProject(name){
     return {id:'p_'+Date.now(),name:name||'Untitled',createdAt:Date.now(),updatedAt:Date.now(),jdTitle:'',jdCompany:'',jdText:'',parsedText:'',parsedFields:{},jdAnalysis:null,ws:{},questions:[],drafts:[],scores:[],atsAudit:null,claudeContext:{source:'conversation',text:''}};
