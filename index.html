@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.19</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.20</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -5419,11 +5419,133 @@ TRUTH GROUNDING (highest-priority rule, overrides JD-matching):
   • Inventing domains the candidate has not worked in (gaming, social, fintech, healthcare, etc.) — if it's not in VERIFIED FACTS, it cannot appear in the resume.
   • Inventing team members or roles (researchers, content designers, engineers) who are not described in the role's existing context or bullets.
   • Changing team sizes from what the role's existing context or bullets state.
-  • Inventing products, features, or accomplishments (e.g. "social experiences and community features", "real-time chat", "moderation tools") that are not in VERIFIED FACTS.
-  • Lifting verbatim phrases from the JD (e.g. "win-win-win", "talk and hang out", "players and users", "intuitive scalable experiences") into bullets that describe work where those concepts didn't apply. JD vocabulary is fine where it genuinely matches; it is fabrication where it doesn't.
+  • Inventing products, features, or accomplishments (e.g. "social experiences and community features", "real-time chat", "moderation tools", "social feedback loops", "voice & messaging experiences") that are not in VERIFIED FACTS.
+  • Lifting verbatim phrases from the JD (e.g. "win-win-win", "talk and hang out", "players and users", "intuitive scalable experiences", "social feedback loops") into bullets that describe work where those concepts didn't apply. JD vocabulary is fine where it genuinely matches; it is fabrication where it doesn't.
 - If a fix or keyword would require fabrication to apply cleanly, apply it only to the role(s) where the underlying experience actually supports it. If no role supports it, leave it out — a missing keyword is acceptable; a fabricated bullet is not.
 - When the JD asks for a domain the candidate lacks, the right move is transferable framing: lead with the candidate's real scale, platform thinking, cross-functional leadership, or strategic vision — never invent the missing domain.
+
+SPECIFICITY PROTECTION (do not blur to chase JD breadth):
+- Specific terms already present in VERIFIED FACTS (e.g. "credit card products", "design systems practice", "router firmware") must NEVER be generalized in the output (do NOT replace "credit card products" with "financial products" — even if the JD uses broader vocabulary). The specific term is part of the candidate's truth.
+- Concrete metrics in VERIFIED FACTS are not negotiable. Keep the exact number and the exact unit.
+
+SKILL STABILITY:
+- Every skill listed in VERIFIED FACTS must remain in the output skills section unless the user explicitly removed it. Do NOT silently drop skills (e.g. "Vision and Inspiration", "Inclusive Team Culture", "Conflict Resolution", "Hiring") to make room for JD-aligned skills.
+- Do NOT add skills that are not in VERIFIED FACTS unless the skill is directly demonstrated by a specific bullet in the candidate's history. A skill on the resume must trace to either VERIFIED FACTS or a verified bullet.
+
+PRONOUNS AND VOICE:
+- The professional summary must be written in FIRST PERSON ("I lead designers...") or IMPLIED FIRST PERSON ("Coaches designers...", "Brings 8+ years..."). Never use third person.
+- NEVER use he/his/him or she/her/hers anywhere in the resume. Pronouns are NEVER inferred from a name. Refer to the candidate only by implicit voice.
+- Never refer to the candidate by first name in the summary or anywhere else.
+
+TITLE-UNDER-NAME:
+- If the project has a JD title set, the job title line directly under the candidate's name must match that JD title exactly. Do not revert it to a previous title.
 `;
+
+// Audits a freshly-optimized resume and reverts unsupported new content.
+// "Supported" = appears in VERIFIED FACTS (CE data) OR in the previous version of the resume.
+// New content that traces to neither is treated as fabrication and removed.
+//
+// previousResume: the resume text BEFORE this Optimize pass ran (to allow paraphrases the user
+// already accepted in earlier rounds to persist).
+// optimizedResume: the resume text the model just produced.
+// Returns: cleaned resume text. Logs the diff to console for debugging.
+async function groundedPhraseAuditor(optimizedResume, previousResume) {
+  try {
+    const verifiedFacts = buildVerifiedFacts();
+    if (!verifiedFacts) return optimizedResume;
+
+    const prompt = `Your only job: identify and remove unsupported content from a resume.
+
+You are given three things:
+  1. VERIFIED FACTS — the candidate's actual career history (every role, bullet, and skill)
+  2. PREVIOUS RESUME — the version before today's optimize pass
+  3. NEW RESUME — the version produced by today's optimize pass
+
+A phrase or claim in the NEW RESUME is SUPPORTED if EITHER of these is true:
+  (a) it appears (in similar wording or as a clear paraphrase) in VERIFIED FACTS, OR
+  (b) it appears (in the same or similar wording) in the PREVIOUS RESUME
+
+A phrase or claim is UNSUPPORTED if it appears in NEW RESUME but does NOT trace to either VERIFIED FACTS or PREVIOUS RESUME. UNSUPPORTED content must be removed.
+
+UNSUPPORTED examples to look for:
+- New skill items that aren't in VERIFIED FACTS and weren't in PREVIOUS RESUME (e.g. "Voice & Messaging Experiences" added when no role describes voice or messaging product work)
+- New noun phrases lifted from the job description into a bullet that describes unrelated work (e.g. "social feedback loops" added to a bullet about workflow automation when no CE bullet supports social feedback work)
+- New summary phrases that name domains the candidate hasn't worked in (e.g. "social systems" when no role demonstrates social-systems work)
+- New product or feature names that don't appear in VERIFIED FACTS or PREVIOUS RESUME
+
+ALSO REMOVE any pronouns referring to the candidate (he, his, him, she, her, hers). Never use third-person pronouns. Rewrite affected sentences in first person or implied first person.
+
+Other rules:
+- Keep everything else EXACTLY as it appears in NEW RESUME — same structure, same sections, same role order, same dates, same companies, same titles, same bullet character.
+- When you remove an unsupported phrase, rewrite the surrounding sentence so it still reads naturally — no orphan fragments.
+- If a bullet becomes empty or trivial after removing its unsupported content, delete that bullet entirely.
+- If everything in NEW RESUME is supported, return NEW RESUME completely unchanged.
+- Do NOT introduce any new content yourself. Your only operations are: keep, revert, or remove.
+
+Return ONLY the corrected plain-text resume, no commentary, no code fences, no diff summary.
+
+VERIFIED FACTS:
+${verifiedFacts}
+
+PREVIOUS RESUME:
+${previousResume || '(none — this is the first optimize pass)'}
+
+NEW RESUME:
+${optimizedResume}`;
+
+    const cleaned = await claudeFetch(prompt, 4000);
+    const result = cleaned.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim();
+
+    // Log the diff for debugging (silent revert per user spec — no UI surface)
+    if (result !== optimizedResume) {
+      console.group('[groundedPhraseAuditor] Reverted unsupported content');
+      console.log('Before audit (length ' + optimizedResume.length + '):');
+      console.log(optimizedResume);
+      console.log('After audit (length ' + result.length + '):');
+      console.log(result);
+      console.groupEnd();
+    } else {
+      console.log('[groundedPhraseAuditor] No unsupported content found.');
+    }
+
+    return result;
+  } catch (e) {
+    console.warn('[groundedPhraseAuditor] failed, returning original:', e);
+    return optimizedResume;
+  }
+}
+
+// Detects boilerplate phrases that repeat across two or more unrelated roles
+// (e.g. "building tools that help teams work smarter, faster, and more effectively"
+// appearing in both Yodle 2017 and Verizon 2022). Removes or rewrites the less-specific occurrence.
+async function dedupeCrossRoleBoilerplate(text) {
+  try {
+    const prompt = `Your only job: find filler phrases that repeat across two or more roles in this resume, and remove or rewrite the less-specific occurrence.
+
+A "boilerplate repeat" is a phrase of 6+ words that appears (verbatim or near-verbatim) in bullets under DIFFERENT roles. Examples:
+- "building tools that help teams work smarter, faster, and more effectively" appearing in two different roles
+- "delivering high-quality experiences across multiple platforms" appearing in two different roles
+- "driving design culture and craft excellence" appearing in two different roles
+
+Rules:
+- Keep the most specific occurrence (the one with concrete metrics or distinctive context). Rewrite the other(s) to say something specific to that role, OR delete the bullet entirely if it adds no unique signal.
+- Within a single role, do not change anything (that's a separate dedup pass).
+- Do NOT change anything else: same sections, same role order, same dates, same companies, same titles, same skills, same summary, same bullet character.
+- Do NOT add new metrics or invent details. Only remove or rewrite filler.
+- If no cross-role boilerplate repeats exist, return the resume completely unchanged.
+
+Return ONLY the complete plain-text resume, no commentary, no code fences.
+
+RESUME:
+${text}`;
+
+    const result = await claudeFetch(prompt, 4000);
+    return result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim();
+  } catch (e) {
+    console.warn('[dedupeCrossRoleBoilerplate] failed, returning original:', e);
+    return text;
+  }
+}
 
 async function applySelectedFixes(){
   const fixCbs = Array.from(document.querySelectorAll('.fix-cb:checked'));
@@ -5485,7 +5607,16 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     const deduped = await dedupeBulletMetrics(firstPass);
 
     // Phase 3: Regex safety net — strip any placeholder tokens (X%, [number]%, ___%, etc.) that may have leaked through.
-    const cleaned = stripPlaceholders(deduped);
+    const placeholderCleaned = stripPlaceholders(deduped);
+
+    // Phase 4: Cross-role boilerplate dedup — catches filler phrases repeated across unrelated roles.
+    overlaySub.textContent = 'Removing repeated boilerplate across roles';
+    const boilerplateCleaned = await dedupeCrossRoleBoilerplate(placeholderCleaned);
+
+    // Phase 5: Grounded-phrase auditor — silently reverts any newly-introduced phrase that does NOT
+    // trace to either the verified facts (CE) or the previous version of the resume. Diff logged to console.
+    overlaySub.textContent = 'Verifying every claim against your verified history';
+    const cleaned = await groundedPhraseAuditor(boilerplateCleaned, resume);
 
     // Push as a new draft so each Apply Selected click increments the version (v1 → v2 → v3...)
     proj.drafts.push(cleaned);
@@ -5640,7 +5771,13 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     overlayMsg.textContent = 'Polishing...';
     overlaySub.textContent = 'Removing duplicate metrics across bullets';
     const deduped = await dedupeBulletMetrics(firstPass);
-    const cleaned = stripPlaceholders(deduped);
+    const placeholderCleaned = stripPlaceholders(deduped);
+
+    overlaySub.textContent = 'Removing repeated boilerplate across roles';
+    const boilerplateCleaned = await dedupeCrossRoleBoilerplate(placeholderCleaned);
+
+    overlaySub.textContent = 'Verifying every claim against your verified history';
+    const cleaned = await groundedPhraseAuditor(boilerplateCleaned, currentResume);
 
     // Push as a new draft so the version increments by exactly one
     proj.drafts.push(cleaned);
