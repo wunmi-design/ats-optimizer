@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.24</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.25</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -4460,8 +4460,25 @@ async function generateQuestions(analysis) {
   if(!proj) return;
   const ws=collectWorkspace();
   try {
-    const raw=await claudeFetch(`You are a resume coach. Based on this job analysis and candidate info, generate 5-8 targeted questions for GAPS only. Return ONLY valid JSON:
-{"questions":[{"id":"q1","category":"leadership|metrics|skills|experience|narrative","priority":"high|medium","question":"...","placeholder":"...","prefilled":null}]}
+    const raw=await claudeFetch(`You are a resume coach helping a candidate raise both their ATS match score AND their recruiter readability. Generate 5-8 targeted questions whose answers, if incorporated into the resume, would directly improve one or both.
+
+Return ONLY valid JSON:
+{"questions":[{"id":"q1","category":"metrics|leadership|skills|experience|narrative","priority":"high|medium","question":"...","placeholder":"example of the kind of answer that would help","prefilled":null}]}
+
+Each question MUST target one of these high-leverage problems:
+- A specific JD keyword/skill that is missing from the resume but the candidate likely has experience with (asking surfaces it so it can be added)
+- A bullet that lacks a quantifiable outcome (asking for the metric or business result lets the bullet be rewritten with measurable impact)
+- A role with thin or vague description that needs concrete scope clarification (team size, products owned, scale of users/revenue)
+- A narrative gap the resume implies but doesn't explain (e.g. promotions, scope changes, transitions)
+- Soft skills/leadership behaviors the JD prioritizes that aren't yet evidenced in any bullet
+
+Question quality bar:
+- Each question must point at ONE specific bullet, role, or skill — never generic ("tell us about your leadership style")
+- Each must clearly state how the answer will be used (e.g. "to add a metric to your Verizon Financial Services bullet about MAU growth")
+- Skip topics that are already well-covered in the resume
+- Skip topics that even a great answer wouldn't change in the resume (e.g. personal preferences, hobbies, motivation)
+- Order by priority: the question whose answer would most raise the score goes first
+
 JOB REQUIRES:\n${JSON.stringify(analysis)}
 CANDIDATE HAS: ${ws.name}, ${ws.title}, ${ws.years}yrs, Skills: ${ws.hard?.slice(0,200)}, Role: ${ws['r1-title']} at ${ws['r1-company']}`,1500);
     const parsed=parseJson(raw);
