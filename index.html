@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.20</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.22</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -7931,9 +7931,17 @@ async function parseToCE(text) {
     const raw1 = await claudeFetch(`From this resume extract ONLY the contact info, summary, education, and awards. Return ONLY valid JSON:
 {"contact":{"fname":"","lname":"","title":"","email":"","phone":"","linkedin":"","portfolio":"","city":"","state":""},"summary":"full summary paragraph","edu":[{"degree":"","field":"","school":"","year":"","notes":""}],"awards":[{"title":"","org":"","year":"","notes":""}]}
 
+ABSOLUTE RULE — VERBATIM TEXT:
+Every string you place into a field must be a CHARACTER-FOR-CHARACTER COPY of the matching text in the source resume. Do NOT abbreviate, expand, paraphrase, normalize, "clean up", capitalize differently, or fix typos. If the source says "Bachelor of Fine Arts", you write "Bachelor of Fine Arts". If the source says "BFA", you write "BFA". Never the other way. This rule applies to EVERY field: degree, field of study, school, award title, organization, summary text, contact name, job title, everything.
+
 EXTRACTION RULES:
-- "edu": every degree, certification, or training the candidate lists. "degree" is the credential type ("BFA", "MBA", "BS", "Certificate"). "field" is the field of study ("Communication Design", "Computer Science"). Split combined values like "BFA, Communication Design" or "Bachelor of Fine Arts in Communication Design" into degree + field separately.
-- "awards": every award, honor, recognition, scholarship, or notable named achievement. "title" is the award name. "org" is the issuing organization or publication. "year" is the year if listed. If no awards section exists, return an empty array.
+- "edu": every degree, certification, or training the candidate lists. "degree" = the credential name only, copied verbatim. "field" = the field of study only, copied verbatim. Splitting examples (the SUBSTRINGS must remain verbatim):
+  • Source "Bachelor of Fine Arts, Communication Design" → degree="Bachelor of Fine Arts", field="Communication Design"
+  • Source "Bachelor of Fine Arts in Communication Design" → degree="Bachelor of Fine Arts", field="Communication Design"
+  • Source "BFA, Communication Design" → degree="BFA", field="Communication Design"
+  • Source "MBA" alone → degree="MBA", field=""
+- "awards": every award, honor, recognition, scholarship, or notable named achievement. Copy verbatim. If no awards section exists, return an empty array.
+- "summary": copy the entire summary paragraph verbatim. Do not condense, rewrite, or paraphrase.
 - Return all entries you find. Do not skip any.
 
 RESUME:
