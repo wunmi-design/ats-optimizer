@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.25</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.26</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -1920,7 +1920,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
                 </div>
               </div>
               <div style="flex:1;">
-                <div class="score-grid" id="score-grid"><div class="score-cell"><div class="score-cell-val" style="color:var(--teal)">75%</div><div class="score-cell-label">Keywords</div></div><div class="score-cell"><div class="score-cell-val" style="color:var(--green)">85%</div><div class="score-cell-label">Hard Skills</div></div><div class="score-cell"><div class="score-cell-val" style="color:var(--green)">88%</div><div class="score-cell-label">Soft Skills</div></div><div class="score-cell"><div class="score-cell-val" style="color:var(--green)">90%</div><div class="score-cell-label">Title</div></div><div class="score-cell"><div class="score-cell-val" style="color:var(--green)">95%</div><div class="score-cell-label">YOE</div></div></div>
+                <div class="score-grid" id="score-grid"></div>
                 <p class="text-xs text-muted mt-2" id="score-summary" style="display:none;">Strong alignment with role requirements. Candidate has 7+ years product design experience and 2+ years management experience leading distributed teams. Proven track record of driving measurable business impact (26% MAU growth, 90% card activation rate, 40% velocity improvement). Excellent leadership and mentoring skills with cross-functional collaboration experience. Has required Figma proficiency and design systems expertise. Missing specific healthcare/consumer product experience and some technical skills mentioned in job description.</p>
               </div>
             </div>
@@ -4651,10 +4651,8 @@ async function runFullAnalysis(skipOverlay) {
   msg.textContent = useCachedScore ? 'Analyzing...' : 'Scoring and analyzing...';
 
   try {
-    // Ensure analyzer content will be visible and all required elements exist
-    const analyzerContent = document.getElementById('analyzer-content');
-    if (analyzerContent) analyzerContent.style.display = 'block';
-    
+    // analyzer-content stays hidden until data is rendered (set to block after renderDashboard).
+
     // Run requests sequentially to avoid rate-limit bursts
     const scoreRaw = useCachedScore
       ? JSON.stringify(cachedScore)
@@ -4737,8 +4735,12 @@ RESUME:\n${resume.slice(0,1500)}`, 1000);
     proj._lastDeep = deep; // persist deep analysis
     autoSave();
 
-    // Render score ring + grid
+    // Render score ring + grid (with real data)
     renderDashboard(score);
+
+    // Now safe to reveal analyzer panel — it has real numbers
+    const analyzerContent = document.getElementById('analyzer-content');
+    if (analyzerContent) analyzerContent.style.display = 'block';
 
     // Merge deep analysis items into the suggestions list
     renderDeepFixItems(deep);
