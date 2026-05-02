@@ -603,7 +603,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.29</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.30</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -6114,8 +6114,35 @@ function renderTemplateGrid() {
     </div>`).join('');
 }
 
+// Built-in template typography presets — applied each time the user selects a template
+// so picking Standard always lands on a known-good baseline.
+const TEMPLATE_PRESETS = {
+  standard: {
+    nameFont: 'Playfair Display', nameSize: 28,
+    bodyFont: 'Lato', bodySize: 11,
+    headingFont: 'Lato', headingSize: 13,
+    expFont: 'Lato', expSize: 15,
+    roleFont: 'Lato', roleSize: 17,
+  },
+  // Professional has no preset — keeps whatever the user has set.
+};
+
 function selectTemplate(id) {
   _fmt.template = id;
+  // Apply preset typography for templates that define one
+  const preset = TEMPLATE_PRESETS[id];
+  if (preset) {
+    Object.assign(_fmt, preset);
+    _fmt.font = preset.bodyFont; // legacy alias
+    _fmt.size = preset.bodySize + 'pt';
+    // Sync the visible Typography inputs so the user sees the new values
+    const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+    setVal('fmt-name-font', preset.nameFont); setVal('fmt-name-size', preset.nameSize);
+    setVal('fmt-body-font', preset.bodyFont); setVal('fmt-body-size', preset.bodySize);
+    setVal('fmt-heading-font', preset.headingFont); setVal('fmt-heading-size', preset.headingSize);
+    setVal('fmt-exp-font', preset.expFont); setVal('fmt-exp-size', preset.expSize);
+    setVal('fmt-role-font', preset.roleFont); setVal('fmt-role-size', preset.roleSize);
+  }
   document.querySelectorAll('.tmpl-card').forEach(c => c.classList.remove('active'));
   document.getElementById('tmpl-' + id)?.classList.add('active');
   updateLivePreview();
