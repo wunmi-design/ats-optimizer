@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.23</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.24</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -5596,12 +5596,16 @@ async function autoOptimize() {
     // We must iterate by the actual stored index, not a dense iteration index, so each fix is
     // matched to its DOM checkbox by its real data-idx attribute.
     const fixesArr = proj._currentFixes || [];
+    console.log('[Optimize] _currentFixes length:', fixesArr.length, 'filled slots:', fixesArr.filter(Boolean).length);
+    console.log('[Optimize] DOM .fix-cb count:', document.querySelectorAll('.fix-cb').length);
+    console.log('[Optimize] DOM .kw-missing-row input[data-kw] count:', document.querySelectorAll('.kw-missing-row input[data-kw]').length);
     const unappliedFixes = [];
     for (let i = 0; i < fixesArr.length; i++) {
       const f = fixesArr[i];
       if (!f) continue;
       const cb = document.querySelector(`.fix-cb[data-idx="${i}"]`);
       if (cb && !cb.disabled) unappliedFixes.push(f);
+      else console.log(`[Optimize] Fix at index ${i} skipped — cb=${!!cb} disabled=${cb?.disabled}`);
     }
     const unappliedKws = Array.from(document.querySelectorAll('.kw-missing-row input[data-kw]'))
       .filter(cb => !cb.disabled)
