@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.20</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.21</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -5707,24 +5707,37 @@ async function autoOptimize() {
   overlay.style.display = 'flex';
 
   try {
-    // Phase 1: Score & analyze (single pass)
+    // Phase 1: Score & analyze (single pass — both quick analysis and deep analysis)
     overlayMsg.textContent = 'Analyzing resume...';
     overlaySub.textContent = 'Evaluating your resume against the job description';
 
     proj._cachedScore = null; proj._analysisHash = null; proj.scores = [];
     await runFullAnalysis(true);
 
+    // Deep analysis populates Content Improvements + missing keywords. Without this, Optimize
+    // would only see 1-2 top-level fixes from runFullAnalysis and miss the 15-30 suggestions in the
+    // deep analyzer panel.
+    overlaySub.textContent = 'Running deep analysis for content improvements';
+    try { await runDeepAnalysis(); } catch(e) { console.warn('Deep analysis during Optimize failed:', e); }
+
     const scoreBefore = proj._cachedScore?.overall || 0;
 
     // Phase 2: Gather all suggestions + missing keywords
-    const fixes = proj._currentFixes || [];
-    const unappliedFixes = fixes.filter((f, i) => {
+    // _currentFixes is sparse (top fixes 0..N, deep fixes 1000+). Build a parallel list of
+    // {fix, idx} pairs so we can match each fix to its DOM checkbox by its actual data-idx.
+    const fixesArr = proj._currentFixes || [];
+    const fixesIndexed = [];
+    for (let i = 0; i < fixesArr.length; i++) {
+      const f = fixesArr[i];
+      if (!f) continue;
       const cb = document.querySelector(`.fix-cb[data-idx="${i}"]`);
-      return cb && !cb.disabled;
-    });
+      if (cb && !cb.disabled) fixesIndexed.push({ fix: f, idx: i });
+    }
+    const unappliedFixes = fixesIndexed.map(x => x.fix);
     const unappliedKws = Array.from(document.querySelectorAll('.kw-missing-row input[data-kw]'))
       .filter(cb => !cb.disabled)
       .map(cb => cb.dataset.kw);
+    console.log('[Optimize] Found', unappliedFixes.length, 'fixes and', unappliedKws.length, 'keywords to apply');
 
     if (!unappliedFixes.length && !unappliedKws.length) {
       overlaySub.textContent = `No suggestions to apply. Score: ${scoreBefore}`;
