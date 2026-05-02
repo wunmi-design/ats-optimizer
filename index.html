@@ -521,6 +521,8 @@ select option{background:var(--white);}
 /* Applied — blue */
 .status-btn.applied{color:#1d4ed8;background:#eff6ff;border:1.5px solid #93c5fd;}
 .status-btn.applied:hover{background:#dbeafe;}
+.status-btn.ready-to-send{color:#b45309;background:#fffbeb;border:1.5px solid #fcd34d;}
+.status-btn.ready-to-send:hover{background:#fef3c7;}
 /* Interviewing — green */
 .status-btn.interviewing{color:#15803d;background:#f0fdf4;border:1.5px solid #86efac;}
 .status-btn.interviewing:hover{background:#dcfce7;}
@@ -601,7 +603,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.28</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.29</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -2948,12 +2950,14 @@ function statusLabel(s) {
   if (s === 'applied') return 'Applied';
   if (s === 'interviewing') return 'Interviewing';
   if (s === 'didnt-apply') return "Didn't Apply";
+  if (s === 'ready-to-send') return 'Ready to Send';
   return 'Status?';
 }
 function statusCls(s) {
   if (s === 'applied') return 'applied';
   if (s === 'interviewing') return 'interviewing';
   if (s === 'didnt-apply') return 'didnt-apply';
+  if (s === 'ready-to-send') return 'ready-to-send';
   return 'none';
 }
 function toggleStatusPopup(id, e) {
@@ -3066,6 +3070,7 @@ function renderProjGrid() {
           <button class="status-btn ${statusCls(p.status)}" onclick="toggleStatusPopup('${p.id}',event)" aria-label="Set application status">${statusLabel(p.status)}</button>
           <div class="status-popup" id="status-${p.id}" role="menu">
             <label><input type="radio" name="status-${p.id}" value="didnt-apply" ${p.status==='didnt-apply'?'checked':''} onchange="setProjectStatus('${p.id}','didnt-apply')"> Didn't Apply</label>
+            <label><input type="radio" name="status-${p.id}" value="ready-to-send" ${p.status==='ready-to-send'?'checked':''} onchange="setProjectStatus('${p.id}','ready-to-send')"> Ready to Send</label>
             <label><input type="radio" name="status-${p.id}" value="applied" ${p.status==='applied'?'checked':''} onchange="setProjectStatus('${p.id}','applied')"> Applied</label>
             <label><input type="radio" name="status-${p.id}" value="interviewing" ${p.status==='interviewing'?'checked':''} onchange="setProjectStatus('${p.id}','interviewing')"> Interviewing</label>
           </div>
@@ -6784,13 +6789,14 @@ function fmtLinkify(raw) {
         title=rest[0];
         contactLines=rest.slice(1);
       }
+      // Subtitle (job title under name) and contact lines render at body-size; honors the Body text size input.
       const contactHtml=contactLines.map(l=>{
         const trimmed=l.trim();
         const isLink=/http|www\.|\.com|\.io|\.co|linkedin|github/i.test(trimmed);
         const color=isLink?'#1a5fa5':'#444';
-        return `<div style="font-size:.92em;font-family:${font},Arial,sans-serif;color:${color};line-height:1.55;">${fmtLinkify(l)}</div>`;
+        return `<div style="font-size:${size};font-family:${font},Arial,sans-serif;color:${color};line-height:1.55;">${fmtLinkify(l)}</div>`;
       }).join('');
-      const titleHtml=title?`<div style="font-size:1.05em;font-weight:400;color:#333;margin-bottom:.08in;font-family:${font},Arial,sans-serif;">${e(title)}</div>`:'';
+      const titleHtml=title?`<div style="font-size:${rolePx};font-weight:400;color:#333;margin-bottom:.08in;font-family:${font},Arial,sans-serif;">${e(title)}</div>`:'';
       return`<div style="margin-bottom:.3in;">
         <div style="font-size:${namePx};font-weight:700;letter-spacing:-.01em;font-family:${nameFont},Arial,sans-serif;color:#111;margin-bottom:.04in;">${e(name)}</div>
         ${titleHtml}
@@ -6896,15 +6902,15 @@ function fmtLinkify(raw) {
         if (jh) {
           const ESC = s => String(s||'').replace(/\s*·\s*$/, '').trim().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
           if (layout === 'standard') {
-            // Standard layout: role + date on top line (role larger), company + location underneath (smaller)
+            // Standard layout: role + date on top line (uses Role/Title size), company + location underneath (uses Company size)
             const topLine = jh.role
               ? `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:3px;">
-                  <div style="font-size:1.1em;font-weight:700;font-family:${roleFont},Arial,sans-serif;color:#111;">${ESC(jh.role)}</div>
-                  <div style="font-size:.92em;font-weight:400;color:#666;white-space:nowrap;flex-shrink:0;">${ESC(jh.dates)}</div>
+                  <div style="font-size:${rolePx};font-weight:700;font-family:${roleFont},Arial,sans-serif;color:#111;">${ESC(jh.role)}</div>
+                  <div style="font-size:${size};font-weight:400;color:#666;white-space:nowrap;flex-shrink:0;">${ESC(jh.dates)}</div>
                  </div>`
               : '';
             const subLine = (jh.company || jh.location)
-              ? `<div style="font-size:.92em;color:#444;margin-bottom:8px;">
+              ? `<div style="font-size:${expPx};color:#444;margin-bottom:8px;">
                   ${jh.company ? `<span style="font-weight:600;">${ESC(jh.company)}</span>` : ''}${jh.location ? `${jh.company ? ' · ' : ''}<span style="font-weight:400;">${ESC(jh.location)}</span>` : ''}
                  </div>`
               : '';
@@ -6966,7 +6972,7 @@ function fmtLinkify(raw) {
   else if(layout==='ruled') headingHtml=`<div style="font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#333;border-bottom:2px solid ${accent};padding-bottom:2px;margin-bottom:5px;">${e(sec.heading)}</div>`;
   else if(layout==='boldline') headingHtml=`<div style="font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:${accent};margin-bottom:4px;padding-left:4px;border-left:3px solid ${accent};">${e(sec.heading)}</div>`;
   else if(layout==='professional') headingHtml=`<div style="font-size:${headingPx};font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#888;font-family:${headingFont},Arial,sans-serif;margin-bottom:6px;margin-top:4px;">${e(sec.heading)}</div>`;
-  else if(layout==='standard') headingHtml=`<div style="font-size:1.05em;font-weight:700;text-transform:uppercase;letter-spacing:.02em;color:#111;font-family:${headingFont},Arial,sans-serif;margin-bottom:6px;margin-top:4px;">${e(sec.heading)}</div>`;
+  else if(layout==='standard') headingHtml=`<div style="font-size:${headingPx};font-weight:700;text-transform:uppercase;letter-spacing:.02em;color:#111;font-family:${headingFont},Arial,sans-serif;margin-bottom:6px;margin-top:4px;">${e(sec.heading)}</div>`;
   else headingHtml=`<div style="font-size:.7em;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:${accent};border-bottom:1px solid ${accent}44;padding-bottom:2px;margin-bottom:5px;">${e(sec.heading)}</div>`;
   return`<div style="margin-bottom:${layout==='standard'?'.24in':layout==='professional'?'.16in':'.12in'}">${headingHtml}<div style="font-size:${size};font-family:${font},Arial,sans-serif;line-height:${layout==='compact'?'1.25':'1.45'};">${body}</div></div>`;}
   // Two-column layouts
