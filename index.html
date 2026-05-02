@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.19</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.20</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -7921,12 +7921,23 @@ async function parseToCE(text) {
   if (!proj.ce) proj.ce = ceDefaultData();
 
   try {
-    // ── Pass 1: Contact, summary, education ──────────────
-    msg.textContent = 'Extracting contact & summary...';
-    const raw1 = await claudeFetch(`From this resume extract ONLY the contact info, summary, and education. Return ONLY valid JSON:
-{"contact":{"fname":"","lname":"","title":"","email":"","phone":"","linkedin":"","portfolio":"","city":"","state":""},"summary":"full summary paragraph","edu":[{"degree":"","school":"","year":"","notes":""}]}
+    // ── Pass 1: Contact, summary, education, awards ──────────
+    // We send the start of the resume (for contact/summary) plus the end (where education and
+    // awards usually live). If the resume is short, we just send the whole thing.
+    msg.textContent = 'Extracting contact, education, and awards...';
+    const head = text.slice(0, 2500);
+    const tail = text.length > 5000 ? '\n\n[...]\n\n' + text.slice(-3500) : (text.length > 2500 ? text.slice(2500) : '');
+    const pass1Source = head + tail;
+    const raw1 = await claudeFetch(`From this resume extract ONLY the contact info, summary, education, and awards. Return ONLY valid JSON:
+{"contact":{"fname":"","lname":"","title":"","email":"","phone":"","linkedin":"","portfolio":"","city":"","state":""},"summary":"full summary paragraph","edu":[{"degree":"","field":"","school":"","year":"","notes":""}],"awards":[{"title":"","org":"","year":"","notes":""}]}
+
+EXTRACTION RULES:
+- "edu": every degree, certification, or training the candidate lists. "degree" is the credential type ("BFA", "MBA", "BS", "Certificate"). "field" is the field of study ("Communication Design", "Computer Science"). Split combined values like "BFA, Communication Design" or "Bachelor of Fine Arts in Communication Design" into degree + field separately.
+- "awards": every award, honor, recognition, scholarship, or notable named achievement. "title" is the award name. "org" is the issuing organization or publication. "year" is the year if listed. If no awards section exists, return an empty array.
+- Return all entries you find. Do not skip any.
+
 RESUME:
-${text.slice(0,3000)}`, 1500);
+${pass1Source}`, 2500);
 
     try {
       const p1 = parseJson(raw1);
@@ -7935,7 +7946,13 @@ ${text.slice(0,3000)}`, 1500);
       if (p1.edu?.length) {
         proj.ce.edu = p1.edu.map(e => ({
           id:'e'+Date.now()+Math.random(),
-          degree:e.degree||'', school:e.school||'', year:e.year||'', notes:e.notes||''
+          degree:e.degree||'', field:e.field||'', school:e.school||'', year:e.year||'', notes:e.notes||''
+        }));
+      }
+      if (p1.awards?.length) {
+        proj.ce.awards = p1.awards.map(a => ({
+          id:'a'+Date.now()+Math.random(),
+          title:a.title||'', org:a.org||'', year:a.year||'', notes:a.notes||''
         }));
       }
     } catch(e) { console.warn('Pass 1 parse error:', e); }
@@ -8070,6 +8087,9 @@ ${text.slice(0,3000)}`, 1500);
     // Expand experience and contact sections
     document.getElementById('ce-contact')?.classList.add('open');
     document.getElementById('ce-experience')?.classList.add('open');
+    // Expand education and awards sections if we found any
+    if (proj.ce.edu?.length) document.getElementById('ce-education')?.classList.add('open');
+    if (proj.ce.awards?.length) document.getElementById('ce-awards')?.classList.add('open');
     autoSave();
     renderLivePreview();
     toast(`Imported ${proj.ce.roles?.length||0} roles · ${proj.ce.skillGroups?.reduce((a,sg)=>a+sg.skills.length,0)||0} skills`);
