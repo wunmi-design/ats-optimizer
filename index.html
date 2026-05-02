@@ -601,7 +601,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.27</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.28</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -4120,10 +4120,16 @@ ${bodyText.slice(0, 6000)}`, 2000);
 // ─────────────────────────────────────────────────────────
 function showAnswerModal() {
   if (!proj?.questions?.length) { toast('Analyze a job description first to generate questions'); return; }
+  // Clear any stale paste from a previous open or previous project
+  const ta = document.getElementById('ai-paste-answers');
+  if (ta) ta.value = '';
   document.getElementById('answer-modal')?.classList.remove('hidden');
 }
 
 function hideAnswerModal() {
+  // Clear on close too — defensive, in case the user opens it again
+  const ta = document.getElementById('ai-paste-answers');
+  if (ta) ta.value = '';
   document.getElementById('answer-modal')?.classList.add('hidden');
 }
 
