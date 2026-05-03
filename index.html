@@ -603,7 +603,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.33</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.34</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -6853,11 +6853,16 @@ function fmtLinkify(raw) {
   }
   // Helper: split a line into left + right around the date/location
   function splitLeftRight(t) {
-    // Find the date segment: MM/YY or MM/YYYY, range may end in MM/YY, "Present", or "Current"
-    // Try (1) wide-gap format with 2+ spaces, (2) closed range, (3) range ending in Present/Current
-    const m = t.match(/^(.+?)\s{2,}(\d{1,2}\/\d{2,4}.+)$/) ||
-              t.match(/^(.+?)\s+(\d{2}\/\d{2,4}\s*[-–—]\s*\d{2}\/\d{2,4}(?:\s*[-–·,]\s*.+)?)$/) ||
-              t.match(/^(.+?)\s+(\d{1,2}\/\d{2,4}\s*[-–—]\s*(?:Present|Current|Now)(?:\s*[-–·,]\s*.+)?)$/i);
+    // Find the date segment. Supports:
+    // - MM/YY or MM/YYYY ranges
+    // - 4-digit year ranges (2024 – 2026)
+    // - Either format ending in Present/Current/Now
+    // - Wide-gap split (2+ spaces) for any tail string
+    const dateRange = /(?:\d{1,2}\/\d{2,4}|\d{4})\s*[-–—]\s*(?:\d{1,2}\/\d{2,4}|\d{4}|Present|Current|Now)(?:\s*[-–·,]\s*.+)?/i;
+    const singleDate = /(?:\d{1,2}\/\d{2,4}|\d{4})/;
+    const m = t.match(/^(.+?)\s{2,}((?:\d{1,2}\/\d{2,4}|\d{4}).+)$/) ||
+              t.match(new RegExp(`^(.+?)\\s+(${dateRange.source})$`, 'i')) ||
+              t.match(new RegExp(`^(.+?)\\s+(${singleDate.source}\\s*[-–—]\\s*(?:Present|Current|Now)(?:\\s*[-–·,]\\s*.+)?)$`, 'i'));
     if (m) return { left: m[1].trim(), right: m[2].trim() };
     return null;
   }
