@@ -603,7 +603,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.31</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.32</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -5573,7 +5573,7 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     // Phase 3: Sync CE fields
     try {
       const _currentTab = document.querySelector('.tab.active')?.id?.replace('tab-','');
-      await parseToCE(cleaned);
+      await parseToCE(cleaned, true);  // suppress tab switch — we'll restore the active tab below
       fillCE(proj.ce);
       // Auto-fill Job Title from posting — always match exactly
       if (proj.jdTitle) {
@@ -5725,7 +5725,7 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
 
     // Sync CE
     try {
-      await parseToCE(cleaned);
+      await parseToCE(cleaned, true);  // suppress tab switch — autoOptimize ends on Analyzer
       fillCE(proj.ce);
       if (proj.jdTitle) document.getElementById('ce-title').value = proj.jdTitle;
       autoSave();
@@ -8005,7 +8005,7 @@ function buildResumeTextFromCE(ce) {
 }
 
 // ── PARSE UPLOADED RESUME INTO CE STRUCTURE ───────────────
-async function parseToCE(text) {
+async function parseToCE(text, suppressTabSwitch) {
   const msg = document.getElementById('upload-msg');
   if (!proj.ce) proj.ce = ceDefaultData();
 
@@ -8182,7 +8182,7 @@ ${text.slice(0,3000)}`, 1500);
     autoSave();
     renderLivePreview();
     toast(`Imported ${proj.ce.roles?.length||0} roles · ${proj.ce.skillGroups?.reduce((a,sg)=>a+sg.skills.length,0)||0} skills`);
-    switchTab('content');
+    if (!suppressTabSwitch) switchTab('content');
 
   } catch(e) {
     document.getElementById('upload-loading').classList.remove('show');
