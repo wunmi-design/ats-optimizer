@@ -603,7 +603,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.36</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.37</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -5340,6 +5340,48 @@ function deduplicateResume(text) {
 // Focused second-pass: removes repeated metrics across bullets within the same role.
 // Single-task prompt with no competing instructions, so the dedup rule actually holds.
 // Fail-safe: if the call errors, returns the original text unchanged.
+// Same-employer differentiation pass. When two roles share the same company name, scan their
+// bullets for high lexical overlap and rewrite the less-specific occurrence using only facts
+// already in that role's existing bullets/context. If no honest differentiation is possible from
+// the verified facts, the duplicate is removed rather than rewritten. Silent — no UI surface.
+async function differentiateSameEmployerRoles(text) {
+  try {
+    const prompt = `Your only job: when two or more roles in this resume share the same company name (e.g. multiple Verizon roles, multiple Web.com roles), check their bullets for near-duplicate language. Rewrite or remove duplicates so each role's bullets reflect that role's specific scope and constraints.
+
+DEFINITION OF "NEAR-DUPLICATE":
+Two bullets are near-duplicate if they share 6+ consecutive content words (ignoring articles/prepositions) OR they convey the same competence with cosmetic rewording. Examples that ARE near-duplicates:
+- "Ensured designs were scalable and aligned with user and business outcomes" (Role A) AND "Ensured designs were scalable and aligned with user and business needs" (Role B)
+- "Led cross-functional collaboration with Product and Engineering" (Role A) AND "Partnered with Product and Engineering on cross-functional collaboration" (Role B)
+- "Drove customer satisfaction through design execution" (Role A) AND "Drove customer satisfaction through design priorities" (Role B)
+
+These are NOT near-duplicates and should be left alone:
+- Bullets at different employers, even if similarly worded (this pass is scoped to same-employer roles only).
+- Bullets that share a metric ONLY (the metric-dedup pass handles that separately).
+- Bullets that share generic verbs but describe materially different work.
+
+WHAT TO DO when you find a near-duplicate at the same employer:
+1. Identify which of the two bullets is more specific (has concrete metrics, named products, named teams, or distinctive scope). Keep that bullet unchanged.
+2. For the less-specific bullet, attempt to rewrite it using ONLY facts that already appear in that role's other bullets, role summary/context, or job header (title, company, dates, location). The rewrite must reflect that role's specific scope — team size, product names, constraints, audience, technical context — drawn from text already in that role.
+3. CRITICAL: do NOT introduce any new domain, scope, metric, team composition, or framing that isn't already present in that role's existing text. No fabrication. If you cannot honestly differentiate the bullet using only the role's existing facts, DELETE the duplicate bullet entirely instead of rewriting it.
+4. Never invent qualifiers like "small team," "constrained context," "platform modernization," "16M households," etc. unless those exact phrases appear in that role's existing bullets/context.
+
+OTHER RULES:
+- Do NOT change anything outside of same-employer near-duplicates: same sections, same role order, same dates, same companies, same titles, same skills, same professional summary, same formatting, same bullet character.
+- The professional summary at the top of the resume is out of scope.
+- If no same-employer near-duplicates exist, return the resume completely unchanged.
+
+Return ONLY the complete plain-text resume, no commentary, no code fences.
+
+RESUME:
+${text}`;
+    const result = await claudeFetch(prompt, 4000);
+    return result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim();
+  } catch (e) {
+    console.warn('differentiateSameEmployerRoles failed, returning original:', e);
+    return text;
+  }
+}
+
 async function dedupeBulletMetrics(text) {
   try {
     const prompt = `Your only job: within each role, ensure every metric appears AT MOST ONCE across that role's content.
@@ -5522,13 +5564,20 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     );
     const firstPass = deduplicateResume(result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim());
 
-    // Phase 2: Focused second-pass to remove repeated metrics across bullets within the same role.
+    // Phase 2: Remove repeated metrics across bullets within the same role.
     overlayMsg.textContent = 'Polishing...';
     overlaySub.textContent = 'Removing duplicate metrics across bullets';
     const deduped = await dedupeBulletMetrics(firstPass);
 
-    // Phase 3: Regex safety net — strip any placeholder tokens (X%, [number]%, ___%, etc.) that may have leaked through.
-    const cleaned = stripPlaceholders(deduped);
+    // Phase 3: Differentiate near-duplicate bullets across roles at the same employer.
+    // Rewrites the less-specific occurrence using only facts already in that role, or deletes
+    // the duplicate if no honest differentiation is possible. Critical at senior levels where
+    // generic same-company language reads as careless copy-paste.
+    overlaySub.textContent = 'Differentiating roles at the same employer';
+    const differentiated = await differentiateSameEmployerRoles(deduped);
+
+    // Phase 4: Regex safety net — strip any placeholder tokens (X%, [number]%, ___%, etc.).
+    const cleaned = stripPlaceholders(differentiated);
 
     // Push as a new draft so each Apply Selected click increments the version (v1 → v2 → v3...)
     proj.drafts.push(cleaned);
@@ -5700,7 +5749,11 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     overlayMsg.textContent = 'Polishing...';
     overlaySub.textContent = 'Removing duplicate metrics across bullets';
     const deduped = await dedupeBulletMetrics(firstPass);
-    const cleaned = stripPlaceholders(deduped);
+
+    overlaySub.textContent = 'Differentiating roles at the same employer';
+    const differentiated = await differentiateSameEmployerRoles(deduped);
+
+    const cleaned = stripPlaceholders(differentiated);
 
     // Push as a new draft so the version increments by exactly one
     proj.drafts.push(cleaned);
