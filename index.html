@@ -603,7 +603,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.32</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.33</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -3712,30 +3712,27 @@ async function processFileFromProjects(file) {
   }
   
   try {
-    // Create a new project first
-    const projName = file.name.replace(/\.[^/.]+$/, '');  // Remove file extension
-    const newProj = {
-      name: projName,
-      created: Date.now(),
-      ce: { contact: {}, contactOrder: [], roles: [], edu: [], skills: [] },
-      ws: {},
-      drafts: [],
-      scores: [],
-      questions: [],
-      appliedFixes: [],
-      _redoStack: [],
-      _currentFixes: [],
-      _missingKeywords: [],
-      _deepKeywords: [],
-      _cachedScore: null,
-      _analysisHash: null,
-      _aiApplied: false
-    };
-    
-    // Save the new project
-    ProjectStore.save(newProj);
-    proj = newProj;
-    
+    // Create a new project through the store so it gets a proper id, defaults, and is persisted.
+    const projName = file.name.replace(/\.[^/.]+$/, '');
+    proj = ProjectStore.newProject(projName);
+
+    // Wipe any DOM state carried from a previous project — JD inputs, analyzer panel, qa-section.
+    // Without this, the new project shows the previous project's JD title/company/text in the inputs,
+    // and the Optimizer tab still shows the old score and suggestions.
+    s('jd-title', ''); s('jd-company', ''); s('jd-text', '');
+    proj.jdTitle = ''; proj.jdCompany = ''; proj.jdText = ''; proj.jdAnalysis = null;
+    const qaSection = document.getElementById('qa-section');
+    if (qaSection) qaSection.style.display = 'none';
+    const analyzerContent = document.getElementById('analyzer-content');
+    if (analyzerContent) analyzerContent.style.display = 'none';
+    // Reset the tab-level Optimizer score pill
+    const tabScore = document.getElementById('tab-analyzer-score');
+    if (tabScore) tabScore.textContent = '';
+    // Apply the Standard template typography preset so the rendered resume has a clean, known baseline.
+    // Without this, _fmt carries stale values from whichever template the previous project last used.
+    if (typeof selectTemplate === 'function') selectTemplate('standard');
+    ProjectStore.save(proj);
+
     // Process the file with the new project in context
     await processFile(file);
     
@@ -7963,7 +7960,9 @@ function buildResumeTextFromCE(ce) {
     lines.push('SKILLS');
     ce.skillGroups.forEach(sg => {
       if (sg.skills.length) {
-        lines.push(sg.label + ': ' + sg.skills.map(s => s.text).join(', '));
+        const txt = sg.skills.map(s => s.text).join(', ');
+        const lbl = (sg.label || '').trim();
+        lines.push(lbl ? lbl + ': ' + txt : txt);
       }
     });
     lines.push('');
@@ -8161,9 +8160,16 @@ ${text.slice(0,3000)}`, 1500);
         raw3.replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/\s*```$/i,'').trim()
       );
       if (Array.isArray(sgs) && sgs.length) {
-        proj.ce.skillGroups = sgs.map(sg => ({
+        // If the only label is the section name itself ("SKILLS", "COMPETENCIES", etc.), drop the label.
+        // Otherwise the renderer prints "SKILLS: [skills]" under a "SKILLS" heading — visible duplication.
+        const sectionNamePattern = /^(skills?|competenc(?:y|ies)|technical skills?|core skills?|expertise|capabilities)$/i;
+        const sanitized = sgs.map(sg => ({
+          ...sg,
+          label: sectionNamePattern.test((sg.label || '').trim()) ? '' : (sg.label || '')
+        }));
+        proj.ce.skillGroups = sanitized.map(sg => ({
           id:'sg'+Date.now()+Math.random(),
-          label:sg.label||'Skills',
+          label:sg.label||'',
           skills:(sg.skills||[]).map(sk=>({id:'sk'+Date.now()+Math.random(),text:String(sk)}))
         }));
       }
