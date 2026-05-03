@@ -603,7 +603,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.37</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.38</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -1702,6 +1702,23 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
     </div></div>
             <div style="padding:8px 12px;">
               <button class="btn-add-role" onclick="addAward()">+ Add award</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- CERTIFICATIONS -->
+        <div class="ce-section" id="ce-certs">
+          <div class="ce-section-head" onclick="ceToggle('certs')">
+            <span class="ce-chevron">▶</span>
+            <span class="ce-section-title">Certifications</span>
+            <div class="ce-section-actions">
+              <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();addCert()" style="color:var(--teal);">+ Add</button>
+            </div>
+          </div>
+          <div class="ce-section-body">
+            <div id="certs-list"></div>
+            <div style="padding:8px 12px;">
+              <button class="btn-add-role" onclick="addCert()">+ Add certification</button>
             </div>
           </div>
         </div>
@@ -7285,6 +7302,7 @@ function ceDefaultData() {
     edu: [],
     skillGroups: [],
     awards: [],
+    certs: [],
     contactOrder: [{key:'portfolio',line:1},{key:'email',line:1},{key:'linkedin',line:1},{key:'phone',line:2}],
     ban: '',
     thread: '',
@@ -7333,6 +7351,7 @@ function fillCE(ce) {
   renderEdu();
   renderSkillGroups();
   renderAwards();
+  renderCerts();
   renderContactFields();
 }
 
@@ -7768,7 +7787,49 @@ function contactDrop(e, targetKey) {
   liveUpdate();
 }
 
-// ── AWARDS ────────────────────────────────────────────────
+// ── CERTIFICATIONS ────────────────────────────────────────
+function addCert(data) {
+  if (!proj) return;
+  if (!proj.ce) proj.ce = ceDefaultData();
+  if (!proj.ce.certs) proj.ce.certs = [];
+  proj.ce.certs.push(data || { id:'cr'+Date.now(), title:'', org:'', year:'', notes:'' });
+  renderCerts(); liveUpdate();
+}
+function removeCert(id) {
+  if (!proj?.ce) return;
+  proj.ce.certs = (proj.ce.certs||[]).filter(c => c.id !== id);
+  renderCerts(); liveUpdate();
+}
+function updateCert(id, field, val) {
+  const c = proj?.ce?.certs?.find(c => c.id === id);
+  if (c) { c[field] = val; liveUpdate(); }
+}
+function renderCerts() {
+  const list = document.getElementById('certs-list');
+  if (!list || !proj?.ce) return;
+  const certs = proj.ce.certs || [];
+  if (!certs.length) {
+    list.innerHTML = '<div class="text-xs text-muted" style="padding:12px;">No certifications yet.</div>';
+    return;
+  }
+  list.innerHTML = certs.map(c => `
+    <div class="edu-card">
+      <div class="flex-between mb-2">
+        <span style="font-size:12px;font-weight:600;">${esc(c.title||'New Certification')}</span>
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="removeCert('${c.id}')" style="color:var(--red);">×</button>
+      </div>
+      <div class="role-grid">
+        <div class="field"><label class="fl">Certification</label><input type="text" value="${esc(c.title)}" oninput="updateCert('${c.id}','title',this.value)"></div>
+        <div class="field"><label class="fl">Issuing Organization</label><input type="text" value="${esc(c.org)}" oninput="updateCert('${c.id}','org',this.value)"></div>
+      </div>
+      <div class="role-grid">
+        <div class="field"><label class="fl">Year</label><input type="text" value="${esc(c.year)}" oninput="updateCert('${c.id}','year',this.value)"></div>
+        <div class="field"><label class="fl">Notes (optional)</label><input type="text" value="${esc(c.notes)}" oninput="updateCert('${c.id}','notes',this.value)"></div>
+      </div>
+    </div>`).join('');
+}
+
+
 function addAward(data) {
   if (!proj) return;
   if (!proj.ce) proj.ce = ceDefaultData();
@@ -8077,6 +8138,16 @@ function buildResumeTextFromCE(ce) {
     });
     lines.push('');
   }
+  // Certifications
+  if (ce.certs?.length) {
+    lines.push('CERTIFICATIONS');
+    ce.certs.forEach(c => {
+      const parts = [c.title, c.org, c.year].filter(Boolean);
+      if (parts.length) lines.push(parts.join(' · '));
+      if (c.notes) lines.push(c.notes);
+    });
+    lines.push('');
+  }
   // Awards
   if (ce.awards?.length) {
     lines.push('AWARDS');
@@ -8095,25 +8166,31 @@ async function parseToCE(text, suppressTabSwitch) {
   if (!proj.ce) proj.ce = ceDefaultData();
 
   try {
-    // ── Pass 1: Contact, summary, education, awards ──────────
-    // We send the start of the resume (for contact/summary) plus the end (where education and
-    // awards usually live). If the resume is short, we just send the whole thing.
-    msg.textContent = 'Extracting contact, education, and awards...';
+    // ── Pass 1: Contact, summary, education, awards, certifications ──────────
+    // We send the start of the resume (for contact/summary) plus the end (where education,
+    // awards, and certifications usually live). If the resume is short, we just send the whole thing.
+    msg.textContent = 'Extracting contact, education, awards, certifications...';
     const head = text.slice(0, 2500);
     const tail = text.length > 5000 ? '\n\n[...]\n\n' + text.slice(-3500) : (text.length > 2500 ? text.slice(2500) : '');
     const pass1Source = head + tail;
-    const raw1 = await claudeFetch(`From this resume extract ONLY the contact info, summary, education, and awards. Return ONLY valid JSON:
-{"contact":{"fname":"","lname":"","title":"","email":"","phone":"","linkedin":"","portfolio":"","city":"","state":""},"summary":"full summary paragraph","edu":[{"degree":"","field":"","school":"","year":"","notes":""}],"awards":[{"title":"","org":"","year":"","notes":""}]}
+    const raw1 = await claudeFetch(`From this resume extract ONLY the contact info, summary, education, awards, and certifications. Return ONLY valid JSON:
+{"contact":{"fname":"","lname":"","title":"","email":"","phone":"","linkedin":"","portfolio":"","city":"","state":""},"summary":"full summary paragraph","edu":[{"degree":"","field":"","school":"","year":"","notes":""}],"awards":[{"title":"","org":"","year":"","notes":""}],"certs":[{"title":"","org":"","year":"","notes":""}]}
 
 ABSOLUTE RULE — VERBATIM TEXT:
 Every string you place into a field must be a CHARACTER-FOR-CHARACTER COPY of the matching text in the source resume. Do NOT abbreviate, expand, paraphrase, normalize, "clean up", capitalize differently, or fix typos. If the source says "Bachelor of Fine Arts", you write "Bachelor of Fine Arts". If the source says "BFA", you write "BFA". Never the other way. This rule applies to EVERY field: degree, field of study, school, award title, organization, summary text, contact name, job title, everything.
 
 EXTRACTION RULES:
-- "edu": every degree, certification, or training the candidate lists. "degree" = the credential name only, copied verbatim. "field" = the field of study only, copied verbatim. Splitting examples (the SUBSTRINGS must remain verbatim):
+- "edu": ONLY degrees and academic programs (Bachelor's, Master's, MBA, PhD, B.A., M.A., etc.). "degree" = the credential name only, copied verbatim. "field" = the field of study only, copied verbatim. Splitting examples (the SUBSTRINGS must remain verbatim):
   • Source "Bachelor of Fine Arts, Communication Design" → degree="Bachelor of Fine Arts", field="Communication Design"
   • Source "Bachelor of Fine Arts in Communication Design" → degree="Bachelor of Fine Arts", field="Communication Design"
   • Source "BFA, Communication Design" → degree="BFA", field="Communication Design"
   • Source "MBA" alone → degree="MBA", field=""
+- "certs": professional certifications, licenses, security clearances, and credentials that are NOT academic degrees. Copy verbatim. Examples that go in "certs", NOT "edu":
+  • "Federal Fund Certifier · USDOT · 2024" → title="Federal Fund Certifier", org="USDOT", year="2024"
+  • "Security Clearance: Public Trust (Active): USDOT" → title="Public Trust", org="USDOT", notes="Active"
+  • "Certified Scrum Master (CSM)" → title="Certified Scrum Master (CSM)"
+  • "PMP" → title="PMP"
+  Do NOT put certifications in the "edu" array. Do NOT put degrees in the "certs" array.
 - "awards": every award, honor, recognition, scholarship, or notable named achievement. Copy verbatim. If no awards section exists, return an empty array.
 - "summary": copy the entire summary paragraph verbatim. Do not condense, rewrite, or paraphrase.
 - Return all entries you find. Do not skip any.
@@ -8135,6 +8212,12 @@ ${pass1Source}`, 2500);
         proj.ce.awards = p1.awards.map(a => ({
           id:'a'+Date.now()+Math.random(),
           title:a.title||'', org:a.org||'', year:a.year||'', notes:a.notes||''
+        }));
+      }
+      if (p1.certs?.length) {
+        proj.ce.certs = p1.certs.map(c => ({
+          id:'cr'+Date.now()+Math.random(),
+          title:c.title||'', org:c.org||'', year:c.year||'', notes:c.notes||''
         }));
       }
     } catch(e) { console.warn('Pass 1 parse error:', e); }
@@ -8236,19 +8319,40 @@ RESUME:\n${text}`;
 
     // ── Pass 3: Skills ────────────────────────────────────
     msg.textContent = 'Extracting skills...';
-    const raw3 = await claudeFetch(`From this resume extract ONLY skills that are EXPLICITLY stated in the text. Do NOT invent, infer, or add skills not present. Return ONLY valid JSON array using whatever grouping labels exist in the resume (e.g. "Core Competencies", "Technical Skills", "Tools"). If no skills section exists, return [].
-[{"label":"Section Name From Resume","skills":["exactly as written in resume"]}]
+    // Send head + tail (same approach as Pass 1) so skills sections at the bottom of long resumes
+    // aren't truncated. Andrea's "Skills & Technology" section appears on page 2 past 3000 chars.
+    const skillsHead = text.slice(0, 2500);
+    const skillsTail = text.length > 5000 ? '\n\n[...]\n\n' + text.slice(-3500) : (text.length > 2500 ? text.slice(2500) : '');
+    const skillsSource = skillsHead + skillsTail;
+    const raw3 = await claudeFetch(`From this resume extract skills that are EXPLICITLY stated. Do NOT invent, infer, or add skills not present. Return ONLY valid JSON array. If no skills section exists, return [].
+[{"label":"Group label or empty string","skills":["exactly as written"]}]
+
+GROUPING RULES:
+- If the resume has SUB-LABELED groups under a compound section name (e.g. section "Skills & Technology" with sub-labels "Software:" and "Core Competencies:"), output ONE GROUP PER SUB-LABEL using the sub-label as "label". Example:
+    Source:
+      Skills & Technology
+      Software: Microsoft Office, Salesforce CRM, Claude
+      Core Competencies: Operations Management, Executive Support, Vendor Management
+    Output:
+      [{"label":"Software","skills":["Microsoft Office","Salesforce CRM","Claude"]},
+       {"label":"Core Competencies","skills":["Operations Management","Executive Support","Vendor Management"]}]
+- If the section has NO sub-labels and is just a flat list (e.g. section "SKILLS" followed by a single comma-separated list), output ONE GROUP with label "" (empty string).
+- If there are multiple labeled groups (e.g. "Leadership:", "Design:", "Product:"), output ONE GROUP PER LABEL.
+- Strip the trailing colon from labels ("Software:" → "Software"). Strip the section name itself if it appears as a label ("SKILLS:" → empty). Otherwise copy labels verbatim.
+- Skills values are copied verbatim from the source — no reformatting.
+
 RESUME:
-${text.slice(0,3000)}`, 1500);
+${skillsSource}`, 2000);
 
     try {
       const sgs = JSON.parse(
         raw3.replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/\s*```$/i,'').trim()
       );
       if (Array.isArray(sgs) && sgs.length) {
-        // If the only label is the section name itself ("SKILLS", "COMPETENCIES", etc.), drop the label.
-        // Otherwise the renderer prints "SKILLS: [skills]" under a "SKILLS" heading — visible duplication.
-        const sectionNamePattern = /^(skills?|competenc(?:y|ies)|technical skills?|core skills?|expertise|capabilities)$/i;
+        // If a label is the parent section name itself ("SKILLS", "COMPETENCIES"), drop it so the
+        // renderer doesn't print "SKILLS:" under the SKILLS heading. Real sub-labels like "Software"
+        // and "Core Competencies" are preserved.
+        const sectionNamePattern = /^(skills?|competenc(?:y|ies)|technical skills?|core skills?|expertise|capabilities|skills?\s*(?:&|and)\s*technolog(?:y|ies)?)$/i;
         const sanitized = sgs.map(sg => ({
           ...sg,
           label: sectionNamePattern.test((sg.label || '').trim()) ? '' : (sg.label || '')
@@ -8258,6 +8362,8 @@ ${text.slice(0,3000)}`, 1500);
           label:sg.label||'',
           skills:(sg.skills||[]).map(sk=>({id:'sk'+Date.now()+Math.random(),text:String(sk)}))
         }));
+        console.log('[parseToCE] Extracted', proj.ce.skillGroups.length, 'skill group(s):',
+          proj.ce.skillGroups.map(g => `${g.label||'(unlabeled)'} (${g.skills.length})`).join(', '));
       }
     } catch(e) { console.warn('Pass 3 parse error:', e); }
 
@@ -8268,8 +8374,9 @@ ${text.slice(0,3000)}`, 1500);
     // Expand experience and contact sections
     document.getElementById('ce-contact')?.classList.add('open');
     document.getElementById('ce-experience')?.classList.add('open');
-    // Expand education and awards sections if we found any
+    // Expand education, certifications, and awards sections if we found any
     if (proj.ce.edu?.length) document.getElementById('ce-education')?.classList.add('open');
+    if (proj.ce.certs?.length) document.getElementById('ce-certs')?.classList.add('open');
     if (proj.ce.awards?.length) document.getElementById('ce-awards')?.classList.add('open');
     autoSave();
     renderLivePreview();
