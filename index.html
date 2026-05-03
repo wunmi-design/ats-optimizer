@@ -603,7 +603,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.34</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.35</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -3733,13 +3733,15 @@ async function processFileFromProjects(file) {
     if (typeof selectTemplate === 'function') selectTemplate('standard');
     ProjectStore.save(proj);
 
-    // Process the file with the new project in context
-    await processFile(file);
+    // Process the file with the new project in context — suppress the tab switch so the
+    // Projects view stays in front for the user.
+    await processFile(file, true);
     
-    // After processing, initialize the content editor and display it
+    // After processing, initialize the content editor and refresh the Projects grid.
+    // Stay on Projects so the user sees the new tile and can decide what to do next.
     updateProjDisplay();
     initCEForProject();
-    switchTab('content');
+    switchTab('projects');
     renderProjGrid();
     
   } catch(err) {
@@ -6872,6 +6874,29 @@ function fmtLinkify(raw) {
   // Two-line:    line1 = "Company    MM/YY – MM/YY"
   //              line2 = "Role       City, ST"
   function parseJobHeader(line1, line2) {
+    // Canonical form first: "Title · Company · Dates · Location" (any order works as long as
+    // the date chunk is detectable by regex). This matches what buildResumeTextFromCE produces.
+    // We split on " · ", find the chunk containing a date pattern, and assign:
+    //   chunk before date → title (and possibly company)
+    //   the date chunk    → dates
+    //   chunks after date → location
+    const dotChunks = line1.split(/\s+·\s+/).map(s => s.trim()).filter(Boolean);
+    if (dotChunks.length >= 3) {
+      const datePattern = /^(?:\d{1,2}\/\d{2,4}|\d{4})\s*[-–—]\s*(?:\d{1,2}\/\d{2,4}|\d{4}|Present|Current|Now)$/i;
+      const dateIdx = dotChunks.findIndex(c => datePattern.test(c));
+      if (dateIdx > 0) {
+        // Everything before the date — last one is company, rest joined is title.
+        const beforeDate = dotChunks.slice(0, dateIdx);
+        const role = beforeDate.length >= 2
+          ? beforeDate.slice(0, -1).join(' · ').trim()
+          : beforeDate[0].trim();
+        const company = beforeDate.length >= 2 ? beforeDate[beforeDate.length - 1].trim() : '';
+        const dates = dotChunks[dateIdx];
+        const location = dotChunks.slice(dateIdx + 1).join(', ').trim();
+        return { company, dates, role, location, consumed: 1 };
+      }
+    }
+
     const lr1 = splitLeftRight(line1);
     if (!lr1) return null;
 
@@ -7977,10 +8002,12 @@ function buildResumeTextFromCE(ce) {
     lines.push('EXPERIENCE');
     ce.roles.forEach(r => {
       const dates = [r.startDate, r.endDate].filter(Boolean).join(' – ');
-      // Format: "Company · Role    dates · location" for professional template parsing
-      const jobLine1 = [r.title, r.company].filter(Boolean).join(' · ');
-      const jobLine2 = dates + (r.location ? ' · ' + r.location : '');
-      if (jobLine1) lines.push(jobLine1 + (jobLine2 ? '    ' + jobLine2 : ''));
+      // Canonical "Title · Company · Dates · Location" form. The renderer parses on " · "
+      // separators and identifies the date chunk by regex. Avoids the prior wide-gap form
+      // (4 spaces between Company and Dates), which got collapsed to a single space when
+      // the resume text passed through contentEditable.innerText, breaking the parser.
+      const parts = [r.title, r.company, dates, r.location].filter(Boolean);
+      if (parts.length) lines.push(parts.join(' · '));
       if (r.context?.trim()) lines.push(r.context.trim());
       r.bullets?.forEach(b => { if (b.text.trim()) lines.push('• ' + b.text.trim()); });
       lines.push('');
@@ -8203,15 +8230,7 @@ ${text.slice(0,3000)}`, 1500);
 }
 
 // Override processFile to use new CE parser
-async function processFile(file) {
-  // Auto-create a project from the filename if none is open
-  if (!proj) {
-    const autoName = file.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ').replace(/resume/i, '').trim() || 'My Resume';
-    proj = ProjectStore.newProject(autoName || 'Imported Resume');
-    ProjectStore.save(proj);
-    updateProjDisplay();
-    renderProjGrid();
-  }
+async function processFile(file, suppressTabSwitch) {
   const ext = file.name.split('.').pop().toLowerCase();
   const loading = document.getElementById('upload-loading');
   const msg = document.getElementById('upload-msg');
@@ -8232,7 +8251,7 @@ async function processFile(file) {
     }
     if (!text.trim()) throw new Error('No text extracted');
     proj.parsedText = text;
-    await parseToCE(text);
+    await parseToCE(text, suppressTabSwitch);
   } catch(e) { loading.classList.remove('show'); toast('Error: ' + e.message); }
 }
 
