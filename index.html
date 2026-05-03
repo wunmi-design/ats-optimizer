@@ -603,7 +603,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.38</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.39</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -3061,7 +3061,12 @@ function renderProjGrid() {
   sorted.forEach(p => {
     const sc = p.scores?.[p.scores.length-1]?.overall || 0;
     const scCls = sc>=80?'high':sc>=60?'mid':sc>0?'low':'';
-    const date = p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+    const date = p.updatedAt ? (() => {
+      const d = new Date(p.updatedAt);
+      const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      return `${dateStr} · ${timeStr}`;
+    })() : '';
     const logoUrl = getLogoUrl(p.jdCompany);
     const logoHtml = logoUrl
       ? `<img class="proj-logo" src="${logoUrl}" alt=""
