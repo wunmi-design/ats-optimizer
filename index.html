@@ -603,7 +603,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.30</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.31</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -4145,9 +4145,18 @@ function copyQuestionsPromptAndOpen() {
 }
 
 async function applyPastedAnswers() {
-  const text = (document.getElementById('ai-paste-answers')?.value || '').trim();
+  let text = (document.getElementById('ai-paste-answers')?.value || '').trim();
   if (!text) { toast('Paste your AI answers first'); return; }
   if (!proj?.questions?.length) { toast('No questions — analyze a job description first'); return; }
+
+  // Scrub trailing meta-commentary that AI agents tend to append:
+  // "Let me know if...", "Want me to...", "I can also...", "Happy to...", etc.
+  // Also strips trailing "---" separators and signoffs.
+  text = text
+    .replace(/\n\s*---+\s*\n[\s\S]*$/g, '')                                                 // anything after a "---" rule
+    .replace(/\n\s*(?:Let me know|Want me to|I can (?:also|further|happily)|Happy to|Would you like|Feel free to|If you'?d like)[\s\S]*$/gi, '')  // common closing offers
+    .replace(/\n\s*\*\*?Note:?\*\*?[\s\S]*$/gi, '')                                         // "**Note:** ..." trailers
+    .trim();
 
   const btn = document.getElementById('apply-answers-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Applying...'; }
@@ -4453,7 +4462,12 @@ ${jdText ? `\nJOB DESCRIPTION EXCERPT:\n${jdText.slice(0, 1200)}` : ''}
 QUESTIONS TO ANSWER:
 ${questionLines}
 
-Please answer each question in order, numbered to match. Keep each answer to 2–4 sentences. Be specific — use real job titles, company names, metrics, and situations from my background above.`;
+OUTPUT INSTRUCTIONS — read carefully:
+1. Answer each question in order, numbered to match. 2–4 sentences per answer. Specific — real job titles, company names, metrics, and situations from my background above.
+2. Write each answer in first person ("I led...", "I drove..."), not second person.
+3. If you need follow-up information from me to sharpen an answer, ask, then incorporate my reply. CRITICAL: when you produce your FINAL response, it MUST contain the complete numbered list of ALL answers in one block — every question answered, every refinement applied. Do not deliver partial answers across multiple turns. The user will copy your final response in one go and paste it into a tool, so a partial answer breaks the workflow.
+4. Do NOT add closing remarks, offers to refine ("let me know if you want..."), follow-up suggestions, or any commentary after the last numbered answer. End the response immediately after the final answer.
+5. No preamble before answer 1. No headers. No section dividers. Just the numbered answers.`;
 
   navigator.clipboard.writeText(prompt).then(() => {
     toast('Prompt copied — paste it into Claude, then copy the full response back here');
