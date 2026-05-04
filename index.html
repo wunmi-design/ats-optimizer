@@ -603,7 +603,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.47</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.48</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -6297,13 +6297,15 @@ function renderTemplateGrid() {
 const TEMPLATE_PRESETS = {
   standard: {
     nameFont: 'Playfair Display', nameSize: 28,
-    bodyFont: 'Lato', bodySize: 11,
+    bodyFont: 'Lato', bodySize: 10,
     headingFont: 'Lato', headingSize: 18,
-    expFont: 'Lato', expSize: 15,
+    expFont: 'Lato', expSize: 12,
     roleFont: 'Lato', roleSize: 17,
     skillsSize: 18,
   },
   professional: {
+    bodySize: 10,
+    expSize: 12,
     headingSize: 18,
     skillsSize: 18,
   },
@@ -6917,7 +6919,7 @@ function updateLivePreview() {
   page.style.fontFamily = _fmt.bodyFont + ',Arial,sans-serif';
   page.style.fontSize = _fmt.size;
   page.style.padding = _fmt.margin;
-  page.style.lineHeight = _fmt.template === 'compact' ? '1.3' : '1.45';
+  page.style.lineHeight = _fmt.template === 'compact' ? '1.3' : '1.35';
   page.style.background = _fmt.bgColor || '#ffffff';
   page.style.color = _fmt.textColor || '#111111';
   page.innerHTML = html;
@@ -7284,7 +7286,7 @@ function fmtGetHtml(fp) {
   const tc = _fmt.textColor || '#111111';
   const bodyFont = _fmt.bodyFont || _fmt.font || 'Arial';
   const bodySize = (_fmt.bodySize || 11) + 'px';
-  const lh = _fmt.template === 'compact' ? '1.3' : '1.45';
+  const lh = _fmt.template === 'compact' ? '1.3' : '1.35';
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
     @page { margin:${_fmt.margin}; size:letter; }
     *, *::before, *::after { box-sizing:border-box; }
@@ -8200,7 +8202,7 @@ function renderLivePreview() {
     page.style.fontFamily = _fmt.font + ',Arial,sans-serif';
     page.style.fontSize = _fmt.size;
     page.style.padding = _fmt.margin;
-    page.style.lineHeight = _fmt.template === 'compact' ? '1.3' : '1.45';
+    page.style.lineHeight = _fmt.template === 'compact' ? '1.3' : '1.35';
     page.innerHTML = html || '<div style="padding:2rem;text-align:center;color:#aaa;font-size:13px;">Start filling in your details to see the preview.</div>';
   }
   // Update version badge
