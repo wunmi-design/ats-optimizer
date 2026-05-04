@@ -603,7 +603,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.40</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.41</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -7109,6 +7109,21 @@ function fmtLinkify(raw) {
 
   // For professional + standard: process lines in pairs (company+date / role+location)
   let body;
+  // Helper: wrapped skill grid with • separators. Used for SKILLS-type sections in both layouts.
+  // A "skills line" looks like "Leadership: A, B, C" or just "A, B, C" (when label was stripped).
+  const isSkillsSection = /SKILLS|COMPETENCIES/i.test(sec.heading || '');
+  const renderSkillLine = (label, valuesText) => {
+    const items = String(valuesText || '').split(',').map(s => s.trim()).filter(Boolean);
+    if (!items.length) return '';
+    const labelHtml = label ? `<div style="font-weight:700;margin-top:6px;margin-bottom:4px;color:#111;">${e(label)}</div>` : '';
+    // Inline wrapped layout: each chip is "Name  •" with the bullet hidden on the last item via CSS sibling selectors.
+    // We use a span-per-item with spacing; the last bullet is suppressed by skipping it on the final item.
+    const chips = items.map((item, idx) => {
+      const sep = idx < items.length - 1 ? '<span style="margin:0 10px;color:#888;">•</span>' : '';
+      return `<span style="white-space:nowrap;">${e(item)}</span>${sep}`;
+    }).join('');
+    return `${labelHtml}<div style="line-height:1.9;margin-bottom:4px;">${chips}</div>`;
+  };
   if (layout === 'professional' || layout === 'standard') {
     const lines = sec.lines;
     let html = '';
@@ -7145,7 +7160,7 @@ function fmtLinkify(raw) {
               : '';
             const subLine = (jh.company || jh.location)
               ? `<div style="font-size:${expPx};color:#444;margin-bottom:8px;">
-                  ${jh.company ? `<span style="font-weight:600;">${ESC(jh.company)}</span>` : ''}${jh.location ? `${jh.company ? ' · ' : ''}<span style="font-weight:400;">${ESC(jh.location)}</span>` : ''}
+                  ${jh.company ? `<span style="font-weight:600;font-style:italic;">${ESC(jh.company)}</span>` : ''}${jh.location ? `${jh.company ? ' · ' : ''}<span style="font-weight:400;">${ESC(jh.location)}</span>` : ''}
                  </div>`
               : '';
             html += `<div style="margin-top:18px;margin-bottom:6px;">${topLine}${subLine}</div>`;
@@ -7153,7 +7168,7 @@ function fmtLinkify(raw) {
             // Original layout (Professional + fallback): company on top, role+date underneath
             const companyLine = (jh.company || jh.location)
               ? `<div style="margin-bottom:7px;">
-                  ${jh.company ? `<span style="font-size:${expPx};font-weight:700;font-family:${expFont},Arial,sans-serif;">${ESC(jh.company)}</span>` : ''}${jh.location ? `<span style="font-size:${expPx};font-weight:400;">${jh.company ? ', ' : ''}${ESC(jh.location)}</span>` : ''}
+                  ${jh.company ? `<span style="font-size:${expPx};font-weight:700;font-style:italic;font-family:${expFont},Arial,sans-serif;">${ESC(jh.company)}</span>` : ''}${jh.location ? `<span style="font-size:${expPx};font-weight:400;">${jh.company ? ', ' : ''}${ESC(jh.location)}</span>` : ''}
                  </div>`
               : '';
             const titleLine = jh.role
@@ -7173,13 +7188,20 @@ function fmtLinkify(raw) {
         }
       }
       // Bold inline labels like "Leadership: ..."
-      const labelMatch = t.match(/^([A-Z][a-zA-Z\s]+):\s(.+)$/);
-      if (labelMatch && labelMatch[1].length < 20) {
-        html += `<div style="margin-bottom:3px;"><strong>${e(labelMatch[1])}:</strong> ${fmtLinkify(labelMatch[2])}</div>`;
+      const labelMatch = t.match(/^([A-Z][a-zA-Z\s&]+):\s(.+)$/);
+      if (labelMatch && labelMatch[1].length < 30) {
+        if (isSkillsSection) {
+          html += renderSkillLine(labelMatch[1], labelMatch[2]);
+        } else {
+          html += `<div style="margin-bottom:3px;"><strong>${e(labelMatch[1])}:</strong> ${fmtLinkify(labelMatch[2])}</div>`;
+        }
         i++; continue;
       }
-      // Plain text
-      // Plain text — could be a role context/summary sentence
+      // Plain text — could be a role context/summary sentence, OR an unlabeled skill line in a SKILLS section.
+      if (isSkillsSection && t.includes(',')) {
+        html += renderSkillLine('', t);
+        i++; continue;
+      }
       const isContextLine = t.length > 40 && t.endsWith('.');
       html += `<div style="color:#333;margin-bottom:${isContextLine?'7':'1'}px;">${fmtLinkify(t)}</div>`;
       i++;
@@ -7193,9 +7215,12 @@ function fmtLinkify(raw) {
         return`<div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:2px;">${fmtLinkify(t)}</div>`;
       if(/\d{2}\/\d{2}/.test(t)&&t.length<120)
         return`<div style="font-weight:600;margin-top:6px;margin-bottom:1px;">${fmtLinkify(t)}</div>`;
-      const labelMatch=t.match(/^([A-Z][a-zA-Z\s]+):\s(.+)$/);
-      if(labelMatch&&labelMatch[1].length<20)
+      const labelMatch=t.match(/^([A-Z][a-zA-Z\s&]+):\s(.+)$/);
+      if(labelMatch&&labelMatch[1].length<30) {
+        if (isSkillsSection) return renderSkillLine(labelMatch[1], labelMatch[2]);
         return`<div style="margin-bottom:3px;"><strong>${e(labelMatch[1])}:</strong> ${fmtLinkify(labelMatch[2])}</div>`;
+      }
+      if (isSkillsSection && t.includes(',')) return renderSkillLine('', t);
       return`<div style="color:#333;margin-bottom:1px;">${fmtLinkify(t)}</div>`;
     }).join('');
   }
