@@ -603,7 +603,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.45</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.46</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -6172,7 +6172,7 @@ function savePdf(){
 // ─────────────────────────────────────────────────────────
 //  FORMAT SYSTEM
 // ─────────────────────────────────────────────────────────
-const _fmt = { template:'standard', font:'Arial', nameFont:'Arial', bodyFont:'Arial', headingFont:'Arial', expFont:'Arial', roleFont:'Arial', nameSize:28, bodySize:11, headingSize:11, expSize:12, roleSize:11, accent:'#111111', size:'10.5pt', margin:'0.65in', bgColor:'#ffffff', textColor:'#111111' };
+const _fmt = { template:'standard', font:'Arial', nameFont:'Arial', bodyFont:'Arial', headingFont:'Arial', expFont:'Arial', roleFont:'Arial', nameSize:28, bodySize:11, headingSize:18, expSize:12, roleSize:11, skillsSize:18, accent:'#111111', size:'10.5pt', margin:'0.65in', bgColor:'#ffffff', textColor:'#111111' };
 
 // Template definitions — each has a render function
 const TEMPLATES = [
@@ -6298,11 +6298,15 @@ const TEMPLATE_PRESETS = {
   standard: {
     nameFont: 'Playfair Display', nameSize: 28,
     bodyFont: 'Lato', bodySize: 11,
-    headingFont: 'Lato', headingSize: 13,
+    headingFont: 'Lato', headingSize: 18,
     expFont: 'Lato', expSize: 15,
     roleFont: 'Lato', roleSize: 17,
+    skillsSize: 18,
   },
-  // Professional has no preset — keeps whatever the user has set.
+  professional: {
+    headingSize: 18,
+    skillsSize: 18,
+  },
 };
 
 function selectTemplate(id) {
@@ -7115,11 +7119,13 @@ function fmtLinkify(raw) {
   const renderSkillLine = (label, valuesText) => {
     const items = String(valuesText || '').split(',').map(s => s.trim()).filter(Boolean);
     if (!items.length) return '';
-    const labelHtml = label ? `<div style="font-weight:700;margin-top:14px;margin-bottom:4px;color:#111;">${e(label)}</div>` : '';
-    // Each chip is "• Skill" with equal space on both sides of the bullet. Indent the whole list
-    // so the bullets visually belong to the parent label rather than left-aligning with it.
+    // Less space below the label so chips sit closer to their subsection title.
+    const labelHtml = label ? `<div style="font-weight:700;margin-top:14px;margin-bottom:1px;color:#111;">${e(label)}</div>` : '';
+    // Each chip is "• Skill". Equal spacing on both sides of the bullet:
+    // - margin-right between chips (after the previous skill, before next bullet) = 8px
+    // - margin-right after the bullet itself (between bullet and skill word) = 8px
     const chips = items.map(item => {
-      return `<span style="display:inline-block;white-space:nowrap;margin-right:18px;"><span style="color:#888;margin-right:8px;">•</span>${e(item)}</span>`;
+      return `<span style="display:inline-block;white-space:nowrap;margin-right:8px;"><span style="color:#888;margin-right:8px;">•</span>${e(item)}</span>`;
     }).join('');
     return `${labelHtml}<div style="line-height:1.9;margin-bottom:4px;padding-left:20px;word-wrap:break-word;overflow-wrap:break-word;">${chips}</div>`;
   };
