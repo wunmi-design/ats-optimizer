@@ -603,7 +603,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.56</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.57</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -5436,22 +5436,27 @@ function deduplicateResume(text) {
 // If JD context isn't available or the resume already has <=24 skills, returns input unchanged.
 async function capSkillsTo24(text) {
   try {
-    // Quick local count first — skip the API call if already at or under the cap.
-    // Skills appear as comma-separated lines under a SKILLS section. Count commas + 1 per skill line.
-    const skillsMatch = text.match(/^SKILLS\s*$([\s\S]*?)(?=\n[A-Z][A-Z\s]{2,}\s*$|\n*$)/m);
-    if (skillsMatch) {
-      const skillsBody = skillsMatch[1];
-      const skillLines = skillsBody.split('\n').filter(l => l.trim() && !l.match(/^[A-Z][A-Z\s]{2,}$/));
-      const totalSkills = skillLines.reduce((sum, line) => {
-        // Strip "Label:" prefix if present, then count comma-separated items
-        const items = line.replace(/^[^:]+:\s*/, '').split(',').filter(s => s.trim());
-        return sum + items.length;
-      }, 0);
-      console.log('[capSkillsTo24] Current skill count:', totalSkills);
-      if (totalSkills <= 24) return text;
-    } else {
-      return text; // no SKILLS section, nothing to cap
+    // Find the SKILLS section. Match from "SKILLS" header to the next ALL-CAPS section header
+    // or end-of-string. The previous regex used a zero-width lookahead that matched empty trailing
+    // newlines at position 0, returning a 0-length body and skipping the cap.
+    const lines = text.split('\n');
+    const startIdx = lines.findIndex(l => /^SKILLS\s*$/.test(l));
+    if (startIdx === -1) return text;
+    let endIdx = lines.length;
+    for (let i = startIdx + 1; i < lines.length; i++) {
+      // Next section header: ALL CAPS, 3+ chars, just letters/spaces
+      if (/^[A-Z][A-Z\s]{2,}$/.test(lines[i].trim()) && lines[i].trim() !== 'SKILLS') {
+        endIdx = i;
+        break;
+      }
     }
+    const skillLines = lines.slice(startIdx + 1, endIdx).filter(l => l.trim());
+    const totalSkills = skillLines.reduce((sum, line) => {
+      const items = line.replace(/^[^:]+:\s*/, '').split(',').filter(s => s.trim());
+      return sum + items.length;
+    }, 0);
+    console.log('[capSkillsTo24] Current skill count:', totalSkills);
+    if (totalSkills <= 24) return text;
 
     const jdText = (proj?.jdText || g('jd-text') || '').slice(0, 4000);
     const jdTitle = proj?.jdTitle || g('jd-title') || '';
@@ -8319,6 +8324,90 @@ function liveUpdate() {
   autoSave();
   clearTimeout(_liveTimer);
   _liveTimer = setTimeout(renderLivePreview, 80);
+  // Debounced skill cap: if the user has more than 24 skills total in CE AND a JD is present,
+  // fire an AI-powered prioritized trim on the structured CE data. Long debounce (3.5s) so we
+  // don't spam the API on every keystroke. Skipped when no JD — per spec, no JD means no trim.
+  clearTimeout(_skillCapTimer);
+  _skillCapTimer = setTimeout(maybeTrimSkillsInCE, 3500);
+}
+
+let _skillCapTimer = null;
+let _skillCapInFlight = false;
+async function maybeTrimSkillsInCE() {
+  if (_skillCapInFlight) return; // prevent overlapping calls
+  if (!proj?.ce?.skillGroups?.length) return;
+  const totalSkills = proj.ce.skillGroups.reduce((sum, sg) => sum + (sg.skills?.length || 0), 0);
+  if (totalSkills <= 24) return;
+  const jdText = (proj?.jdText || g('jd-text') || '').trim();
+  const jdTitle = (proj?.jdTitle || g('jd-title') || '').trim();
+  if (!jdText && !jdTitle) {
+    console.log('[CE skill cap] Over 24 skills but no JD — skipping trim');
+    return;
+  }
+  console.log('[CE skill cap] Trimming', totalSkills, 'skills to 24 against JD');
+  _skillCapInFlight = true;
+  try {
+    // Build the current skill structure as a compact JSON payload for the AI.
+    const groups = proj.ce.skillGroups.map(sg => ({
+      label: sg.label || '',
+      skills: (sg.skills || []).map(s => s.text)
+    }));
+    const prompt = `Return ONLY valid JSON. From the structured skill groups below, keep AT MOST 24 total skills, prioritizing those most relevant to the target job. Drop the least relevant skills entirely.
+
+JOB TITLE: ${jdTitle || '(unspecified)'}
+JOB DESCRIPTION:
+${jdText.slice(0, 4000)}
+
+RULES:
+- Total cap is 24 skills across ALL groups combined.
+- Drop the LEAST JD-relevant skills entirely — never rename, abbreviate, or invent.
+- Preserve the original group labels exactly. Empty groups (no skills left) should be omitted from the output.
+- Within each group, list the most JD-relevant skills first.
+- Only return existing skills; do not add new ones.
+
+CURRENT SKILL GROUPS:
+${JSON.stringify(groups)}
+
+Return ONLY this JSON shape: [{"label":"...","skills":["...","..."]},...]`;
+    const raw = await claudeFetch(prompt, 1500);
+    const cleaned = raw.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim();
+    const trimmed = JSON.parse(cleaned);
+    if (!Array.isArray(trimmed)) throw new Error('non-array response');
+    // Validate: every returned skill must exist in the original to prevent fabrication.
+    const allOriginalSkills = new Set();
+    proj.ce.skillGroups.forEach(sg => (sg.skills || []).forEach(s => allOriginalSkills.add(s.text.toLowerCase())));
+    let newTotal = 0;
+    const safeGroups = [];
+    trimmed.forEach(g => {
+      const origGroup = proj.ce.skillGroups.find(sg => (sg.label || '') === (g.label || ''));
+      if (!origGroup) return;
+      const verifiedSkills = (g.skills || [])
+        .filter(skText => allOriginalSkills.has(String(skText).toLowerCase()))
+        .map(skText => {
+          // Reuse the original skill object so its id is preserved
+          return origGroup.skills.find(s => s.text.toLowerCase() === String(skText).toLowerCase())
+            || { id:'sk'+Date.now()+Math.random(), text: String(skText) };
+        });
+      if (verifiedSkills.length) {
+        safeGroups.push({ id: origGroup.id, label: origGroup.label, skills: verifiedSkills });
+        newTotal += verifiedSkills.length;
+      }
+    });
+    if (newTotal === 0 || newTotal > 24) {
+      console.warn('[CE skill cap] AI response invalid (total =', newTotal, '), keeping original');
+      return;
+    }
+    proj.ce.skillGroups = safeGroups;
+    console.log('[CE skill cap] Trimmed to', newTotal, 'skills');
+    renderSkillGroups();
+    autoSave();
+    renderLivePreview();
+    toast('Skills trimmed to ' + newTotal + ' for relevance');
+  } catch (e) {
+    console.warn('[CE skill cap] Trim failed:', e);
+  } finally {
+    _skillCapInFlight = false;
+  }
 }
 
 function renderLivePreview() {
