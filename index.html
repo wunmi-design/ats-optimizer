@@ -603,7 +603,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.52</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.53</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -5431,6 +5431,63 @@ function deduplicateResume(text) {
 // bullets for high lexical overlap and rewrite the less-specific occurrence using only facts
 // already in that role's existing bullets/context. If no honest differentiation is possible from
 // the verified facts, the duplicate is removed rather than rewritten. Silent — no UI surface.
+// Caps total skill count at 24, prioritizing skills most relevant to the JD.
+// Runs after the dedup passes so it operates on a clean resume.
+// If JD context isn't available or the resume already has <=24 skills, returns input unchanged.
+async function capSkillsTo24(text) {
+  try {
+    // Quick local count first — skip the API call if already at or under the cap.
+    // Skills appear as comma-separated lines under a SKILLS section. Count commas + 1 per skill line.
+    const skillsMatch = text.match(/^SKILLS\s*$([\s\S]*?)(?=\n[A-Z][A-Z\s]{2,}\s*$|\n*$)/m);
+    if (skillsMatch) {
+      const skillsBody = skillsMatch[1];
+      const skillLines = skillsBody.split('\n').filter(l => l.trim() && !l.match(/^[A-Z][A-Z\s]{2,}$/));
+      const totalSkills = skillLines.reduce((sum, line) => {
+        // Strip "Label:" prefix if present, then count comma-separated items
+        const items = line.replace(/^[^:]+:\s*/, '').split(',').filter(s => s.trim());
+        return sum + items.length;
+      }, 0);
+      console.log('[capSkillsTo24] Current skill count:', totalSkills);
+      if (totalSkills <= 24) return text;
+    } else {
+      return text; // no SKILLS section, nothing to cap
+    }
+
+    const jdText = (proj?.jdText || g('jd-text') || '').slice(0, 4000);
+    const jdTitle = proj?.jdTitle || g('jd-title') || '';
+    if (!jdText && !jdTitle) {
+      console.warn('[capSkillsTo24] No JD context; skipping cap to avoid arbitrary trimming');
+      return text;
+    }
+
+    const prompt = `Your only job: trim the SKILLS section to AT MOST 24 total skills, keeping the ones most relevant to the target job. Drop the rest entirely.
+
+JOB TITLE: ${jdTitle || '(unspecified)'}
+JOB DESCRIPTION:
+${jdText}
+
+RULES:
+- Count every skill across all skill subgroups (e.g. Leadership, Design, Product, Engineering). Total cap is 24.
+- Prioritize skills that match keywords, requirements, or named tools/methods in the job description above.
+- Drop the LEAST relevant skills entirely. Do not move them to a different group, do not rename them, do not abbreviate them.
+- Keep the skill subgroup labels (Leadership, Design, etc.) intact. A subgroup may end up with fewer skills, or even no skills (in which case remove the subgroup).
+- Within each subgroup, keep the most JD-relevant skills first.
+- Do NOT change anything outside the SKILLS section: same sections, same role order, same dates, same companies, same titles, same summary, same bullet character.
+- Do NOT add new skills the candidate doesn't already have. Only remove and reorder existing skills.
+- If after trimming you have fewer than 24 (because too many subgroups got emptied), that's fine. Never go above 24.
+
+Return ONLY the complete plain-text resume, no commentary, no code fences.
+
+RESUME:
+${text}`;
+    const result = await claudeFetch(prompt, 4000);
+    return result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim();
+  } catch (e) {
+    console.warn('capSkillsTo24 failed, returning original:', e);
+    return text;
+  }
+}
+
 async function differentiateSameEmployerRoles(text) {
   try {
     const prompt = `Your only job: when two or more roles in this resume share the same company name (e.g. multiple Verizon roles, multiple Web.com roles), check their bullets for near-duplicate language. Rewrite or remove duplicates so each role's bullets reflect that role's specific scope and constraints.
@@ -5747,8 +5804,12 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     overlaySub.textContent = 'Removing repeated boilerplate across roles';
     const boilerplateCleaned = await dedupeCrossRoleBoilerplate(differentiated);
 
-    // Phase 5: Regex safety net — strip any placeholder tokens (X%, [number]%, ___%, etc.).
-    const cleaned = stripPlaceholders(boilerplateCleaned);
+    // Phase 5: Cap skills at 24, prioritizing JD-relevant ones.
+    overlaySub.textContent = 'Prioritizing skills for this role';
+    const skillsCapped = await capSkillsTo24(boilerplateCleaned);
+
+    // Phase 6: Regex safety net — strip any placeholder tokens (X%, [number]%, ___%, etc.).
+    const cleaned = stripPlaceholders(skillsCapped);
 
     // Push as a new draft so each Apply Selected click increments the version (v1 → v2 → v3...)
     proj.drafts.push(cleaned);
@@ -5930,7 +5991,10 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     overlaySub.textContent = 'Removing repeated boilerplate across roles';
     const boilerplateCleaned = await dedupeCrossRoleBoilerplate(differentiated);
 
-    const cleaned = stripPlaceholders(boilerplateCleaned);
+    overlaySub.textContent = 'Prioritizing skills for this role';
+    const skillsCapped = await capSkillsTo24(boilerplateCleaned);
+
+    const cleaned = stripPlaceholders(skillsCapped);
 
     // Push as a new draft so the version increments by exactly one
     proj.drafts.push(cleaned);
