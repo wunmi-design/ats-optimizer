@@ -603,7 +603,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.50</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.51</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -7694,7 +7694,7 @@ function toggleRoleExpand(id) {
 function addEdu(data) {
   if (!proj) return;
   if (!proj.ce) proj.ce = ceDefaultData();
-  proj.ce.edu.push(data || { id: 'e'+Date.now(), degree:'', school:'', year:'', notes:'' });
+  proj.ce.edu.push(data || { id: 'e'+Date.now(), degree:'', field:'', school:'', location:'', year:'', notes:'' });
   renderEdu();
   liveUpdate();
 }
@@ -7721,22 +7721,31 @@ function renderEdu() {
     list.innerHTML = '<div class="text-xs text-muted" style="padding:12px;">No education yet.</div>';
     return;
   }
-  if (!list) { console.warn('edu-list element not found'); return; }
-  list.innerHTML = proj.ce.edu.map(e => `
+  list.innerHTML = proj.ce.edu.map(e => {
+    // Header label: "Degree in Field" if both, else whichever exists.
+    const header = e.degree && e.field
+      ? `${esc(e.degree)} in ${esc(e.field)}`
+      : esc(e.degree || e.field || 'New Entry');
+    return `
     <div class="edu-card">
       <div class="flex-between mb-2">
-        <span style="font-size:12px;font-weight:600;">${esc(e.degree || 'New Entry')}</span>
+        <span style="font-size:12px;font-weight:600;">${header}</span>
         <button class="btn btn-ghost btn-sm btn-icon" onclick="removeEdu('${e.id}')" style="color:var(--red);">×</button>
       </div>
       <div class="role-grid">
-        <div class="field"><label class="fl">Degree / Certificate</label><input type="text" value="${esc(e.degree)}" oninput="updateEdu('${e.id}','degree',this.value)"></div>
-        <div class="field"><label class="fl">School</label><input type="text" value="${esc(e.school)}" oninput="updateEdu('${e.id}','school',this.value)"></div>
+        <div class="field"><label class="fl">Degree / Certificate</label><input type="text" value="${esc(e.degree)}" oninput="updateEdu('${e.id}','degree',this.value)" placeholder="e.g. Bachelor of Fine Arts (BFA)"></div>
+        <div class="field"><label class="fl">Field of Study</label><input type="text" value="${esc(e.field)}" oninput="updateEdu('${e.id}','field',this.value)" placeholder="e.g. Communication Design"></div>
       </div>
       <div class="role-grid">
-        <div class="field"><label class="fl">Year</label><input type="text" value="${esc(e.year)}" oninput="updateEdu('${e.id}','year',this.value)"></div>
+        <div class="field"><label class="fl">School</label><input type="text" value="${esc(e.school)}" oninput="updateEdu('${e.id}','school',this.value)" placeholder="e.g. Syracuse University"></div>
+        <div class="field"><label class="fl">Location</label><input type="text" value="${esc(e.location || '')}" oninput="updateEdu('${e.id}','location',this.value)" placeholder="e.g. Syracuse, NY"></div>
+      </div>
+      <div class="role-grid">
+        <div class="field"><label class="fl">Year</label><input type="text" value="${esc(e.year)}" oninput="updateEdu('${e.id}','year',this.value)" placeholder="e.g. May 2026"></div>
         <div class="field"><label class="fl">Notes (honors, GPA, etc.)</label><input type="text" value="${esc(e.notes)}" oninput="updateEdu('${e.id}','notes',this.value)"></div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 // ── SKILL GROUPS ───────────────────────────────────────────
@@ -8343,8 +8352,15 @@ function buildResumeTextFromCE(ce) {
   if (ce.edu?.length) {
     lines.push('EDUCATION');
     ce.edu.forEach(e => {
-      const parts = [e.degree, e.school, e.year].filter(Boolean);
-      if (parts.length) lines.push(parts.join(' · '));
+      // Line 1: "Degree in Field · Year" (degree+field combine via "in" if both present)
+      const credential = e.degree && e.field
+        ? `${e.degree} in ${e.field}`
+        : (e.degree || e.field || '');
+      const line1Parts = [credential, e.year].filter(Boolean);
+      if (line1Parts.length) lines.push(line1Parts.join(' · '));
+      // Line 2: "School, Location"
+      const line2Parts = [e.school, e.location].filter(Boolean);
+      if (line2Parts.length) lines.push(line2Parts.join(', '));
       if (e.notes) lines.push(e.notes);
     });
     lines.push('');
