@@ -603,7 +603,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.63</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.64</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -6360,7 +6360,7 @@ function savePdf(){
 // ─────────────────────────────────────────────────────────
 //  FORMAT SYSTEM
 // ─────────────────────────────────────────────────────────
-const _fmt = { template:'standard', font:'Arial', nameFont:'Arial', bodyFont:'Arial', headingFont:'Arial', expFont:'Arial', roleFont:'Arial', nameSize:28, bodySize:11, headingSize:18, expSize:12, roleSize:11, skillsSize:18, accent:'#111111', size:'10.5pt', margin:'0.65in', bgColor:'#ffffff', textColor:'#111111' };
+const _fmt = { template:'standard', font:'Arial', nameFont:'Arial', bodyFont:'Arial', headingFont:'Arial', expFont:'Arial', roleFont:'Arial', nameSize:28, bodySize:11, headingSize:14, expSize:12, roleSize:11, skillsSize:18, accent:'#111111', size:'10.5pt', margin:'0.65in', bgColor:'#ffffff', textColor:'#111111' };
 
 // Template definitions — each has a render function
 const TEMPLATES = [
@@ -6486,7 +6486,7 @@ const TEMPLATE_PRESETS = {
   standard: {
     nameFont: 'Playfair Display', nameSize: 28,
     bodyFont: 'Lato', bodySize: 10,
-    headingFont: 'Lato', headingSize: 18,
+    headingFont: 'Lato', headingSize: 14,
     expFont: 'Lato', expSize: 12,
     roleFont: 'Lato', roleSize: 17,
     skillsSize: 18,
@@ -6494,7 +6494,7 @@ const TEMPLATE_PRESETS = {
   professional: {
     bodySize: 10,
     expSize: 12,
-    headingSize: 18,
+    headingSize: 14,
     skillsSize: 18,
   },
 };
@@ -7378,7 +7378,7 @@ function fmtLinkify(raw) {
                   ${jh.company ? `<span style="font-weight:600;font-style:italic;">${ESC(jh.company)}</span>` : ''}${jh.location ? `${jh.company ? ' · ' : ''}<span style="font-weight:400;">${ESC(jh.location)}</span>` : ''}
                  </div>`
               : '';
-            html += `<div style="margin-top:18px;margin-bottom:6px;">${topLine}${subLine}</div>`;
+            html += `<div style="margin-top:10px;margin-bottom:6px;">${topLine}${subLine}</div>`;
           } else {
             // Original layout (Professional + fallback): company on top, role+date underneath
             const companyLine = (jh.company || jh.location)
@@ -7392,7 +7392,7 @@ function fmtLinkify(raw) {
                   <div style="font-weight:400;color:#888;white-space:nowrap;flex-shrink:0;">${ESC(jh.dates)}</div>
                  </div>`
               : '';
-            html += `<div style="margin-top:16px;margin-bottom:4px;">${companyLine}${titleLine}</div>`;
+            html += `<div style="margin-top:10px;margin-bottom:4px;">${companyLine}${titleLine}</div>`;
           }
           // Skip consumed lines (1 or 2), plus skip any immediately following
           // empty lines that would otherwise render as spacers between header and bullets
