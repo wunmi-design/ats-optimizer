@@ -603,7 +603,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.51</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.52</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -2492,7 +2492,7 @@ NY Top Creative Winner · WIx and Vitamin T · 2014</div>
   <div class="modal-box">
     <h3>New Project</h3>
     <p>Name your project — usually the role and company you're applying to.</p>
-    <div class="field"><label class="fl">Project name</label><input type="text" id="new-proj-name" placeholder="e.g. Deloitte UX Specialist 2026" onkeydown="if(event.key===&#39;Enter&#39;)confirmNewProject()"></div>
+    <div class="field"><label class="fl">Project name</label><input type="text" id="new-proj-name" placeholder="Project name" onkeydown="if(event.key===&#39;Enter&#39;)confirmNewProject()"></div>
     <div class="two mt-3">
       <button class="btn btn-primary" onclick="confirmNewProject()">Create →</button>
       <button class="btn btn-secondary" onclick="document.getElementById(&#39;new-proj-modal&#39;).classList.remove(&#39;show&#39;)">Cancel</button>
@@ -7733,15 +7733,15 @@ function renderEdu() {
         <button class="btn btn-ghost btn-sm btn-icon" onclick="removeEdu('${e.id}')" style="color:var(--red);">×</button>
       </div>
       <div class="role-grid">
-        <div class="field"><label class="fl">Degree / Certificate</label><input type="text" value="${esc(e.degree)}" oninput="updateEdu('${e.id}','degree',this.value)" placeholder="e.g. Bachelor of Fine Arts (BFA)"></div>
-        <div class="field"><label class="fl">Field of Study</label><input type="text" value="${esc(e.field)}" oninput="updateEdu('${e.id}','field',this.value)" placeholder="e.g. Communication Design"></div>
+        <div class="field"><label class="fl">Degree / Certificate</label><input type="text" value="${esc(e.degree)}" oninput="updateEdu('${e.id}','degree',this.value)"></div>
+        <div class="field"><label class="fl">Field of Study</label><input type="text" value="${esc(e.field)}" oninput="updateEdu('${e.id}','field',this.value)"></div>
       </div>
       <div class="role-grid">
-        <div class="field"><label class="fl">School</label><input type="text" value="${esc(e.school)}" oninput="updateEdu('${e.id}','school',this.value)" placeholder="e.g. Syracuse University"></div>
-        <div class="field"><label class="fl">Location</label><input type="text" value="${esc(e.location || '')}" oninput="updateEdu('${e.id}','location',this.value)" placeholder="e.g. Syracuse, NY"></div>
+        <div class="field"><label class="fl">School</label><input type="text" value="${esc(e.school)}" oninput="updateEdu('${e.id}','school',this.value)"></div>
+        <div class="field"><label class="fl">Location</label><input type="text" value="${esc(e.location || '')}" oninput="updateEdu('${e.id}','location',this.value)"></div>
       </div>
       <div class="role-grid">
-        <div class="field"><label class="fl">Year</label><input type="text" value="${esc(e.year)}" oninput="updateEdu('${e.id}','year',this.value)" placeholder="e.g. May 2026"></div>
+        <div class="field"><label class="fl">Year</label><input type="text" value="${esc(e.year)}" oninput="updateEdu('${e.id}','year',this.value)"></div>
         <div class="field"><label class="fl">Notes (honors, GPA, etc.)</label><input type="text" value="${esc(e.notes)}" oninput="updateEdu('${e.id}','notes',this.value)"></div>
       </div>
     </div>`;
