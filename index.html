@@ -603,7 +603,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.65</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.66</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -6516,15 +6516,15 @@ function selectTemplate(id) {
     setVal('fmt-exp-font', preset.expFont); setVal('fmt-exp-size', preset.expSize);
     setVal('fmt-role-font', preset.roleFont); setVal('fmt-role-size', preset.roleSize);
   }
-  // Bug 58: Standard and Professional both default to 5-line stacked contact layout.
-  // email line 1, phone line 2, location line 3, portfolio line 4, linkedin line 5.
+  // Standard and Professional both default to a 2-line contact layout.
+  // Line 1: email | phone | location. Line 2: portfolio | linkedin.
   if ((id === 'standard' || id === 'professional') && proj?.ce) {
     proj.ce.contactOrder = [
       {key:'email',     line:1},
-      {key:'phone',     line:2},
-      {key:'location',  line:3},
-      {key:'portfolio', line:4},
-      {key:'linkedin',  line:5},
+      {key:'phone',     line:1},
+      {key:'location',  line:1},
+      {key:'portfolio', line:2},
+      {key:'linkedin',  line:2},
     ];
     if (typeof renderContactFields === 'function') renderContactFields();
   }
@@ -7212,7 +7212,7 @@ function fmtLinkify(raw) {
       }).join('');
       const titleHtml=title?`<div style="font-size:${rolePx};font-weight:400;color:#333;margin-bottom:.06in;font-family:${font},Arial,sans-serif;line-height:1.2;">${e(title)}</div>`:'';
       return`<div style="margin-bottom:.12in;">
-        <div style="font-size:${namePx};font-weight:700;letter-spacing:-.01em;font-family:${nameFont},Arial,sans-serif;color:#111;line-height:1.05;margin-top:.06in;margin-bottom:.06in;">${e(name)}</div>
+        <div style="font-size:${namePx};font-weight:700;letter-spacing:-.01em;font-family:${nameFont},Arial,sans-serif;color:#111;line-height:1.05;margin-top:.18in;margin-bottom:.06in;">${e(name)}</div>
         ${titleHtml}
         ${contactHtml}
       </div>`;
