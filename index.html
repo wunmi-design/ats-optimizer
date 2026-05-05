@@ -603,7 +603,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.62</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.63</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -7445,10 +7445,10 @@ function fmtLinkify(raw) {
   else if(layout==='minimal') headingHtml=`<div style="font-size:.8em;font-weight:600;color:${accent};margin-bottom:4px;letter-spacing:.03em;">${e(sec.heading)}</div>`;
   else if(layout==='ruled') headingHtml=`<div style="font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#333;border-bottom:2px solid ${accent};padding-bottom:2px;margin-bottom:5px;">${e(sec.heading)}</div>`;
   else if(layout==='boldline') headingHtml=`<div style="font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:${accent};margin-bottom:4px;padding-left:4px;border-left:3px solid ${accent};">${e(sec.heading)}</div>`;
-  else if(layout==='professional') headingHtml=`<div style="font-size:${headingPx};font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#888;font-family:${headingFont},Arial,sans-serif;margin-bottom:4px;margin-top:0;">${e(sec.heading)}</div>`;
-  else if(layout==='standard') headingHtml=`<div style="font-size:${headingPx};font-weight:700;text-transform:uppercase;letter-spacing:.02em;color:#111;font-family:${headingFont},Arial,sans-serif;margin-bottom:4px;margin-top:0;">${e(sec.heading)}</div>`;
+  else if(layout==='professional') headingHtml=`<div style="font-size:${headingPx};font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:#888;font-family:${headingFont},Arial,sans-serif;margin-bottom:2px;margin-top:0;">${e(sec.heading)}</div>`;
+  else if(layout==='standard') headingHtml=`<div style="font-size:${headingPx};font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#111;font-family:${headingFont},Arial,sans-serif;margin-bottom:2px;margin-top:0;">${e(sec.heading)}</div>`;
   else headingHtml=`<div style="font-size:.7em;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:${accent};border-bottom:1px solid ${accent}44;padding-bottom:2px;margin-bottom:5px;">${e(sec.heading)}</div>`;
-  return`<div style="margin-bottom:${layout==='standard'?'.16in':layout==='professional'?'.12in':'.12in'}">${headingHtml}<div style="font-size:${size};font-family:${font},Arial,sans-serif;line-height:${layout==='compact'?'1.25':'1.35'};">${body}</div></div>`;}
+  return`<div style="margin-bottom:${layout==='standard'?'.12in':layout==='professional'?'.10in':'.12in'}">${headingHtml}<div style="font-size:${size};font-family:${font},Arial,sans-serif;line-height:${layout==='compact'?'1.25':'1.35'};">${body}</div></div>`;}
   // Two-column layouts
   // sidebar layout removed — single-column only
   // Professional + Standard templates: SUMMARY → CORE COMPETENCIES → EXPERIENCE → ... → EDUCATION/SKILLS
