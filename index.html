@@ -603,12 +603,12 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.59</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.60</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
       </div>
-      <button class="btn btn-secondary btn-sm" onclick="if(!window._atsUser){handleAuthClick();return;}if(!proj){toast('No project open');return;}saveProject();toast('Saved to cloud')" title="Save">Save</button>
+      <button id="save-btn" class="btn btn-secondary btn-sm" onclick="if(!window._atsUser){handleAuthClick();return;}if(!proj){toast('No project open');return;}saveProject();toast('Saved to cloud')" title="Save">Save</button>
       <div style="position:relative;display:inline-block;" id="file-menu-wrap">
         <button class="btn btn-secondary btn-sm" onmouseenter="document.getElementById('file-dropdown').style.display='block'" onclick="document.getElementById('file-dropdown').style.display=document.getElementById('file-dropdown').style.display==='block'?'none':'block'">File ▾</button>
         <div id="file-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:999;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-lg);min-width:160px;overflow:hidden;" onmouseleave="this.style.display='none'">
@@ -3459,6 +3459,9 @@ function saveProject(skipTimestamp) {
   proj.appliedFixes = Array.from(appliedItems).map(item => item.textContent).filter(Boolean);
   console.log('saveProject: saving', proj.id, 'with', proj.drafts?.length || 0, 'drafts');
   ProjectStore.save(proj, skipTimestamp);
+  // Clear unsaved-changes indicator now that we've persisted.
+  _dirty = false;
+  updateSaveButton();
   // Don't toast autosave — only show user feedback on manual save/export
 }
 
@@ -3485,11 +3488,52 @@ function saveAsNewProject() {
   toast('Saved as "' + newName + '"');
 }
 
-function autoSave() { 
-  if(proj) {
-    console.log('autoSave: saving project with', proj.drafts?.length || 0, 'drafts');
-    saveProject(true);
+// Save semantics: only the manual Save button commits to ProjectStore. Optimize, Apply Selected,
+// CE edits, brain-dump typing, etc. all stage changes in memory only. Reload restores last-saved.
+// _dirty is set by autoSave() (now a no-op for persistence) and cleared by saveProject().
+let _dirty = false;
+
+function setDirty() {
+  if (_dirty) return;
+  _dirty = true;
+  updateSaveButton();
+  // beforeunload warning attached once; the handler reads _dirty fresh each time.
+  if (!setDirty._unloadAttached) {
+    setDirty._unloadAttached = true;
+    window.addEventListener('beforeunload', (e) => {
+      if (_dirty) {
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    });
   }
+}
+
+function updateSaveButton() {
+  // Show a dot on the Save button when there are unsaved changes.
+  const btns = document.querySelectorAll('[data-save-btn], #save-btn, .save-btn');
+  btns.forEach(btn => {
+    if (_dirty) {
+      btn.classList.add('has-unsaved');
+      if (!btn.querySelector('.unsaved-dot')) {
+        const dot = document.createElement('span');
+        dot.className = 'unsaved-dot';
+        dot.style.cssText = 'display:inline-block;width:6px;height:6px;border-radius:50%;background:#f59e0b;margin-left:6px;vertical-align:middle;';
+        btn.appendChild(dot);
+      }
+    } else {
+      btn.classList.remove('has-unsaved');
+      const dot = btn.querySelector('.unsaved-dot');
+      if (dot) dot.remove();
+    }
+  });
+}
+
+function autoSave() {
+  // No-op for persistence. Marks the project as having unsaved changes so the Save button
+  // shows the indicator and reload prompts the user. To actually persist, call saveProject().
+  if (proj) setDirty();
 }
 // Autosave disabled — only save on manual Save button click
 // setInterval(autoSave, 30000);
@@ -5485,7 +5529,7 @@ STEP 3 — WITHIN EACH GROUP, keep the skills the JD explicitly names or strongl
 OTHER RULES:
 - Total cap is 24 across all groups combined.
 - Drop skills entirely. Do not rename, abbreviate, merge, or move skills between groups.
-- Keep subgroup labels intact. A group may end up with fewer skills, or be removed entirely if it gets emptied.
+- KEEP EVERY ORIGINAL GROUP. If a group is less central to the role (e.g. Engineering on a design leadership role), reduce it to a small number of skills (1–3) but DO NOT remove the group entirely. The candidate's resume structure is theirs to keep.
 - Within each remaining group, list the most JD-relevant skills first.
 - Do NOT change anything outside the SKILLS section: same sections, same role order, same dates, same companies, same titles, same summary, same bullet character.
 - Do NOT add new skills the candidate doesn't already have. Only remove and reorder existing skills.
@@ -8382,7 +8426,7 @@ STEP 3 — WITHIN EACH GROUP, keep skills the JD explicitly names first, then st
 OTHER RULES:
 - Total cap is 24 skills across ALL groups combined.
 - Drop the LEAST role-fit skills entirely — never rename, abbreviate, merge, or invent.
-- Preserve the original group labels exactly. Empty groups (no skills left) should be omitted from the output.
+- KEEP EVERY ORIGINAL GROUP. Even groups less central to the role (e.g. Engineering on a design leadership role) should keep 1–3 skills. Do NOT omit a group just because it's a small fit. Empty groups are NOT acceptable.
 - Within each remaining group, list the most JD-relevant skills first.
 - Only return existing skills; do not add new ones.
 - Going under 24 is fine if the JD genuinely doesn't justify 24. Never go above 24.
@@ -8399,28 +8443,39 @@ Return ONLY this JSON shape: [{"label":"...","skills":["...","..."]},...]`;
     const allOriginalSkills = new Set();
     proj.ce.skillGroups.forEach(sg => (sg.skills || []).forEach(s => allOriginalSkills.add(s.text.toLowerCase())));
     let newTotal = 0;
-    const safeGroups = [];
-    trimmed.forEach(g => {
-      const origGroup = proj.ce.skillGroups.find(sg => (sg.label || '') === (g.label || ''));
-      if (!origGroup) return;
-      const verifiedSkills = (g.skills || [])
-        .filter(skText => allOriginalSkills.has(String(skText).toLowerCase()))
-        .map(skText => {
-          // Reuse the original skill object so its id is preserved
-          return origGroup.skills.find(s => s.text.toLowerCase() === String(skText).toLowerCase())
-            || { id:'sk'+Date.now()+Math.random(), text: String(skText) };
-        });
-      if (verifiedSkills.length) {
-        safeGroups.push({ id: origGroup.id, label: origGroup.label, skills: verifiedSkills });
-        newTotal += verifiedSkills.length;
+    // Build safeGroups in the ORIGINAL group order (don't let AI reorder groups). For each original
+    // group, find the AI's matching group (if any) and keep verified skills. If AI dropped the
+    // group entirely, we'll restore at least one skill below.
+    const safeGroups = proj.ce.skillGroups.map(origGroup => {
+      const aiGroup = trimmed.find(g => (g.label || '') === (origGroup.label || ''));
+      let verifiedSkills = [];
+      if (aiGroup) {
+        verifiedSkills = (aiGroup.skills || [])
+          .filter(skText => allOriginalSkills.has(String(skText).toLowerCase()))
+          .map(skText => origGroup.skills.find(s => s.text.toLowerCase() === String(skText).toLowerCase()))
+          .filter(Boolean);
       }
-    });
-    if (newTotal === 0 || newTotal > 24) {
-      console.warn('[CE skill cap] AI response invalid (total =', newTotal, '), keeping original');
+      // SAFETY: never drop a group entirely. If the AI returned 0 verified skills for this group
+      // (or no group at all), restore the first skill from the user's original list so the group
+      // structure stays intact. The user explicitly wants their group structure preserved.
+      if (!verifiedSkills.length && origGroup.skills?.length) {
+        verifiedSkills = [origGroup.skills[0]];
+      }
+      return { id: origGroup.id, label: origGroup.label, skills: verifiedSkills };
+    }).filter(g => g.skills.length); // only fully-empty original groups get dropped (rare)
+    safeGroups.forEach(g => { newTotal += g.skills.length; });
+    // If the safety net pushed us slightly over 24, trim from the largest groups.
+    while (newTotal > 24) {
+      const largest = safeGroups.reduce((a, b) => a.skills.length > b.skills.length ? a : b);
+      largest.skills.pop();
+      newTotal--;
+    }
+    if (newTotal === 0) {
+      console.warn('[CE skill cap] AI response invalid (total = 0), keeping original');
       return;
     }
     proj.ce.skillGroups = safeGroups;
-    console.log('[CE skill cap] Trimmed to', newTotal, 'skills');
+    console.log('[CE skill cap] Trimmed to', newTotal, 'skills across', safeGroups.length, 'groups');
     renderSkillGroups();
     autoSave();
     renderLivePreview();
