@@ -603,7 +603,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.48</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.49</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -2446,6 +2446,10 @@ NY Top Creative Winner · WIx and Vitamin T · 2014</div>
     <p class="subtitle">Copy the prompt, paste it into Claude or ChatGPT, then paste the answers back here.</p>
 
     <button class="btn btn-secondary btn-sm mb-2" onclick="copyQuestionsPromptAndOpen()">📋 Copy Prompt</button>
+
+    <div style="font-size:11px;color:var(--muted);background:#fff8e1;border:1px solid #fcd34d;padding:8px 10px;border-radius:6px;margin-bottom:12px;line-height:1.5;">
+      <strong style="color:#92400e;">If your AI says "prompt is empty":</strong> Claude and ChatGPT sometimes paste long prompts as a file attachment. Tap the attached file in the chat and choose "Copy text" or "Open as text," then paste again. Or paste into a plain text field first, then copy from there.
+    </div>
 
     <div class="field">
       <label class="fl">Paste the AI's answers</label>
