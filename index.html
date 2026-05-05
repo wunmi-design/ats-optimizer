@@ -603,7 +603,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.57</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.58</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -5465,21 +5465,31 @@ async function capSkillsTo24(text) {
       return text;
     }
 
-    const prompt = `Your only job: trim the SKILLS section to AT MOST 24 total skills, keeping the ones most relevant to the target job. Drop the rest entirely.
+    const prompt = `Your only job: trim the SKILLS section to AT MOST 24 total skills, keeping the ones most relevant to the target job and rebalancing across groups based on what the role actually values.
 
 JOB TITLE: ${jdTitle || '(unspecified)'}
 JOB DESCRIPTION:
 ${jdText}
 
-RULES:
-- Count every skill across all skill subgroups (e.g. Leadership, Design, Product, Engineering). Total cap is 24.
-- Prioritize skills that match keywords, requirements, or named tools/methods in the job description above.
-- Drop the LEAST relevant skills entirely. Do not move them to a different group, do not rename them, do not abbreviate them.
-- Keep the skill subgroup labels (Leadership, Design, etc.) intact. A subgroup may end up with fewer skills, or even no skills (in which case remove the subgroup).
-- Within each subgroup, keep the most JD-relevant skills first.
+STEP 1 — DETERMINE THE ROLE'S CHARACTER. Before you trim anything, classify what kind of role this is. Read the title and description carefully. Common archetypes:
+- Design leadership / UX leadership: emphasis on team leadership, design strategy, design systems, design quality, stakeholder influence. Skills in Leadership and Design groups carry more weight than Engineering or back-office Product Ops.
+- Hands-on IC design (e.g. Senior Designer, Staff Designer): emphasis on craft, interaction design, prototyping, research. Design > Leadership, even if the candidate has both.
+- Product management: emphasis on roadmap, KPIs, experimentation, customer insight. Product > Design.
+- Engineering: emphasis on languages, frameworks, infrastructure. Engineering > Product/Design.
+- Hybrid (e.g. design + web channel ownership): weight skills that span both, plus the channel-specific skills the JD names.
+
+STEP 2 — REBALANCE GROUPS PROPORTIONALLY. The 24-skill budget should NOT be split equally. Allocate more slots to groups that match the role's character. For a design leadership role, that might look like ~8 Leadership + ~9 Design + ~5 Product + ~2 Engineering. For a PM role, it might be ~3 Leadership + ~4 Design + ~14 Product + ~3 Engineering. Pick proportions that fit THIS specific JD.
+
+STEP 3 — WITHIN EACH GROUP, keep the skills the JD explicitly names or strongly implies, then the strongest adjacent skills, then drop the rest. Skills that don't appear in the JD AND don't directly support the role's character should go first.
+
+OTHER RULES:
+- Total cap is 24 across all groups combined.
+- Drop skills entirely. Do not rename, abbreviate, merge, or move skills between groups.
+- Keep subgroup labels intact. A group may end up with fewer skills, or be removed entirely if it gets emptied.
+- Within each remaining group, list the most JD-relevant skills first.
 - Do NOT change anything outside the SKILLS section: same sections, same role order, same dates, same companies, same titles, same summary, same bullet character.
 - Do NOT add new skills the candidate doesn't already have. Only remove and reorder existing skills.
-- If after trimming you have fewer than 24 (because too many subgroups got emptied), that's fine. Never go above 24.
+- Never go above 24. Going under is fine if the JD genuinely doesn't justify 24 skills.
 
 Return ONLY the complete plain-text resume, no commentary, no code fences.
 
@@ -7283,7 +7293,7 @@ function fmtLinkify(raw) {
     const chips = items.map(item => {
       return `<span style="display:inline-block;white-space:nowrap;margin-right:8px;"><span style="color:#888;margin-right:8px;">•</span>${e(item)}</span>`;
     }).join('');
-    return `${labelHtml}<div style="line-height:1.9;margin-bottom:4px;padding-left:20px;word-wrap:break-word;overflow-wrap:break-word;">${chips}</div>`;
+    return `${labelHtml}<div style="line-height:1.4;margin-bottom:4px;padding-left:20px;word-wrap:break-word;overflow-wrap:break-word;">${chips}</div>`;
   };
   if (layout === 'professional' || layout === 'standard') {
     const lines = sec.lines;
@@ -8352,18 +8362,30 @@ async function maybeTrimSkillsInCE() {
       label: sg.label || '',
       skills: (sg.skills || []).map(s => s.text)
     }));
-    const prompt = `Return ONLY valid JSON. From the structured skill groups below, keep AT MOST 24 total skills, prioritizing those most relevant to the target job. Drop the least relevant skills entirely.
+    const prompt = `Return ONLY valid JSON. From the structured skill groups below, keep AT MOST 24 total skills, prioritized for the target job and rebalanced across groups based on what the role actually values.
 
 JOB TITLE: ${jdTitle || '(unspecified)'}
 JOB DESCRIPTION:
 ${jdText.slice(0, 4000)}
 
-RULES:
+STEP 1 — DETERMINE THE ROLE'S CHARACTER. Read the JD and classify what kind of role this is:
+- Design leadership / UX leadership: weight Leadership + Design groups heavier than Engineering or back-office Product Ops.
+- Hands-on IC design: Design > Leadership.
+- Product management: Product > Design.
+- Engineering: Engineering > Product/Design.
+- Hybrid: weight skills that span both, plus the channel-specific skills the JD names.
+
+STEP 2 — REBALANCE PROPORTIONALLY. Do not split the 24-skill budget equally across groups. Allocate more slots to the groups that match the role's character. Example for a design leadership role: ~8 Leadership + ~9 Design + ~5 Product + ~2 Engineering. Pick proportions that fit THIS specific JD.
+
+STEP 3 — WITHIN EACH GROUP, keep skills the JD explicitly names first, then strong adjacent skills, then drop the rest.
+
+OTHER RULES:
 - Total cap is 24 skills across ALL groups combined.
-- Drop the LEAST JD-relevant skills entirely — never rename, abbreviate, or invent.
+- Drop the LEAST role-fit skills entirely — never rename, abbreviate, merge, or invent.
 - Preserve the original group labels exactly. Empty groups (no skills left) should be omitted from the output.
-- Within each group, list the most JD-relevant skills first.
+- Within each remaining group, list the most JD-relevant skills first.
 - Only return existing skills; do not add new ones.
+- Going under 24 is fine if the JD genuinely doesn't justify 24. Never go above 24.
 
 CURRENT SKILL GROUPS:
 ${JSON.stringify(groups)}
