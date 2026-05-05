@@ -603,7 +603,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.53</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.54</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -7150,7 +7150,7 @@ function fmtLinkify(raw) {
         return `<div style="font-size:${size};font-family:${font},Arial,sans-serif;color:${color};line-height:1.55;">${fmtLinkify(l)}</div>`;
       }).join('');
       const titleHtml=title?`<div style="font-size:${rolePx};font-weight:400;color:#333;margin-bottom:.08in;font-family:${font},Arial,sans-serif;">${e(title)}</div>`:'';
-      return`<div style="margin-bottom:.3in;">
+      return`<div style="margin-bottom:.18in;">
         <div style="font-size:${namePx};font-weight:700;letter-spacing:-.01em;font-family:${nameFont},Arial,sans-serif;color:#111;margin-bottom:.04in;">${e(name)}</div>
         ${titleHtml}
         ${contactHtml}
@@ -7164,8 +7164,8 @@ function fmtLinkify(raw) {
         const color=isLink?'#1a5fa5':'#111';
         return `<div style="font-size:${size};font-family:${font},Arial,sans-serif;color:${color};margin-top:2px;line-height:1.5;text-align:center;">${fmtLinkify(l)}</div>`;
       }).join('');
-      return`<div style="text-align:center;margin-bottom:.2in;">
-        <div style="font-size:${namePx};font-weight:700;letter-spacing:-.01em;font-family:${nameFont},Arial,sans-serif;color:#111;margin-bottom:.1in;">${e(name)}</div>
+      return`<div style="text-align:center;margin-bottom:.12in;">
+        <div style="font-size:${namePx};font-weight:700;letter-spacing:-.01em;font-family:${nameFont},Arial,sans-serif;color:#111;margin-bottom:.06in;">${e(name)}</div>
         ${profContact}
       </div>`;
     }
@@ -7385,10 +7385,10 @@ function fmtLinkify(raw) {
   else if(layout==='minimal') headingHtml=`<div style="font-size:.8em;font-weight:600;color:${accent};margin-bottom:4px;letter-spacing:.03em;">${e(sec.heading)}</div>`;
   else if(layout==='ruled') headingHtml=`<div style="font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#333;border-bottom:2px solid ${accent};padding-bottom:2px;margin-bottom:5px;">${e(sec.heading)}</div>`;
   else if(layout==='boldline') headingHtml=`<div style="font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:${accent};margin-bottom:4px;padding-left:4px;border-left:3px solid ${accent};">${e(sec.heading)}</div>`;
-  else if(layout==='professional') headingHtml=`<div style="font-size:${headingPx};font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#888;font-family:${headingFont},Arial,sans-serif;margin-bottom:6px;margin-top:4px;">${e(sec.heading)}</div>`;
-  else if(layout==='standard') headingHtml=`<div style="font-size:${headingPx};font-weight:700;text-transform:uppercase;letter-spacing:.02em;color:#111;font-family:${headingFont},Arial,sans-serif;margin-bottom:6px;margin-top:4px;">${e(sec.heading)}</div>`;
+  else if(layout==='professional') headingHtml=`<div style="font-size:${headingPx};font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#888;font-family:${headingFont},Arial,sans-serif;margin-bottom:4px;margin-top:0;">${e(sec.heading)}</div>`;
+  else if(layout==='standard') headingHtml=`<div style="font-size:${headingPx};font-weight:700;text-transform:uppercase;letter-spacing:.02em;color:#111;font-family:${headingFont},Arial,sans-serif;margin-bottom:4px;margin-top:0;">${e(sec.heading)}</div>`;
   else headingHtml=`<div style="font-size:.7em;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:${accent};border-bottom:1px solid ${accent}44;padding-bottom:2px;margin-bottom:5px;">${e(sec.heading)}</div>`;
-  return`<div style="margin-bottom:${layout==='standard'?'.24in':layout==='professional'?'.16in':'.12in'}">${headingHtml}<div style="font-size:${size};font-family:${font},Arial,sans-serif;line-height:${layout==='compact'?'1.25':'1.45'};">${body}</div></div>`;}
+  return`<div style="margin-bottom:${layout==='standard'?'.16in':layout==='professional'?'.12in':'.12in'}">${headingHtml}<div style="font-size:${size};font-family:${font},Arial,sans-serif;line-height:${layout==='compact'?'1.25':'1.35'};">${body}</div></div>`;}
   // Two-column layouts
   // sidebar layout removed — single-column only
   // Professional + Standard templates: SUMMARY → CORE COMPETENCIES → EXPERIENCE → ... → EDUCATION/SKILLS
@@ -7416,6 +7416,9 @@ function fmtGetHtml(fp) {
   const bodyFont = _fmt.bodyFont || _fmt.font || 'Arial';
   const bodySize = (_fmt.bodySize || 11) + 'px';
   const lh = _fmt.template === 'compact' ? '1.3' : '1.35';
+  // Asymmetric padding: top padding is half the side/bottom padding so the Name sits closer to the
+  // top edge in the screen preview. Print uses @page so PDF still gets a safe margin.
+  const topPad = fp ? '0' : `calc(${pad} / 2)`;
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
     @page { margin:${_fmt.margin}; size:letter; }
     *, *::before, *::after { box-sizing:border-box; }
@@ -7423,7 +7426,7 @@ function fmtGetHtml(fp) {
     body {
       font-family: ${bodyFont}, Arial, sans-serif;
       font-size: ${bodySize};
-      padding: ${pad};
+      padding: ${topPad} ${pad} ${pad} ${pad};
       color: ${tc};
       line-height: ${lh};
       background: ${bg};
@@ -8372,11 +8375,11 @@ function buildResumeTextFromCE(ce) {
     const val = fieldMap[key];
     if (val) lineGroups[line > 0 && line <= 5 ? line : 1].push(val);
   });
-  if (lineGroups[1].length) lines.push(lineGroups[1].join(' · '));
-  if (lineGroups[2].length) lines.push(lineGroups[2].join(' · '));
-  if (lineGroups[3].length) lines.push(lineGroups[3].join(' · '));
-  if (lineGroups[4].length) lines.push(lineGroups[4].join(' · '));
-  if (lineGroups[5].length) lines.push(lineGroups[5].join(' · '));
+  if (lineGroups[1].length) lines.push(lineGroups[1].join(' | '));
+  if (lineGroups[2].length) lines.push(lineGroups[2].join(' | '));
+  if (lineGroups[3].length) lines.push(lineGroups[3].join(' | '));
+  if (lineGroups[4].length) lines.push(lineGroups[4].join(' | '));
+  if (lineGroups[5].length) lines.push(lineGroups[5].join(' | '));
   lines.push('');
   // Summary
   if (ce.summary) {
