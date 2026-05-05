@@ -603,7 +603,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.49</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.50</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -3575,14 +3575,15 @@ function showResume(text, vNum) {
     badge.style.display='inline-flex';
   }
 }
+// Builds the natural filename without AI calls. Sync. Used as the fallback when AI abbreviation
+// fails or isn't needed (i.e. the name is already within the target length).
 function getResumeFilename(ext) {
-  // Format: FirstName-LastName-JobTitle.ext
+  // Format: FirstName_LastName_JobTitle.ext
   const ws = proj?.ws || {};
   const fullName = ws.name || g('ce-name') || '';
   const jobTitle = g('jd-title') || proj?.jdTitle || g('ce-title') || '';
   const parts = [];
   if (fullName) {
-    // Split name into parts, use first and last
     const nameParts = fullName.trim().split(/\s+/);
     if (nameParts.length >= 2) {
       parts.push(nameParts[0], nameParts[nameParts.length - 1]);
@@ -3592,7 +3593,67 @@ function getResumeFilename(ext) {
   }
   if (jobTitle) parts.push(jobTitle.trim());
   if (!parts.length) parts.push('Resume');
-  return parts.join('_').replace(/[^a-zA-Z0-9_]/g, '').replace(/_+/g, '_') + '.' + ext;
+  return sanitizeForFilename(parts.join('_')) + '_Resume.' + ext;
+}
+
+// Strips special chars (commas, ampersands, slashes, etc.), collapses underscores, trims edges.
+function sanitizeForFilename(s) {
+  return String(s || '')
+    .replace(/&/g, 'and')
+    .replace(/[^a-zA-Z0-9_]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+// Smart filename builder. Asks the AI to abbreviate the job title to 1-2 words ONLY if the natural
+// filename exceeds 30 characters before the extension. Returns a Promise<string>. Falls back to the
+// natural filename on any failure so download never breaks.
+async function getResumeFilenameSmart(ext) {
+  const target = 30; // ideal max characters before extension
+  const ws = proj?.ws || {};
+  const fullName = ws.name || g('ce-name') || '';
+  const jobTitle = (g('jd-title') || proj?.jdTitle || g('ce-title') || '').trim();
+  const nameParts = fullName.trim().split(/\s+/).filter(Boolean);
+  const firstLast = nameParts.length >= 2
+    ? [nameParts[0], nameParts[nameParts.length - 1]]
+    : (nameParts.length === 1 ? [nameParts[0]] : []);
+  if (!firstLast.length && !jobTitle) return 'Resume.' + ext;
+
+  // Build the natural filename and measure (excluding "_Resume." + ext, which always stays).
+  const namePart = sanitizeForFilename(firstLast.join('_'));
+  const titlePart = sanitizeForFilename(jobTitle);
+  const naturalCore = [namePart, titlePart].filter(Boolean).join('_');
+  if (naturalCore.length <= target || !jobTitle) {
+    return naturalCore + '_Resume.' + ext;
+  }
+
+  // Title pushes us over — ask the AI for a 1-2 word abbreviation.
+  try {
+    const headroom = Math.max(8, target - namePart.length - 1); // chars left for the title
+    const abbrev = await claudeFetch(
+      `You are abbreviating a long job title for a resume filename. Output ONLY the abbreviated title — 1-2 words, no commas, no ampersands, no special characters, no quotes, no explanation.\n\n` +
+      `Rules:\n` +
+      `- Keep the most important domain/function noun(s).\n` +
+      `- Drop seniority words ("Senior", "Lead", "Principal") unless they ARE the role.\n` +
+      `- Drop org/department prefixes ("Manager,", "Director of", "VP of").\n` +
+      `- Result must fit within ${headroom} characters.\n\n` +
+      `Examples:\n` +
+      `"Digital Experience & Web Strategist, Senior Manager" → Web Strategist\n` +
+      `"Senior Product Designer, Engagement" → Product Designer\n` +
+      `"Director of Brand & Marketing Communications" → Brand Marketing\n` +
+      `"VP, Customer Success Operations" → Customer Success\n\n` +
+      `Now abbreviate this title:\n${jobTitle}`,
+      80
+    );
+    const cleaned = sanitizeForFilename((abbrev || '').trim().split('\n')[0]).slice(0, headroom);
+    if (cleaned) {
+      return [namePart, cleaned].filter(Boolean).join('_') + '_Resume.' + ext;
+    }
+  } catch (e) {
+    console.warn('Filename abbreviation failed, using natural:', e);
+  }
+  // Fallback: natural filename even if it's slightly over 30.
+  return naturalCore + '_Resume.' + ext;
 }
 
 function getResumeText() {
@@ -6153,7 +6214,7 @@ async function saveDocx(){
   }
   const doc=new Document({numbering:{config:[{reference:'b',levels:[{level:0,format:LevelFormat.BULLET,text:'\u2022',alignment:AlignmentType.LEFT,style:{paragraph:{indent:{left:480,hanging:240}}}}]}]},sections:[{properties:{page:{size:{width:12240,height:15840},margin:{top:1080,right:1080,bottom:1080,left:1080}}},children:ch}]});
   const buf=await Packer.toBlob(doc);
-  const name=getResumeFilename('docx');
+  const name=await getResumeFilenameSmart('docx');
   if(window.showSaveFilePicker){try{const h=await window.showSaveFilePicker({suggestedName:name,types:[{description:'Word',accept:{'application/vnd.openxmlformats-officedocument.wordprocessingml.document':['.docx']}}]});const w=await h.createWritable();await w.write(buf);await w.close();toast('Saved: '+h.name);return;}catch(e){if(e.name==='AbortError')return;}}
   const url=URL.createObjectURL(buf);const a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url);toast('Saved as '+name);
 }
@@ -7424,7 +7485,7 @@ async function fmtSavePdf() {
 
   await new Promise(r => setTimeout(r, 300));
   const origTitle = document.title;
-  document.title = getResumeFilename('pdf').replace('.pdf','');
+  document.title = (await getResumeFilenameSmart('pdf')).replace('.pdf','');
   window.print();
   document.title = origTitle;
   toast('Check "Background graphics" in the print dialog to preserve colors');
