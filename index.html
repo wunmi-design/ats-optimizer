@@ -603,7 +603,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.61</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.62</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -8378,13 +8378,11 @@ function liveUpdate() {
   autoSave();
   clearTimeout(_liveTimer);
   _liveTimer = setTimeout(renderLivePreview, 80);
-  // Debounced skill cap: if the user has more than 24 skills total in CE AND a JD is present,
-  // fire an AI-powered prioritized trim on the structured CE data. Long debounce (3.5s) so we
-  // don't spam the API on every keystroke. Skipped when no JD — per spec, no JD means no trim.
-  clearTimeout(_skillCapTimer);
-  _skillCapTimer = setTimeout(maybeTrimSkillsInCE, 3500);
 }
 
+// Note: maybeTrimSkillsInCE is no longer called from liveUpdate. Skill capping happens only during
+// Optimize / Apply Selected via capSkillsTo24 in the apply pipeline. Users can add as many skills
+// as they want in the Content Editor without triggering an automatic trim.
 let _skillCapTimer = null;
 let _skillCapInFlight = false;
 async function maybeTrimSkillsInCE() {
