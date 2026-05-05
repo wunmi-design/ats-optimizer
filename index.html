@@ -603,7 +603,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.66</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.67</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -3261,6 +3261,25 @@ function loadProject(id) {
   proj.questions = proj.questions || [];
   // Track all fixes/keywords ever applied to this project
   proj.appliedFixes = proj.appliedFixes || [];  // {type:'fix'|'keyword', title, text, timestamp}
+  // Migration: the old 5-line contact default (each field on its own line) is no longer the
+  // intended layout. If we detect that exact pattern, swap to the current 2-line default
+  // (email|phone|location / portfolio|linkedin). This runs once per project load and is silent —
+  // a real user-customized order won't match the migration check (different field set, or
+  // multiple fields on one line, or fewer than 5 fields) so it won't get touched.
+  if (proj.ce?.contactOrder?.length === 5) {
+    const co = proj.ce.contactOrder;
+    const lines = co.map(o => o.line).sort();
+    const isOldDefault = lines.join(',') === '1,2,3,4,5';
+    if (isOldDefault) {
+      proj.ce.contactOrder = [
+        {key:'email',     line:1},
+        {key:'phone',     line:1},
+        {key:'location',  line:1},
+        {key:'portfolio', line:2},
+        {key:'linkedin',  line:2},
+      ];
+    }
+  }
   // Keep scores so suggestions persist across reload
   // Clear transient cross-project state so suggestions don't leak between projects
   proj._redoStack = [];
