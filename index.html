@@ -611,7 +611,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.76</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.77</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -4123,6 +4123,50 @@ async function fetchJobFromUrl() {
           return;
         }
       } catch(ghErr) { console.warn('Greenhouse API error:', ghErr); }
+    }
+
+    // Greenhouse-proxied company careers pages: company.com/careers/jobs/{id}/?gh_jid={id}
+    // The job ID is in gh_jid; the company slug isn't in the URL but is usually inferrable from
+    // the host (e.g. circleci.com → "circleci"). We try a few likely slugs against the API.
+    const ghJidMatch = url.match(/[?&]gh_jid=(\d+)/);
+    if (ghJidMatch) {
+      try {
+        const ghJobId = ghJidMatch[1];
+        const host = new URL(url).hostname.replace(/^www\./, '');
+        // Build candidate company slugs. Greenhouse slugs are lowercase alphanum, no dots.
+        // From circleci.com → ['circleci']. From foo.bar.com → ['foo', 'foobar', 'bar'].
+        const parts = host.split('.').filter(p => p && p !== 'com' && p !== 'careers' && p !== 'jobs');
+        const candidates = Array.from(new Set([
+          parts[0],
+          parts.join(''),
+          parts.slice(-1)[0],
+        ].filter(Boolean).map(s => s.replace(/[^a-z0-9]/gi, '').toLowerCase())));
+
+        if (msgEl) msgEl.textContent = 'Fetching from Greenhouse API...';
+        let ghData = null;
+        let resolvedSlug = '';
+        for (const slug of candidates) {
+          try {
+            const r = await fetch('https://boards-api.greenhouse.io/v1/boards/' + slug + '/jobs/' + ghJobId);
+            if (r.ok) {
+              const d = await r.json();
+              if (d?.title) { ghData = d; resolvedSlug = slug; break; }
+            }
+          } catch(e) {}
+        }
+        if (ghData) {
+          if (ghData.title) { s('jd-title', ghData.title); if (proj) proj.jdTitle = ghData.title; }
+          const companyName = resolvedSlug.charAt(0).toUpperCase() + resolvedSlug.slice(1);
+          s('jd-company', companyName); if (proj) proj.jdCompany = companyName;
+          const descDoc = new DOMParser().parseFromString(ghData.content || '', 'text/html');
+          const descText = descDoc.body?.textContent?.trim() || '';
+          if (descText) { s('jd-text', descText); if (proj) proj.jdText = descText; }
+          loading?.classList.remove('show');
+          toast('Job details extracted — review and click Analyze');
+          if (proj) autoSave();
+          return;
+        }
+      } catch(ghJidErr) { console.warn('Greenhouse-by-jid error:', ghJidErr); }
     }
     const proxies = [
       { url: `https://api.allorigins.win/get?url=${encodedUrl}`, parse: d => d.contents },
