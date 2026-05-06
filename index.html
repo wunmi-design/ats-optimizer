@@ -212,6 +212,17 @@ select option{background:var(--white);}
 .diff-add{background:#dcfce7;color:#14532d;}
 .diff-del{background:#fee2e2;color:#7f1d1d;text-decoration:line-through;}
 .diff-empty{background:#f9fafb;color:transparent;}
+/* Post-Optimize "what changed" list */
+.change-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg);cursor:pointer;transition:background .12s, border-color .12s;}
+.change-item:hover{background:#f0fdfa;border-color:var(--teal);}
+.change-item .change-dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex-shrink:0;}
+.change-item.kind-add .change-dot{background:#22c55e;}
+.change-item.kind-del .change-dot{background:#ef4444;}
+.change-item.kind-edit .change-dot{background:#f59e0b;}
+.change-item .change-title{font-size:13px;font-weight:600;color:var(--ink);}
+.change-item .change-detail{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4;}
+/* Preview highlight on hover-over-change */
+.fmt-change-highlight{background:#fef9c3 !important;outline:2px solid #facc15;outline-offset:2px;border-radius:3px;transition:background .15s, outline-color .15s;}
 .tag.required{background:var(--teal-mid);border-color:var(--teal-dim);color:var(--teal-dark);}
 .tag.soft{background:var(--blue-lt);border-color:#bfdbfe;color:var(--blue);}
 .tag.tool{background:var(--green-lt);border-color:#bbf7d0;color:var(--green);}
@@ -616,7 +627,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.80</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.81</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -1939,6 +1950,33 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         </div>
 
         <div class="loading-row mb-2" id="dash-loading" style="display:none !important;"><div class="spin"></div><span id="dash-msg">Analyzing...</span></div>
+
+        <!-- Post-Optimize view: replaces the suggestions panel after Optimize completes. Shows score
+             on top + a list of AI-titled "what changed" items. Hovering an item highlights the
+             corresponding section in the resume preview and scrolls it into view. -->
+        <div id="post-optimize-content" style="display: none;">
+          <div class="card mb-3">
+            <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+              <div>
+                <div style="font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700;">Score</div>
+                <div id="post-opt-score-line" style="font-size:32px;font-weight:700;margin-top:4px;">— → —</div>
+              </div>
+              <div style="flex:1;min-width:200px;">
+                <div style="font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700;">Summary</div>
+                <div id="post-opt-summary" style="font-size:13px;color:var(--ink2);margin-top:4px;line-height:1.5;"></div>
+              </div>
+              <button class="btn btn-secondary btn-sm" onclick="exitPostOptimizeView()" title="Show suggestions panel again">Back to suggestions</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head" style="margin-bottom:12px;">
+              <span class="card-title">What changed</span>
+              <span class="text-xs text-muted" id="post-opt-changes-count"></span>
+            </div>
+            <div id="post-opt-changes-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+          </div>
+        </div>
+
         <div id="analyzer-content" style="display: none;">
           <!-- Score row -->
           <div class="card mb-3">
@@ -3212,6 +3250,8 @@ function updateProjDisplay() {
 function loadProject(id) {
   const loaded = ProjectStore.load(id);
   if (!loaded) { toast('Project not found'); return; }
+  // Reset post-Optimize view so it doesn't carry across projects
+  try { exitPostOptimizeView(); } catch(e) {}
   proj = loaded;
   // Ensure all fields exist
   proj.ws = proj.ws || {};
@@ -4376,83 +4416,209 @@ function computeLineDiff(beforeText, afterText) {
   return ops;
 }
 
-// Builds the diff modal HTML and shows it. Side-by-side: left column = before with deletions
-// highlighted in red strikethrough, right column = after with additions highlighted in green.
-// Equal lines appear in both columns at the same vertical position so the user can scan.
-function showOptimizeDiff(beforeText, afterText, scoreBefore, scoreAfter) {
-  const ops = computeLineDiff(beforeText, afterText);
-  // Build aligned rows: each op produces one row. For 'eq' both columns show the line.
-  // For 'del' only left column shows; for 'add' only right column shows.
-  const escHtml = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  let leftRows = '', rightRows = '';
-  let addedCount = 0, removedCount = 0, changedCount = 0;
-  // Group consecutive del+add pairs as a single "changed" line for clarity.
-  for (let k = 0; k < ops.length; k++) {
-    const op = ops[k];
+// Groups a flat ops list (from computeLineDiff) into "change blocks": a contiguous run of
+// del/add ops becomes one block. Equal ops act as boundaries between blocks. Each block
+// captures the before-text (joined del lines) and after-text (joined add lines), plus a kind:
+// 'add' (only adds), 'del' (only dels), 'edit' (both).
+function groupDiffIntoBlocks(ops) {
+  const blocks = [];
+  let cur = null;
+  for (const op of ops) {
     if (op.type === 'eq') {
-      const html = `<div class="diff-line">${escHtml(op.line) || '&nbsp;'}</div>`;
-      leftRows += html;
-      rightRows += html;
-    } else if (op.type === 'del') {
-      // If next op is 'add', treat as a substitution: show del on left, add on right, paired.
-      const next = ops[k+1];
-      if (next && next.type === 'add') {
-        leftRows += `<div class="diff-line diff-del">${escHtml(op.line) || '&nbsp;'}</div>`;
-        rightRows += `<div class="diff-line diff-add">${escHtml(next.line) || '&nbsp;'}</div>`;
-        changedCount++;
-        k++; // consume the add
-      } else {
-        leftRows += `<div class="diff-line diff-del">${escHtml(op.line) || '&nbsp;'}</div>`;
-        rightRows += `<div class="diff-line diff-empty">&nbsp;</div>`;
-        removedCount++;
+      if (cur) { blocks.push(cur); cur = null; }
+      continue;
+    }
+    if (!cur) cur = { del: [], add: [] };
+    if (op.type === 'del') cur.del.push(op.line);
+    else cur.add.push(op.line);
+  }
+  if (cur) blocks.push(cur);
+  return blocks.map((b, i) => {
+    const kind = b.del.length && b.add.length ? 'edit' : (b.add.length ? 'add' : 'del');
+    return {
+      id: 'change-' + i,
+      kind,
+      before: b.del.join('\n').trim(),
+      after: b.add.join('\n').trim(),
+    };
+  });
+}
+
+// Sends all change blocks to the AI in one batched call. Returns the same blocks decorated with
+// a short title (4-7 words) and a one-sentence detail. Falls back to auto-generated titles if
+// the AI call fails so the UI never blocks.
+async function titleChangeBlocks(blocks) {
+  if (!blocks.length) return [];
+  const compactBlocks = blocks.map((b, i) => ({
+    id: i,
+    kind: b.kind,
+    before: (b.before || '').slice(0, 400),
+    after: (b.after || '').slice(0, 400),
+  }));
+  try {
+    const raw = await claudeFetch(
+      `For each resume change block below, write a 4-7 word title in plain English summarizing what the change does, plus a 1-sentence detail. Return ONLY a JSON array, one entry per block, in the SAME order as input.\n\n` +
+      `Format: [{"id":0,"title":"...","detail":"..."}, ...]\n\n` +
+      `Title rules:\n` +
+      `- Lead with the verb: "Tightened summary", "Added skills", "Reframed bullet"\n` +
+      `- Name the section if obvious (Summary, Skills, Verizon role, etc.)\n` +
+      `- Keep it under 7 words\n` +
+      `- Don't quote text from the before/after, describe the change\n\n` +
+      `Detail rules:\n` +
+      `- One short sentence, max 15 words\n` +
+      `- Say what improved (e.g. "Now leads with client journeys and AI-enhanced design")\n\n` +
+      `BLOCKS:\n${JSON.stringify(compactBlocks)}`,
+      1500
+    );
+    const cleaned = raw.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim();
+    const parsed = JSON.parse(cleaned);
+    if (!Array.isArray(parsed)) throw new Error('expected array');
+    // Merge titles back onto the blocks by id.
+    blocks.forEach((b, i) => {
+      const aiEntry = parsed.find(p => p.id === i) || parsed[i];
+      b.title = aiEntry?.title || autoTitleForBlock(b);
+      b.detail = aiEntry?.detail || '';
+    });
+  } catch (e) {
+    console.warn('titleChangeBlocks AI call failed, using auto titles:', e);
+    blocks.forEach(b => { b.title = autoTitleForBlock(b); b.detail = ''; });
+  }
+  return blocks;
+}
+
+// Produces a fallback title from the block content alone — used if the AI call fails.
+function autoTitleForBlock(b) {
+  const verb = b.kind === 'add' ? 'Added' : (b.kind === 'del' ? 'Removed' : 'Updated');
+  // Detect section by looking at the after (or before) text for a section header.
+  const text = (b.after || b.before || '').toUpperCase();
+  const sections = ['SUMMARY', 'SKILLS', 'EXPERIENCE', 'EDUCATION', 'CERTIFICATIONS', 'AWARDS'];
+  for (const sec of sections) {
+    if (text.includes(sec)) return `${verb} ${sec.toLowerCase()}`;
+  }
+  return `${verb} content`;
+}
+
+// Replaces the suggestions panel with the post-Optimize view. Computes diff, groups into change
+// blocks, asks the AI for short titles, and renders an interactive list. Hovering an item
+// highlights and scrolls to the matching content in the resume preview.
+async function showPostOptimizeView(beforeText, afterText, scoreBefore, scoreAfter) {
+  const ops = computeLineDiff(beforeText, afterText);
+  let blocks = groupDiffIntoBlocks(ops);
+  // Filter out trivially small blocks (single-line, fewer than 3 chars of change) which clutter
+  // the list without telling the user anything useful.
+  blocks = blocks.filter(b => (b.before + b.after).trim().length >= 3);
+  // Show the panel immediately with placeholder titles so the user isn't staring at nothing
+  // while the AI batches the labels.
+  const analyzerEl = document.getElementById('analyzer-content');
+  const postEl = document.getElementById('post-optimize-content');
+  if (analyzerEl) analyzerEl.style.display = 'none';
+  if (postEl) postEl.style.display = 'block';
+  // Score line
+  const delta = scoreAfter - scoreBefore;
+  const arrow = delta > 0 ? '↑' : (delta < 0 ? '↓' : '=');
+  const color = delta > 0 ? 'var(--green)' : (delta < 0 ? 'var(--red)' : 'var(--ink2)');
+  const scoreLine = document.getElementById('post-opt-score-line');
+  if (scoreLine) {
+    scoreLine.innerHTML = `<span style="color:var(--muted);">${scoreBefore}</span> <span style="color:${color};">${arrow}</span> <span style="color:${color};">${scoreAfter}</span>`;
+  }
+  const summary = document.getElementById('post-opt-summary');
+  if (summary) {
+    if (delta > 0) summary.textContent = `Score improved by ${delta} points. Click Save in the header to commit these changes.`;
+    else if (delta < 0) summary.textContent = `Score dropped by ${Math.abs(delta)} points. Review the changes below — you can revert by reloading the project without saving.`;
+    else summary.textContent = 'Score is unchanged. The changes below are stylistic or structural improvements.';
+  }
+  const countEl = document.getElementById('post-opt-changes-count');
+  if (countEl) countEl.textContent = blocks.length + (blocks.length === 1 ? ' change' : ' changes');
+  const list = document.getElementById('post-opt-changes-list');
+  if (list) {
+    list.innerHTML = '';
+    if (!blocks.length) {
+      list.innerHTML = '<div class="text-xs text-muted" style="padding:14px 0;text-align:center;">No content changes detected.</div>';
+      return;
+    }
+    blocks.forEach((b, i) => {
+      const div = document.createElement('div');
+      div.className = 'change-item kind-' + b.kind;
+      div.dataset.idx = i;
+      div.innerHTML = `
+        <span class="change-dot"></span>
+        <div style="flex:1;min-width:0;">
+          <div class="change-title">Loading…</div>
+          <div class="change-detail"></div>
+        </div>`;
+      div.addEventListener('mouseenter', () => highlightPreviewForBlock(b));
+      div.addEventListener('mouseleave', () => clearPreviewHighlight());
+      list.appendChild(div);
+    });
+  }
+  // Now batch-call AI for titles and update each item in place.
+  await titleChangeBlocks(blocks);
+  if (list) {
+    Array.from(list.children).forEach((el, i) => {
+      const b = blocks[i];
+      if (!b) return;
+      const titleEl = el.querySelector('.change-title');
+      const detailEl = el.querySelector('.change-detail');
+      if (titleEl) titleEl.textContent = b.title || 'Change';
+      if (detailEl) detailEl.textContent = b.detail || '';
+    });
+  }
+  proj._postOptimizeBlocks = blocks; // stash for potential re-render
+}
+
+// Finds text in the resume preview that matches a block's "after" content, highlights it,
+// and scrolls it into view. The preview lives at #fmt-preview-page (a single tall page since
+// 2.4.74). We do a substring match on textContent of any descendant that contains all words from
+// the after text — first match wins.
+function highlightPreviewForBlock(block) {
+  clearPreviewHighlight();
+  const page = document.getElementById('fmt-preview-page');
+  if (!page) return;
+  // Pick the search text. After-text is preferred (it's what's in the current preview); fall
+  // back to before-text if this was a pure deletion (which won't appear in the preview at all).
+  const searchSource = (block.after || block.before || '').trim();
+  if (!searchSource) return;
+  // Use the longest unique-ish line from the block as the lookup string.
+  const lines = searchSource.split('\n').map(s => s.trim()).filter(s => s.length >= 6);
+  if (!lines.length) return;
+  // Sort descending by length so we try the most specific first.
+  lines.sort((a, b) => b.length - a.length);
+  for (const needle of lines.slice(0, 5)) {
+    const found = findTextNodeContaining(page, needle.slice(0, 80));
+    if (found) {
+      // Highlight the closest meaningful element, not the text node itself.
+      const target = found.parentElement?.closest('div,p,li,h1,h2,h3,h4,h5,h6') || found.parentElement;
+      if (target) {
+        target.classList.add('fmt-change-highlight');
+        try { target.scrollIntoView({ behavior:'smooth', block:'center' }); } catch(e) {}
       }
-    } else if (op.type === 'add') {
-      leftRows += `<div class="diff-line diff-empty">&nbsp;</div>`;
-      rightRows += `<div class="diff-line diff-add">${escHtml(op.line) || '&nbsp;'}</div>`;
-      addedCount++;
+      return;
     }
   }
-  const scoreDelta = scoreAfter - scoreBefore;
-  const arrow = scoreDelta > 0 ? '↑' : (scoreDelta < 0 ? '↓' : '=');
-  const scoreColor = scoreDelta > 0 ? 'var(--green)' : (scoreDelta < 0 ? 'var(--red)' : 'var(--ink2)');
-  // Inject modal markup into the page.
-  let modal = document.getElementById('optimize-diff-modal');
-  if (modal) modal.remove();
-  modal = document.createElement('div');
-  modal.id = 'optimize-diff-modal';
-  modal.className = 'ai-modal';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;';
-  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
-  modal.innerHTML = `
-    <div style="background:var(--bg);border-radius:12px;width:min(1200px, 96vw);max-height:92vh;display:flex;flex-direction:column;box-shadow:var(--shadow-lg);">
-      <div style="padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-        <div>
-          <h3 style="margin:0;font-size:18px;">Optimize complete</h3>
-          <div style="font-size:13px;color:var(--muted);margin-top:4px;">Review the changes below, then click Save in the header to commit.</div>
-        </div>
-        <button onclick="document.getElementById('optimize-diff-modal').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink2);padding:4px 10px;">×</button>
-      </div>
-      <div style="padding:14px 24px;display:flex;gap:24px;align-items:center;background:var(--surface);border-bottom:1px solid var(--border);">
-        <div><span style="font-size:12px;color:var(--muted);">Score</span><div style="font-size:20px;font-weight:700;color:${scoreColor};">${scoreBefore} ${arrow} ${scoreAfter}</div></div>
-        <div><span style="font-size:12px;color:var(--muted);">Lines changed</span><div style="font-size:20px;font-weight:700;">${changedCount}</div></div>
-        <div><span style="font-size:12px;color:var(--muted);">Lines added</span><div style="font-size:20px;font-weight:700;color:var(--green);">+${addedCount}</div></div>
-        <div><span style="font-size:12px;color:var(--muted);">Lines removed</span><div style="font-size:20px;font-weight:700;color:var(--red);">−${removedCount}</div></div>
-      </div>
-      <div style="flex:1;overflow:auto;display:grid;grid-template-columns:1fr 1fr;gap:0;">
-        <div style="border-right:1px solid var(--border);">
-          <div style="position:sticky;top:0;padding:10px 16px;font-size:12px;font-weight:600;color:var(--muted);background:var(--surface);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.05em;z-index:1;">Before</div>
-          <div style="padding:8px 16px;font-family:ui-monospace,monospace;font-size:12px;line-height:1.5;">${leftRows}</div>
-        </div>
-        <div>
-          <div style="position:sticky;top:0;padding:10px 16px;font-size:12px;font-weight:600;color:var(--muted);background:var(--surface);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.05em;z-index:1;">After</div>
-          <div style="padding:8px 16px;font-family:ui-monospace,monospace;font-size:12px;line-height:1.5;">${rightRows}</div>
-        </div>
-      </div>
-      <div style="padding:14px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;">
-        <button class="btn btn-secondary" onclick="document.getElementById('optimize-diff-modal').remove()">Close</button>
-      </div>
-    </div>`;
-  document.body.appendChild(modal);
+}
+
+// Walks pageEl looking for a text node whose textContent contains the needle. Returns the node.
+function findTextNodeContaining(root, needle) {
+  if (!root || !needle) return null;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+  let node;
+  while ((node = walker.nextNode())) {
+    if (node.nodeValue && node.nodeValue.includes(needle)) return node;
+  }
+  return null;
+}
+
+function clearPreviewHighlight() {
+  document.querySelectorAll('.fmt-change-highlight').forEach(el => el.classList.remove('fmt-change-highlight'));
+}
+
+// Lets the user dismiss the post-Optimize view and go back to the suggestions panel.
+function exitPostOptimizeView() {
+  const analyzerEl = document.getElementById('analyzer-content');
+  const postEl = document.getElementById('post-optimize-content');
+  if (postEl) postEl.style.display = 'none';
+  if (analyzerEl) analyzerEl.style.display = '';
+  clearPreviewHighlight();
 }
 
 // Copies the prompt to clipboard and toasts. Modal stays open so user can paste answers.
@@ -4606,6 +4772,8 @@ QUESTIONS:\n${questionList}`, 2500);
 async function analyzeJD() {
   const jdText=g('jd-text');if(!jdText.trim()){toast('Paste a job description first');return;}
   if(!proj){toast('Create a project first');return;}
+  // Re-running Analyze should restore the suggestions panel — the post-Optimize view is stale.
+  try { exitPostOptimizeView(); } catch(e) {}
   const loading=document.getElementById('jd-loading');
   loading.querySelector('span').textContent='Studying job description...';
   loading.classList.add('show');
@@ -6281,16 +6449,10 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     overlaySub.textContent = '';
     await runFullAnalysis(true);
     const scoreAfter = proj._cachedScore?.overall || 0;
-    // After Optimize, suppress the suggestions UI. The user's focus should be the diff and the
-    // new score, not a fresh round of fixes to apply. The suggestions remain in proj._currentFixes
-    // and will repopulate when the user runs Analyze again.
-    const topFixes = document.getElementById('top-fixes');
-    const deepFixes = document.getElementById('deep-fix-items');
-    if (topFixes) topFixes.innerHTML = '';
-    if (deepFixes) deepFixes.innerHTML = '';
     toast(`Optimize complete. Score: ${scoreBefore} → ${scoreAfter}`);
-    // Show a diff of what changed, so the user can review before committing (Save).
-    try { showOptimizeDiff(beforeDraft, cleaned, scoreBefore, scoreAfter); } catch(diffErr) { console.warn('Diff modal:', diffErr); }
+    // Replace the suggestions panel with the post-Optimize view (score + AI-titled change list).
+    try { await showPostOptimizeView(beforeDraft, cleaned, scoreBefore, scoreAfter); }
+    catch(viewErr) { console.warn('Post-optimize view:', viewErr); }
   } catch(e) {
     let msg;
     if (e.message === 'RATE_LIMIT') msg = 'Rate limit reached — try again in 1 minute';
