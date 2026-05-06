@@ -603,7 +603,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.69</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.70</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -6380,7 +6380,7 @@ function savePdf(){
 // ─────────────────────────────────────────────────────────
 //  FORMAT SYSTEM
 // ─────────────────────────────────────────────────────────
-const _fmt = { template:'standard', font:'Arial', nameFont:'Arial', bodyFont:'Arial', headingFont:'Arial', expFont:'Arial', roleFont:'Arial', nameSize:28, bodySize:11, headingSize:14, expSize:12, roleSize:11, skillsSize:11, accent:'#111111', size:'10.5pt', margin:'0.65in', bgColor:'#ffffff', textColor:'#111111' };
+const _fmt = { template:'standard', font:'Arial', nameFont:'Arial', bodyFont:'Arial', headingFont:'Arial', expFont:'Arial', roleFont:'Arial', nameSize:21, bodySize:10, headingSize:11, expSize:11, roleSize:12, skillsSize:10, accent:'#111111', size:'10pt', margin:'0.65in', bgColor:'#ffffff', textColor:'#111111' };
 
 // Template definitions — each has a render function
 const TEMPLATES = [
@@ -6504,19 +6504,19 @@ function renderTemplateGrid() {
 // so picking Standard always lands on a known-good baseline.
 const TEMPLATE_PRESETS = {
   standard: {
-    nameFont: 'Playfair Display', nameSize: 28,
+    nameFont: 'Playfair Display', nameSize: 21,
     bodyFont: 'Lato', bodySize: 10,
-    headingFont: 'Lato', headingSize: 14,
-    expFont: 'Lato', expSize: 14,
-    roleFont: 'Lato', roleSize: 16,
-    skillsSize: 11,
+    headingFont: 'Lato', headingSize: 11,
+    expFont: 'Lato', expSize: 11,
+    roleFont: 'Lato', roleSize: 12,
+    skillsSize: 10,
   },
   professional: {
     bodySize: 10,
-    expSize: 14,
-    roleSize: 16,
-    headingSize: 14,
-    skillsSize: 11,
+    expSize: 11,
+    roleSize: 12,
+    headingSize: 11,
+    skillsSize: 10,
   },
 };
 
@@ -7233,10 +7233,10 @@ function fmtLinkify(raw) {
   const nameFont=_fmt.nameFont||font;
   const headingFont=_fmt.headingFont||font;
   const expFont=_fmt.expFont||font;
-  const namePx=(_fmt.nameSize||28)+'px';
-  const headingPx=(_fmt.headingSize||11)+'px';
-  const expPx=(_fmt.expSize||12)+'px';
-  const rolePx=(_fmt.roleSize||11)+'px';
+  const namePx=(_fmt.nameSize||28)+'pt';
+  const headingPx=(_fmt.headingSize||11)+'pt';
+  const expPx=(_fmt.expSize||12)+'pt';
+  const rolePx=(_fmt.roleSize||11)+'pt';
   const roleFont=_fmt.roleFont||expFont;
   const e=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const sidKws=['CORE COMPETENCIES','SKILLS','COMPETENCIES','EDUCATION','CERTIFICATIONS','AWARDS','HONORS'];
