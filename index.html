@@ -611,7 +611,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.74</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.75</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -5454,7 +5454,7 @@ function deduplicateResume(text) {
 // the verified facts, the duplicate is removed rather than rewritten. Silent — no UI surface.
 // Caps total skill count at 24, prioritizing skills most relevant to the JD.
 // Runs after the dedup passes so it operates on a clean resume.
-// If JD context isn't available or the resume already has <=24 skills, returns input unchanged.
+// If JD context isn't available or the resume already has <=30 skills, returns input unchanged.
 async function capSkillsTo24(text) {
   try {
     // Find the SKILLS section. Match from "SKILLS" header to the next ALL-CAPS section header
@@ -5477,7 +5477,7 @@ async function capSkillsTo24(text) {
       return sum + items.length;
     }, 0);
     console.log('[capSkillsTo24] Current skill count:', totalSkills);
-    if (totalSkills <= 24) return text;
+    if (totalSkills <= 30) return text;
 
     const jdText = (proj?.jdText || g('jd-text') || '').slice(0, 4000);
     const jdTitle = proj?.jdTitle || g('jd-title') || '';
@@ -5486,7 +5486,7 @@ async function capSkillsTo24(text) {
       return text;
     }
 
-    const prompt = `Your only job: trim the SKILLS section to AT MOST 24 total skills, keeping the ones most relevant to the target job and rebalancing across groups based on what the role actually values.
+    const prompt = `Your only job: trim the SKILLS section to AT MOST 30 total skills, keeping the ones most relevant to the target job and rebalancing across groups based on what the role actually values.
 
 JOB TITLE: ${jdTitle || '(unspecified)'}
 JOB DESCRIPTION:
@@ -5499,18 +5499,18 @@ STEP 1 — DETERMINE THE ROLE'S CHARACTER. Before you trim anything, classify wh
 - Engineering: emphasis on languages, frameworks, infrastructure. Engineering > Product/Design.
 - Hybrid (e.g. design + web channel ownership): weight skills that span both, plus the channel-specific skills the JD names.
 
-STEP 2 — REBALANCE GROUPS PROPORTIONALLY. The 24-skill budget should NOT be split equally. Allocate more slots to groups that match the role's character. For a design leadership role, that might look like ~8 Leadership + ~9 Design + ~5 Product + ~2 Engineering. For a PM role, it might be ~3 Leadership + ~4 Design + ~14 Product + ~3 Engineering. Pick proportions that fit THIS specific JD.
+STEP 2 — REBALANCE GROUPS PROPORTIONALLY. The 30-skill budget should NOT be split equally. Allocate more slots to groups that match the role's character. For a design leadership role, that might look like ~10 Leadership + ~11 Design + ~6 Product + ~3 Engineering. For a PM role, it might be ~4 Leadership + ~5 Design + ~17 Product + ~4 Engineering. Pick proportions that fit THIS specific JD.
 
 STEP 3 — WITHIN EACH GROUP, keep the skills the JD explicitly names or strongly implies, then the strongest adjacent skills, then drop the rest. Skills that don't appear in the JD AND don't directly support the role's character should go first.
 
 OTHER RULES:
-- Total cap is 24 across all groups combined.
+- Total cap is 30 across all groups combined.
 - Drop skills entirely. Do not rename, abbreviate, merge, or move skills between groups.
 - KEEP EVERY ORIGINAL GROUP. If a group is less central to the role (e.g. Engineering on a design leadership role), reduce it to a small number of skills (1–3) but DO NOT remove the group entirely. The candidate's resume structure is theirs to keep.
 - Within each remaining group, list the most JD-relevant skills first.
 - Do NOT change anything outside the SKILLS section: same sections, same role order, same dates, same companies, same titles, same summary, same bullet character.
 - Do NOT add new skills the candidate doesn't already have. Only remove and reorder existing skills.
-- Never go above 24. Going under is fine if the JD genuinely doesn't justify 24 skills.
+- Never go above 30. Going under is fine if the JD genuinely doesn't justify 30 skills.
 
 Return ONLY the complete plain-text resume, no commentary, no code fences.
 
@@ -8487,11 +8487,11 @@ async function maybeTrimSkillsInCE() {
   if (_skillCapInFlight) return; // prevent overlapping calls
   if (!proj?.ce?.skillGroups?.length) return;
   const totalSkills = proj.ce.skillGroups.reduce((sum, sg) => sum + (sg.skills?.length || 0), 0);
-  if (totalSkills <= 24) return;
+  if (totalSkills <= 30) return;
   const jdText = (proj?.jdText || g('jd-text') || '').trim();
   const jdTitle = (proj?.jdTitle || g('jd-title') || '').trim();
   if (!jdText && !jdTitle) {
-    console.log('[CE skill cap] Over 24 skills but no JD — skipping trim');
+    console.log('[CE skill cap] Over 30 skills but no JD — skipping trim');
     return;
   }
   console.log('[CE skill cap] Trimming', totalSkills, 'skills to 24 against JD');
@@ -8502,7 +8502,7 @@ async function maybeTrimSkillsInCE() {
       label: sg.label || '',
       skills: (sg.skills || []).map(s => s.text)
     }));
-    const prompt = `Return ONLY valid JSON. From the structured skill groups below, keep AT MOST 24 total skills, prioritized for the target job and rebalanced across groups based on what the role actually values.
+    const prompt = `Return ONLY valid JSON. From the structured skill groups below, keep AT MOST 30 total skills, prioritized for the target job and rebalanced across groups based on what the role actually values.
 
 JOB TITLE: ${jdTitle || '(unspecified)'}
 JOB DESCRIPTION:
@@ -8520,12 +8520,12 @@ STEP 2 — REBALANCE PROPORTIONALLY. Do not split the 24-skill budget equally ac
 STEP 3 — WITHIN EACH GROUP, keep skills the JD explicitly names first, then strong adjacent skills, then drop the rest.
 
 OTHER RULES:
-- Total cap is 24 skills across ALL groups combined.
+- Total cap is 30 skills across ALL groups combined.
 - Drop the LEAST role-fit skills entirely — never rename, abbreviate, merge, or invent.
 - KEEP EVERY ORIGINAL GROUP. Even groups less central to the role (e.g. Engineering on a design leadership role) should keep 1–3 skills. Do NOT omit a group just because it's a small fit. Empty groups are NOT acceptable.
 - Within each remaining group, list the most JD-relevant skills first.
 - Only return existing skills; do not add new ones.
-- Going under 24 is fine if the JD genuinely doesn't justify 24. Never go above 24.
+- Going under 30 is fine if the JD genuinely doesn't justify 30. Never go above 30.
 
 CURRENT SKILL GROUPS:
 ${JSON.stringify(groups)}
@@ -8561,7 +8561,7 @@ Return ONLY this JSON shape: [{"label":"...","skills":["...","..."]},...]`;
     }).filter(g => g.skills.length); // only fully-empty original groups get dropped (rare)
     safeGroups.forEach(g => { newTotal += g.skills.length; });
     // If the safety net pushed us slightly over 24, trim from the largest groups.
-    while (newTotal > 24) {
+    while (newTotal > 30) {
       const largest = safeGroups.reduce((a, b) => a.skills.length > b.skills.length ? a : b);
       largest.skills.pop();
       newTotal--;
