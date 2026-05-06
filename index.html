@@ -611,7 +611,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.73</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.74</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -7097,7 +7097,9 @@ const PAGE_HEIGHT_IN = 11;
 function applyPreviewToPages(html) {
   const wrapper = document.getElementById('fmt-preview-pages-wrapper');
   if (!wrapper) return;
-  // Sync per-page styles (so the measurement matches the visible page)
+  // Per-page styles. The single page becomes one tall continuous render with dashed boundary
+  // lines drawn over it at every US Letter (8.5in × 11in) interval so the user can see where
+  // the printer will split pages.
   const pageStyle = {
     fontFamily: _fmt.bodyFont + ',Arial,sans-serif',
     fontSize: _fmt.size,
@@ -7107,142 +7109,76 @@ function applyPreviewToPages(html) {
     color: _fmt.textColor || '#111111',
   };
 
-  // Phase 1: Measure. Render the content into an offscreen page-sized div at full Letter width.
-  // Walking children works because fmtRenderSections produces a flat sequence of section divs.
-  const meas = document.createElement('div');
-  meas.className = 'fmt-preview-page';
-  Object.assign(meas.style, pageStyle, {
-    position: 'absolute',
-    left: '-99999px',
-    top: '-99999px',                 // moved offscreen rather than visibility:hidden so layout/measurement is fully accurate
-    width: PAGE_WIDTH_IN + 'in',
-    height: 'auto',
-    overflow: 'visible',
-    transform: 'none',
-  });
-  meas.innerHTML = html;
-  document.body.appendChild(meas);
-
-  const PAGE_HEIGHT_PX = PAGE_HEIGHT_IN * 96;
-  const children = Array.from(meas.children);
-  const cs = getComputedStyle(meas);
-  const padTop = parseFloat(cs.paddingTop) || 0;
-  const padBot = parseFloat(cs.paddingBottom) || 0;
-  const availableHeight = PAGE_HEIGHT_PX - padTop - padBot;
-
-  // Phase 2: Walk children, assigning each to a page. If a single child is itself larger than
-  // a single page, descend one level and walk its children, so multi-role sections like
-  // EXPERIENCE can split at role boundaries instead of being shoved entirely to a new page.
-  const pages = [[]];
-  let accumulated = 0;
-  // Helper: try to place a node within the current page. If it doesn't fit and is decomposable,
-  // split it into a heading wrapper + per-child wrappers and place those individually.
-  const placeNode = (node) => {
-    const h = node.getBoundingClientRect().height;
-    // Fits on current page (or current page is empty so it has to go somewhere).
-    if (accumulated + h <= availableHeight || pages[pages.length - 1].length === 0) {
-      pages[pages.length - 1].push(node.outerHTML);
-      accumulated += h;
-      return;
-    }
-    // Doesn't fit and current page already has content. If the node has multiple direct
-    // children, try to split: keep its wrapper attributes (heading), then walk children.
-    if (node.children && node.children.length > 1) {
-      // Splittable section: produce a wrapper-only "shell" with the section's outer attrs and
-      // the heading (the first child of the inner body if present). Then re-emit per-child.
-      const tag = node.tagName.toLowerCase();
-      const attrs = Array.from(node.attributes).map(a => `${a.name}="${a.value}"`).join(' ');
-      // Find the heading child (small text-uppercase div) so we can repeat it on the next page.
-      // For the shape produced by fmtRenderSections, the section is:
-      //   <div style="margin-bottom:..."><div HEADING/></div><div BODY>...children...</div></div>
-      // We split on the body's children. If the structure isn't recognized, we fall back to
-      // putting the whole section on a new page.
-      const heading = node.children[0];
-      const bodyEl = node.children[1];
-      if (heading && bodyEl && bodyEl.children && bodyEl.children.length > 1) {
-        // Walk body children individually. Each child becomes its own mini-section by emitting
-        // a fresh shell with the heading on the first emission of each new page.
-        const bodyAttrs = Array.from(bodyEl.attributes).map(a => `${a.name}="${a.value}"`).join(' ');
-        const bodyTag = bodyEl.tagName.toLowerCase();
-        const headingHtml = heading.outerHTML;
-        let firstChunk = true;
-        Array.from(bodyEl.children).forEach(roleChild => {
-          const rh = roleChild.getBoundingClientRect().height;
-          // Build a synthetic section block containing this single child + the heading repeated.
-          // On the first emission within this page, we DON'T repeat the heading (it should already
-          // have been emitted at the start). After a page break, we repeat it.
-          // Need to start a new page if adding this would overflow AND the page isn't empty.
-          if (accumulated + rh > availableHeight && pages[pages.length - 1].length > 0) {
-            pages.push([]);
-            accumulated = 0;
-            firstChunk = true; // re-add the heading on the new page so the section reads normally
-          }
-          let chunkInner;
-          if (firstChunk) {
-            chunkInner = `${headingHtml}<${bodyTag} ${bodyAttrs}>${roleChild.outerHTML}</${bodyTag}>`;
-            firstChunk = false;
-          } else {
-            chunkInner = `<${bodyTag} ${bodyAttrs}>${roleChild.outerHTML}</${bodyTag}>`;
-          }
-          const chunkHtml = `<${tag} ${attrs}>${chunkInner}</${tag}>`;
-          pages[pages.length - 1].push(chunkHtml);
-          accumulated += rh;
-        });
-        return;
-      }
-    }
-    // Fall back: push the whole node to a new page.
-    pages.push([]);
-    accumulated = h;
-    pages[pages.length - 1].push(node.outerHTML);
-  };
-  for (const child of children) {
-    placeNode(child);
-  }
-  document.body.removeChild(meas);
-  console.log('[paginate]', children.length, 'children →', pages.length, 'page(s); availableHeight=', Math.round(availableHeight));
-
-  // Phase 3: Build the actual page elements in the wrapper.
+  // Single tall page. width is fixed at 8.5in so pagination boundaries land at deterministic
+  // pixel offsets (multiples of 11in). height auto so the page grows with content.
   wrapper.innerHTML = '';
-  pages.forEach((pageHtml, idx) => {
-    const slot = document.createElement('div');
-    slot.className = 'fmt-preview-page-slot';
-    const pageEl = document.createElement('div');
-    pageEl.className = 'fmt-preview-page';
-    if (idx === 0) pageEl.id = 'fmt-preview-page'; // legacy id on first page
-    Object.assign(pageEl.style, pageStyle);
-    pageEl.innerHTML = pageHtml.join('');
-    slot.appendChild(pageEl);
-    wrapper.appendChild(slot);
+  const slot = document.createElement('div');
+  slot.className = 'fmt-preview-page-slot';
+  const pageEl = document.createElement('div');
+  pageEl.className = 'fmt-preview-page';
+  pageEl.id = 'fmt-preview-page';
+  Object.assign(pageEl.style, pageStyle, {
+    width: PAGE_WIDTH_IN + 'in',
+    height: 'auto',           // override the .fmt-preview-page CSS that fixes height to 11in
+    minHeight: PAGE_HEIGHT_IN + 'in',
+    overflow: 'visible',
+    position: 'relative',     // so absolutely-positioned page-break lines pin to the page
   });
+  pageEl.innerHTML = html;
+  slot.appendChild(pageEl);
+  wrapper.appendChild(slot);
 
-  // Phase 4: Apply the scale transform based on the wrapper's current width.
+  drawPageBreakLinesOnPage(pageEl);
   scalePreviewPages();
 }
 
-// Computes the scale factor so the 8.5in pages fit the preview panel width, then applies the
-// transform to each page element. Also sets the slot's height so layout reserves space for the
-// scaled page (transform doesn't affect layout box by default).
+// Draws dashed horizontal lines across the page at every 11in (US Letter page height) so the
+// user can see where the print engine will break pages. Lines are absolutely positioned inside
+// the page element. They have class 'page-break-line' which is excluded from print via
+// @media print, so PDF output remains clean.
+function drawPageBreakLinesOnPage(pageEl) {
+  if (!pageEl) return;
+  pageEl.querySelectorAll('.page-break-line').forEach(el => el.remove());
+  const PAGE_HEIGHT_PX = PAGE_HEIGHT_IN * 96;
+  const totalHeight = pageEl.scrollHeight;
+  let y = PAGE_HEIGHT_PX;
+  let pageNum = 2;
+  while (y < totalHeight) {
+    const line = document.createElement('div');
+    line.className = 'page-break-line';
+    line.style.cssText = `position:absolute;left:0;right:0;top:${y}px;height:0;border-top:1px dashed #aaa;pointer-events:none;z-index:5;`;
+    const label = document.createElement('span');
+    label.style.cssText = 'position:absolute;right:8px;top:-9px;font-size:9px;color:#888;background:#fff;padding:0 4px;font-family:system-ui,sans-serif;';
+    label.textContent = `Page ${pageNum}`;
+    line.appendChild(label);
+    pageEl.appendChild(line);
+    y += PAGE_HEIGHT_PX;
+    pageNum++;
+  }
+}
+
+// Computes the scale factor so the 8.5in page fits the preview panel width, then applies the
+// transform. Slot reserves the scaled height of the actual content (which can exceed 11in for
+// multi-page resumes).
 function scalePreviewPages() {
   const wrapper = document.getElementById('fmt-preview-pages-wrapper');
   const previewEl = document.getElementById('fmt-live-preview');
   if (!wrapper || !previewEl) return;
-  // Use the live preview container's content width minus its padding so we don't push past edges.
   const previewStyle = getComputedStyle(previewEl);
   const padL = parseFloat(previewStyle.paddingLeft) || 0;
   const padR = parseFloat(previewStyle.paddingRight) || 0;
-  const availableWidth = previewEl.clientWidth - padL - padR - 8; // a little breathing room
+  const availableWidth = previewEl.clientWidth - padL - padR - 8;
   const PAGE_WIDTH_PX = PAGE_WIDTH_IN * 96;
-  const PAGE_HEIGHT_PX = PAGE_HEIGHT_IN * 96;
   const scale = Math.max(0.1, Math.min(1, availableWidth / PAGE_WIDTH_PX));
-  wrapper.querySelectorAll('.fmt-preview-page-slot').forEach(slot => {
-    const page = slot.querySelector('.fmt-preview-page');
-    if (!page) return;
-    page.style.transform = `scale(${scale})`;
-    // Reserve scaled-page space; height of the scaled page in the layout flow.
-    slot.style.width = (PAGE_WIDTH_PX * scale) + 'px';
-    slot.style.height = (PAGE_HEIGHT_PX * scale) + 'px';
-  });
+  const slot = wrapper.querySelector('.fmt-preview-page-slot');
+  if (!slot) return;
+  const page = slot.querySelector('.fmt-preview-page');
+  if (!page) return;
+  page.style.transform = `scale(${scale})`;
+  // The single page can be taller than 11in. Reserve actual scaled content height.
+  const contentHeight = page.scrollHeight;
+  slot.style.width = (PAGE_WIDTH_PX * scale) + 'px';
+  slot.style.height = (contentHeight * scale) + 'px';
 }
 
 // Re-scale on window resize so the preview tracks the panel width.
