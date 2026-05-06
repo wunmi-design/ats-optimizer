@@ -611,7 +611,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.72</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.73</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -7130,21 +7130,77 @@ function applyPreviewToPages(html) {
   const padBot = parseFloat(cs.paddingBottom) || 0;
   const availableHeight = PAGE_HEIGHT_PX - padTop - padBot;
 
-  // Phase 2: Walk children, assigning each to a page. If a single child exceeds availableHeight,
-  // it stays on its own page (anything taller than a page can't be subdivided cleanly here).
+  // Phase 2: Walk children, assigning each to a page. If a single child is itself larger than
+  // a single page, descend one level and walk its children, so multi-role sections like
+  // EXPERIENCE can split at role boundaries instead of being shoved entirely to a new page.
   const pages = [[]];
   let accumulated = 0;
-  for (const child of children) {
-    const h = child.getBoundingClientRect().height;
-    if (accumulated + h > availableHeight && pages[pages.length - 1].length > 0) {
-      pages.push([]);
-      accumulated = 0;
+  // Helper: try to place a node within the current page. If it doesn't fit and is decomposable,
+  // split it into a heading wrapper + per-child wrappers and place those individually.
+  const placeNode = (node) => {
+    const h = node.getBoundingClientRect().height;
+    // Fits on current page (or current page is empty so it has to go somewhere).
+    if (accumulated + h <= availableHeight || pages[pages.length - 1].length === 0) {
+      pages[pages.length - 1].push(node.outerHTML);
+      accumulated += h;
+      return;
     }
-    pages[pages.length - 1].push(child.outerHTML);
-    accumulated += h;
+    // Doesn't fit and current page already has content. If the node has multiple direct
+    // children, try to split: keep its wrapper attributes (heading), then walk children.
+    if (node.children && node.children.length > 1) {
+      // Splittable section: produce a wrapper-only "shell" with the section's outer attrs and
+      // the heading (the first child of the inner body if present). Then re-emit per-child.
+      const tag = node.tagName.toLowerCase();
+      const attrs = Array.from(node.attributes).map(a => `${a.name}="${a.value}"`).join(' ');
+      // Find the heading child (small text-uppercase div) so we can repeat it on the next page.
+      // For the shape produced by fmtRenderSections, the section is:
+      //   <div style="margin-bottom:..."><div HEADING/></div><div BODY>...children...</div></div>
+      // We split on the body's children. If the structure isn't recognized, we fall back to
+      // putting the whole section on a new page.
+      const heading = node.children[0];
+      const bodyEl = node.children[1];
+      if (heading && bodyEl && bodyEl.children && bodyEl.children.length > 1) {
+        // Walk body children individually. Each child becomes its own mini-section by emitting
+        // a fresh shell with the heading on the first emission of each new page.
+        const bodyAttrs = Array.from(bodyEl.attributes).map(a => `${a.name}="${a.value}"`).join(' ');
+        const bodyTag = bodyEl.tagName.toLowerCase();
+        const headingHtml = heading.outerHTML;
+        let firstChunk = true;
+        Array.from(bodyEl.children).forEach(roleChild => {
+          const rh = roleChild.getBoundingClientRect().height;
+          // Build a synthetic section block containing this single child + the heading repeated.
+          // On the first emission within this page, we DON'T repeat the heading (it should already
+          // have been emitted at the start). After a page break, we repeat it.
+          // Need to start a new page if adding this would overflow AND the page isn't empty.
+          if (accumulated + rh > availableHeight && pages[pages.length - 1].length > 0) {
+            pages.push([]);
+            accumulated = 0;
+            firstChunk = true; // re-add the heading on the new page so the section reads normally
+          }
+          let chunkInner;
+          if (firstChunk) {
+            chunkInner = `${headingHtml}<${bodyTag} ${bodyAttrs}>${roleChild.outerHTML}</${bodyTag}>`;
+            firstChunk = false;
+          } else {
+            chunkInner = `<${bodyTag} ${bodyAttrs}>${roleChild.outerHTML}</${bodyTag}>`;
+          }
+          const chunkHtml = `<${tag} ${attrs}>${chunkInner}</${tag}>`;
+          pages[pages.length - 1].push(chunkHtml);
+          accumulated += rh;
+        });
+        return;
+      }
+    }
+    // Fall back: push the whole node to a new page.
+    pages.push([]);
+    accumulated = h;
+    pages[pages.length - 1].push(node.outerHTML);
+  };
+  for (const child of children) {
+    placeNode(child);
   }
   document.body.removeChild(meas);
-  console.log('[paginate]', children.length, 'children →', pages.length, 'page(s); availableHeight=', Math.round(availableHeight), 'totalContentHeight=', Math.round(accumulated));
+  console.log('[paginate]', children.length, 'children →', pages.length, 'page(s); availableHeight=', Math.round(availableHeight));
 
   // Phase 3: Build the actual page elements in the wrapper.
   wrapper.innerHTML = '';
