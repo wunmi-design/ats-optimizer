@@ -207,6 +207,11 @@ select option{background:var(--white);}
 /* ── TAGS (keywords) ─────────────────────────────────── */
 .tag-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;}
 .tag{font-size:11px;padding:2px 8px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--ink2);}
+/* Optimize diff modal */
+.diff-line{padding:2px 6px;border-radius:3px;white-space:pre-wrap;word-break:break-word;min-height:1.5em;}
+.diff-add{background:#dcfce7;color:#14532d;}
+.diff-del{background:#fee2e2;color:#7f1d1d;text-decoration:line-through;}
+.diff-empty{background:#f9fafb;color:transparent;}
 .tag.required{background:var(--teal-mid);border-color:var(--teal-dim);color:var(--teal-dark);}
 .tag.soft{background:var(--blue-lt);border-color:#bfdbfe;color:var(--blue);}
 .tag.tool{background:var(--green-lt);border-color:#bbf7d0;color:var(--green);}
@@ -611,7 +616,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.79</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.80</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -2403,7 +2408,7 @@ NY Top Creative Winner · WIx and Vitamin T · 2014</div>
     <h3>✦ Answer with AI</h3>
     <p class="subtitle">Copy the prompt, paste it into Claude or ChatGPT, then paste the answers back here.</p>
 
-    <button class="btn btn-secondary btn-sm mb-2" onclick="copyQuestionsPromptAndOpen()">📋 Copy Prompt</button>
+    <button class="btn btn-primary" style="width:100%;padding:14px 18px;font-size:15px;font-weight:600;margin-bottom:12px;" onclick="copyQuestionsPromptAndOpen()">📋 Copy Prompt</button>
 
     <div class="field">
       <label class="fl">Paste the AI's answers</label>
@@ -4341,6 +4346,115 @@ function hideAnswerModal() {
   document.getElementById('answer-modal')?.classList.add('hidden');
 }
 
+// Computes a line-level diff between two text blocks using Myers' LCS-based algorithm.
+// Returns an array of ops: {type:'eq'|'add'|'del', line: string}.
+// O(M*N) memory and time; resumes are small enough that this is fine.
+function computeLineDiff(beforeText, afterText) {
+  const a = (beforeText || '').split('\n');
+  const b = (afterText || '').split('\n');
+  const m = a.length, n = b.length;
+  // dp[i][j] = LCS length for a[0..i) vs b[0..j)
+  const dp = Array.from({length: m + 1}, () => new Int32Array(n + 1));
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i-1] === b[j-1]
+        ? dp[i-1][j-1] + 1
+        : Math.max(dp[i-1][j], dp[i][j-1]);
+    }
+  }
+  // Walk back to produce ops
+  const ops = [];
+  let i = m, j = n;
+  while (i > 0 && j > 0) {
+    if (a[i-1] === b[j-1]) { ops.push({type:'eq', line:a[i-1]}); i--; j--; }
+    else if (dp[i-1][j] >= dp[i][j-1]) { ops.push({type:'del', line:a[i-1]}); i--; }
+    else { ops.push({type:'add', line:b[j-1]}); j--; }
+  }
+  while (i > 0) { ops.push({type:'del', line:a[i-1]}); i--; }
+  while (j > 0) { ops.push({type:'add', line:b[j-1]}); j--; }
+  ops.reverse();
+  return ops;
+}
+
+// Builds the diff modal HTML and shows it. Side-by-side: left column = before with deletions
+// highlighted in red strikethrough, right column = after with additions highlighted in green.
+// Equal lines appear in both columns at the same vertical position so the user can scan.
+function showOptimizeDiff(beforeText, afterText, scoreBefore, scoreAfter) {
+  const ops = computeLineDiff(beforeText, afterText);
+  // Build aligned rows: each op produces one row. For 'eq' both columns show the line.
+  // For 'del' only left column shows; for 'add' only right column shows.
+  const escHtml = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  let leftRows = '', rightRows = '';
+  let addedCount = 0, removedCount = 0, changedCount = 0;
+  // Group consecutive del+add pairs as a single "changed" line for clarity.
+  for (let k = 0; k < ops.length; k++) {
+    const op = ops[k];
+    if (op.type === 'eq') {
+      const html = `<div class="diff-line">${escHtml(op.line) || '&nbsp;'}</div>`;
+      leftRows += html;
+      rightRows += html;
+    } else if (op.type === 'del') {
+      // If next op is 'add', treat as a substitution: show del on left, add on right, paired.
+      const next = ops[k+1];
+      if (next && next.type === 'add') {
+        leftRows += `<div class="diff-line diff-del">${escHtml(op.line) || '&nbsp;'}</div>`;
+        rightRows += `<div class="diff-line diff-add">${escHtml(next.line) || '&nbsp;'}</div>`;
+        changedCount++;
+        k++; // consume the add
+      } else {
+        leftRows += `<div class="diff-line diff-del">${escHtml(op.line) || '&nbsp;'}</div>`;
+        rightRows += `<div class="diff-line diff-empty">&nbsp;</div>`;
+        removedCount++;
+      }
+    } else if (op.type === 'add') {
+      leftRows += `<div class="diff-line diff-empty">&nbsp;</div>`;
+      rightRows += `<div class="diff-line diff-add">${escHtml(op.line) || '&nbsp;'}</div>`;
+      addedCount++;
+    }
+  }
+  const scoreDelta = scoreAfter - scoreBefore;
+  const arrow = scoreDelta > 0 ? '↑' : (scoreDelta < 0 ? '↓' : '=');
+  const scoreColor = scoreDelta > 0 ? 'var(--green)' : (scoreDelta < 0 ? 'var(--red)' : 'var(--ink2)');
+  // Inject modal markup into the page.
+  let modal = document.getElementById('optimize-diff-modal');
+  if (modal) modal.remove();
+  modal = document.createElement('div');
+  modal.id = 'optimize-diff-modal';
+  modal.className = 'ai-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+  modal.innerHTML = `
+    <div style="background:var(--bg);border-radius:12px;width:min(1200px, 96vw);max-height:92vh;display:flex;flex-direction:column;box-shadow:var(--shadow-lg);">
+      <div style="padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <h3 style="margin:0;font-size:18px;">Optimize complete</h3>
+          <div style="font-size:13px;color:var(--muted);margin-top:4px;">Review the changes below, then click Save in the header to commit.</div>
+        </div>
+        <button onclick="document.getElementById('optimize-diff-modal').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink2);padding:4px 10px;">×</button>
+      </div>
+      <div style="padding:14px 24px;display:flex;gap:24px;align-items:center;background:var(--surface);border-bottom:1px solid var(--border);">
+        <div><span style="font-size:12px;color:var(--muted);">Score</span><div style="font-size:20px;font-weight:700;color:${scoreColor};">${scoreBefore} ${arrow} ${scoreAfter}</div></div>
+        <div><span style="font-size:12px;color:var(--muted);">Lines changed</span><div style="font-size:20px;font-weight:700;">${changedCount}</div></div>
+        <div><span style="font-size:12px;color:var(--muted);">Lines added</span><div style="font-size:20px;font-weight:700;color:var(--green);">+${addedCount}</div></div>
+        <div><span style="font-size:12px;color:var(--muted);">Lines removed</span><div style="font-size:20px;font-weight:700;color:var(--red);">−${removedCount}</div></div>
+      </div>
+      <div style="flex:1;overflow:auto;display:grid;grid-template-columns:1fr 1fr;gap:0;">
+        <div style="border-right:1px solid var(--border);">
+          <div style="position:sticky;top:0;padding:10px 16px;font-size:12px;font-weight:600;color:var(--muted);background:var(--surface);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.05em;z-index:1;">Before</div>
+          <div style="padding:8px 16px;font-family:ui-monospace,monospace;font-size:12px;line-height:1.5;">${leftRows}</div>
+        </div>
+        <div>
+          <div style="position:sticky;top:0;padding:10px 16px;font-size:12px;font-weight:600;color:var(--muted);background:var(--surface);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.05em;z-index:1;">After</div>
+          <div style="padding:8px 16px;font-family:ui-monospace,monospace;font-size:12px;line-height:1.5;">${rightRows}</div>
+        </div>
+      </div>
+      <div style="padding:14px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;">
+        <button class="btn btn-secondary" onclick="document.getElementById('optimize-diff-modal').remove()">Close</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
 // Copies the prompt to clipboard and toasts. Modal stays open so user can paste answers.
 function copyQuestionsPromptAndOpen() {
   copyQuestionsPrompt();
@@ -4715,6 +4829,10 @@ CANDIDATE HAS: ${ws.name}, ${ws.title}, ${ws.years}yrs, Skills: ${ws.hard?.slice
     // Reveal the inline questions section + Optimize Resume button now that analysis is complete
     const qaSection = document.getElementById('qa-section');
     if (qaSection) qaSection.style.display = 'block';
+    // Auto-open the Answer with AI modal so the user goes straight to copying the prompt.
+    if (proj.questions.length) {
+      try { showAnswerModal(); } catch(e) {}
+    }
   } catch(e){proj.questions=[];}
 }
 
@@ -6046,6 +6164,8 @@ async function autoOptimize() {
     try { await runDeepAnalysis(); } catch(e) { console.warn('Deep analysis during Optimize failed:', e); }
 
     const scoreBefore = proj._cachedScore?.overall || 0;
+    // Snapshot the draft going INTO optimize so we can show a before/after diff at the end.
+    const beforeDraft = getResumeText();
 
     // Phase 2: Gather all suggestions + missing keywords
     // _currentFixes is a sparse array — top fixes occupy 0..N, deep fixes occupy 1000+.
@@ -6161,7 +6281,16 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     overlaySub.textContent = '';
     await runFullAnalysis(true);
     const scoreAfter = proj._cachedScore?.overall || 0;
+    // After Optimize, suppress the suggestions UI. The user's focus should be the diff and the
+    // new score, not a fresh round of fixes to apply. The suggestions remain in proj._currentFixes
+    // and will repopulate when the user runs Analyze again.
+    const topFixes = document.getElementById('top-fixes');
+    const deepFixes = document.getElementById('deep-fix-items');
+    if (topFixes) topFixes.innerHTML = '';
+    if (deepFixes) deepFixes.innerHTML = '';
     toast(`Optimize complete. Score: ${scoreBefore} → ${scoreAfter}`);
+    // Show a diff of what changed, so the user can review before committing (Save).
+    try { showOptimizeDiff(beforeDraft, cleaned, scoreBefore, scoreAfter); } catch(diffErr) { console.warn('Diff modal:', diffErr); }
   } catch(e) {
     let msg;
     if (e.message === 'RATE_LIMIT') msg = 'Rate limit reached — try again in 1 minute';
