@@ -90,7 +90,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--i
 
 /* ── MAIN LAYOUT ─────────────────────────────────────── */
 .main-layout{
-  flex:1;display:grid;grid-template-columns:56% 44%;min-height:0;overflow:hidden;
+  flex:1;display:grid;grid-template-columns:40% 60%;min-height:0;overflow:hidden;
 }
 @media(max-width:900px){.main-layout{grid-template-columns:1fr;} .resume-panel{display:none;}}
 
@@ -397,9 +397,17 @@ select option{background:var(--white);}
 .tmpl-thumb{flex:1;padding:4px;overflow:hidden;background:var(--white);position:relative;}
 .tmpl-name{font-size:9px;font-weight:600;color:var(--ink2);padding:3px 4px;border-top:1px solid var(--border);background:var(--surface);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 /* fmt preview in right panel */
-#fmt-live-preview{display:none;flex:1;overflow-y:auto;padding:8px;background:#e8e8e8;}
-#fmt-live-preview.show{display:flex;justify-content:center;align-items:flex-start;}
-#fmt-preview-page{background:#fff;width:100%;min-height:700px;box-shadow:var(--shadow-lg);font-size:10pt;line-height:1.45;color:#111;}
+#fmt-live-preview{display:none;flex:1;overflow-y:auto;padding:24px 8px;background:#e8e8e8;}
+#fmt-live-preview.show{display:block;}
+/* The pages wrapper holds the scaled fixed-size pages and centers them. */
+#fmt-preview-pages-wrapper{display:flex;flex-direction:column;align-items:center;gap:24px;}
+/* A page renders at literal US Letter dimensions. transform-origin top-center so scaled pages
+   pin to the top of their wrapper slot. The .fmt-preview-page-slot wraps each page so we can
+   reserve the right amount of vertical space after scaling (pages would otherwise overlap). */
+.fmt-preview-page-slot{position:relative;}
+.fmt-preview-page{width:8.5in;height:11in;background:#fff;box-shadow:var(--shadow-lg);font-size:10pt;line-height:1.35;color:#111;overflow:hidden;transform-origin:top left;}
+/* Legacy id kept for compatibility — first page in the list */
+#fmt-preview-page{width:8.5in;height:11in;background:#fff;box-shadow:var(--shadow-lg);font-size:10pt;line-height:1.35;color:#111;overflow:hidden;transform-origin:top left;}
 .fmt-tab-opt{display:none;}/* hide old style */
 .fmt-tab-label{display:none;}
 .fmt-tab-sub{display:none;}
@@ -603,7 +611,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.70</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.71</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -2338,60 +2346,9 @@ AWARDS
 NY Top Creative Winner · WIx and Vitamin T · 2014</div>
       </div>
       <div id="fmt-live-preview" class="show">
-        <div id="fmt-preview-page" style="font-family: Lato, Arial, sans-serif; font-size: 11pt; padding: 0.65in; line-height: 1.45; background: rgb(245, 243, 239); color: rgb(17, 17, 17);"><div style="text-align:center;margin-bottom:.2in;">
-        <div style="font-size:33px;font-weight:700;letter-spacing:-.01em;font-family:Playfair Display,Arial,sans-serif;color:#111;margin-bottom:.1in;">Your Name</div>
-        <div style="font-size:11pt;font-family:Lato,Arial,sans-serif;color:#444;margin-top:2px;line-height:1.5;text-align:center;"><a href="https://www.wunmi.design/" style="color:inherit;text-decoration:underline;">www.wunmi.design</a> · <a href="https://linkedin.com/in/wunmi-atewologun" style="color:inherit;text-decoration:underline;">linkedin.com/in/wunmi-atewologun</a></div><div style="font-size:11pt;font-family:Lato,Arial,sans-serif;color:#444;margin-top:2px;line-height:1.5;text-align:center;">555-000-0000 · <a href="mailto:wunmi.atewologun@gmail.com" style="color:inherit;text-decoration:underline;">wunmi.atewologun@gmail.com</a> · Arlington, VA</div>
-      </div><div style="margin-bottom:.16in"><div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#888;font-family:Lato,Arial,sans-serif;margin-bottom:6px;margin-top:4px;">SUMMARY</div><div style="font-size:11pt;font-family:Lato,Arial,sans-serif;line-height:1.45;"><div style="color:#333;margin-bottom:7px;">Senior Product Design Manager who leads with empathy and decisiveness. Known for mentoring designers through close collaboration and building cross-functional partnerships across Product, Engineering, and go-to-market, Wunmi brings a background spanning UX, visual design, and design systems to every team he builds. He is drawn to solving human-centered problems through research, observation, and iteration at any scale.</div><div style="height:3px;"></div></div></div><div style="margin-bottom:.16in"><div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#888;font-family:Lato,Arial,sans-serif;margin-bottom:6px;margin-top:4px;">SKILLS</div><div style="font-size:11pt;font-family:Lato,Arial,sans-serif;line-height:1.45;"><div style="margin-bottom:3px;"><strong>Leadership:</strong> Strategy, Vision and Inspiration, Cross Team Collaboration, Distributed Team Leadership, People Development, Capacity Planning, Design Reviews, Conflict Resolution, Hiring, Communications</div><div style="margin-bottom:3px;"><strong>Design:</strong> UX/UI Design, Interaction Design, Information Architecture, Design Systems, Data Visualization, Prototyping, Wireframing, Heuristic Evaluation, Design Thinking, Usability Testing, User Research, WCAG (Accessibility), AI-Accelerated Workflows, Agentic AI, Figma, Adobe CC, UX Research, Content Design</div><div style="margin-bottom:3px;"><strong>Product:</strong> Roadmap Prioritization, KPI Development, Agile Methodologies, Iterative Planning, Analytics, JIRA, Confluence</div><div style="margin-bottom:3px;"><strong>Engineering:</strong> JavaScript, CSS, HTML, Web Components</div><div style="height:3px;"></div></div></div><div style="margin-bottom:.16in"><div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#888;font-family:Lato,Arial,sans-serif;margin-bottom:6px;margin-top:4px;">EXPERIENCE</div><div style="font-size:11pt;font-family:Lato,Arial,sans-serif;line-height:1.45;"><div style="margin-top:16px;margin-bottom:4px;"><div style="margin-bottom:7px;">
-                <span style="font-size:17px;font-weight:700;font-family:Lato,Arial,sans-serif;">Wunmi.design</span><span style="font-size:17px;font-weight:400;">, Arlington, VA</span>
-               </div><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:2px;">
-                <div style="font-size:15px;font-weight:700;font-family:Lato,Arial,sans-serif;">Independent Product Design Director</div>
-                <div style="font-weight:400;color:#888;white-space:nowrap;flex-shrink:0;">09/25 – Present</div>
-               </div></div><div style="color:#333;margin-bottom:7px;">Partner with startups, studios, and enterprise teams to tackle high-impact problems, delivering experiences that drive measurable business impact.</div><div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:3px;color:#111;"><span style="color:#111111;">•</span> Lead geographically distributed design teams across multiple product areas, guiding execution of product design priorities in partnership with cross-functional teams</div><div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:3px;color:#111;"><span style="color:#111111;">•</span> Design complex enterprise workflows and data visualizations that help B2B revenue teams work smarter, faster, and more effectively</div><div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:3px;color:#111;"><span style="color:#111111;">•</span> Hire, onboard, and develop designers while promoting consistent use of design system across team's work to ensure scalable, user-aligned solutions</div><div style="height:3px;"></div><div style="margin-top:16px;margin-bottom:4px;"><div style="margin-bottom:7px;">
-                <span style="font-size:17px;font-weight:700;font-family:Lato,Arial,sans-serif;">Verizon</span><span style="font-size:17px;font-weight:400;">, New York, NY</span>
-               </div><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:2px;">
-                <div style="font-size:15px;font-weight:700;font-family:Lato,Arial,sans-serif;">Senior Experience Design Manager, Financial Services</div>
-                <div style="font-weight:400;color:#888;white-space:nowrap;flex-shrink:0;">02/24 – 04/26</div>
-               </div></div><div style="color:#333;margin-bottom:7px;">Promoted to lead multidisciplinary design teams across two financial products in Verizon's 100M+ customer ecosystem, delivering 26% MAU growth and 90% card activation rate.</div><div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:3px;color:#111;"><span style="color:#111111;">•</span> Led distributed team of 6 product designers across two financial products within Verizon's 100M+ customer ecosystem to drive engagement and retention</div><div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:3px;color:#111;"><span style="color:#111111;">•</span> Drove 26% MAU growth and 90% card activation rate through data-driven design execution in partnership with cross-functional teams</div><div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:3px;color:#111;"><span style="color:#111111;">•</span> Surfaced 37 experience gaps through comprehensive evaluation, directly informing product design priorities and remediation roadmap</div><div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:3px;color:#111;"><span style="color:#111111;">•</span> Improved team delivery velocity 40% and cut defects 40% by scaling design team processes and cross-functional collaboration</div><div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:3px;color:#111;"><span style="color:#111111;">•</span> Mentored designers across multiple product areas while fostering culture of collaboration and continuous improvement through capacity planning</div><div style="height:3px;"></div><div style="margin-top:16px;margin-bottom:4px;"><div style="margin-bottom:7px;">
-                <span style="font-size:17px;font-weight:700;font-family:Lato,Arial,sans-serif;">Verizon</span><span style="font-size:17px;font-weight:400;">, New York, NY</span>
-               </div><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:2px;">
-                <div style="font-size:15px;font-weight:700;font-family:Lato,Arial,sans-serif;">Experience Design Manager, Home Apps and Services</div>
-                <div style="font-weight:400;color:#888;white-space:nowrap;flex-shrink:0;">06/22 – 02/24</div>
-               </div></div><div style="color:#333;margin-bottom:7px;">Leading design for Verizon's home products and driving the zero-to-one launch of Verizon Home that achieved 300% DAU growth.</div><div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:3px;color:#111;"><span style="color:#111111;">•</span> Led geographically distributed team of 30 designers and engineers to ship Verizon Home platform reaching 41M customers and 342M connected devices</div><div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:3px;color:#111;"><span style="color:#111111;">•</span> Guided execution of product design priorities in partnership with cross-functional teams to drive customer satisfaction and engagement goals</div><div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:3px;color:#111;"><span style="color:#111111;">•</span> Drove 300% DAU growth through design of complex enterprise workflows that reduced customer support dependency and improved task success</div><div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:3px;color:#111;"><span style="color:#111111;">•</span> Ensured designs were scalable and aligned with business needs across 75 team members in agile environments to reduce call-center drivers</div><div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:3px;color:#111;"><span style="color:#111111;">•</span> Hired and developed design team from 5 to 9 designers after earning C-Suite approval, fostering culture of collaboration and improvement</div><div style="height:3px;"></div><div style="margin-top:16px;margin-bottom:4px;"><div style="margin-bottom:7px;">
-                <span style="font-size:17px;font-weight:700;font-family:Lato,Arial,sans-serif;">Verizon</span><span style="font-size:17px;font-weight:400;">, New York, NY</span>
-               </div><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:2px;">
-                <div style="font-size:15px;font-weight:700;font-family:Lato,Arial,sans-serif;">Lead Experience Designer, Home Network Management</div>
-                <div style="font-weight:400;color:#888;white-space:nowrap;flex-shrink:0;">02/20 – 06/22</div>
-               </div></div><div style="color:#333;margin-bottom:7px;">Joined Verizon to design conversational AI, network management, parental controls, and cybersecurity products for 16M+ households.</div><div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:3px;color:#111;"><span style="color:#111111;">•</span> Led team of 4 product designers across multiple product areas and workstreams for router firmware, mobile apps, and connected devices</div><div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:3px;color:#111;"><span style="color:#111111;">•</span> Guided execution of product design priorities for multimodal conversational AI assistant integrating voice, vision, and text capabilities</div><div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:3px;color:#111;"><span style="color:#111111;">•</span> Ensured designs were usable, scalable, and aligned with user and business needs for AI-assisted workflows and system constraints</div><div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:3px;color:#111;"><span style="color:#111111;">•</span> Shaped user experience for complex enterprise workflows while building tools that help teams work smarter, faster, and more effectively</div><div style="height:3px;"></div><div style="margin-top:16px;margin-bottom:4px;"><div style="margin-bottom:7px;">
-                <span style="font-size:17px;font-weight:700;font-family:Lato,Arial,sans-serif;">Web.com</span><span style="font-size:17px;font-weight:400;">, New York, NY</span>
-               </div><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:2px;">
-                <div style="font-size:15px;font-weight:700;font-family:Lato,Arial,sans-serif;">Product Design Manager, Design Systems</div>
-                <div style="font-weight:400;color:#888;white-space:nowrap;flex-shrink:0;">06/17 – 02/20</div>
-               </div></div><div style="color:#333;margin-bottom:7px;">My cross-functional impact earned promotion to management, where I built the company's design systems practice across 15 product teams serving 50,000+ small businesses.</div><div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:3px;color:#111;"><span style="color:#111111;">•</span> Founded and scaled <a href="https://web.com/" style="color:inherit;text-decoration:underline;">Web.com</a>'s design systems, eliminating fragmentation across portfolio and reducing brand inconsistencies</div><div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:3px;color:#111;"><span style="color:#111111;">•</span> Led geographically distributed team of 40 designers and engineers, maintaining alignment through clear process and collaboration</div><div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:3px;color:#111;"><span style="color:#111111;">•</span> Won executive buy-in by framing focused opportunities, then guided cross-functional teams to deliver scalable solutions</div><div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:3px;color:#111;"><span style="color:#111111;">•</span> Reduced component update time from 30 days to 30 minutes, recovering hundreds of billable hours for higher-priority efforts</div><div style="height:3px;"></div><div style="margin-top:16px;margin-bottom:4px;"><div style="margin-bottom:7px;">
-                <span style="font-size:17px;font-weight:700;font-family:Lato,Arial,sans-serif;">Yodle (Acquired by Web.com)</span><span style="font-size:17px;font-weight:400;">, New York, NY</span>
-               </div><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:2px;">
-                <div style="font-size:15px;font-weight:700;font-family:Lato,Arial,sans-serif;">Lead Product Designer</div>
-                <div style="font-weight:400;color:#888;white-space:nowrap;flex-shrink:0;">01/16 – 06/17</div>
-               </div></div><div style="color:#333;margin-bottom:7px;">Joined Yodle to build design practices from the ground up for complex data-heavy SaaS products, cutting design-to-implementation cycle time by 30%.</div><div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:3px;color:#111;"><span style="color:#111111;">•</span> Designed complex enterprise workflows and data visualizations for small business management SaaS applications across cloud infrastructure and ERP systems</div><div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:3px;color:#111;"><span style="color:#111111;">•</span> Evaluated and prioritized 50+ features through usability testing to ensure highest-impact work moved forward in fast-paced sprint cycles</div><div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:3px;color:#111;"><span style="color:#111111;">•</span> Partnered with 10 engineering teams to cut design-to-implementation cycle time by 30%, building tools that help teams work faster and more effectively</div><div style="height:3px;"></div><div style="margin-top:16px;margin-bottom:4px;"><div style="margin-bottom:7px;">
-                <span style="font-size:17px;font-weight:700;font-family:Lato,Arial,sans-serif;">efurb</span><span style="font-size:17px;font-weight:400;">, New York, NY</span>
-               </div><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:2px;">
-                <div style="font-size:15px;font-weight:700;font-family:Lato,Arial,sans-serif;">Head of Product Design</div>
-                <div style="font-weight:400;color:#888;white-space:nowrap;flex-shrink:0;">01/15 – 12/15</div>
-               </div></div><div style="color:#333;margin-bottom:7px;">I built efurb's design team foundation from the ground up as the company's first design leader.</div><div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:3px;color:#111;"><span style="color:#111111;">•</span> Led end-to-end product design for e-commerce platform serving enterprise and consumer markets, ensuring designs aligned with user and business needs</div><div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:3px;color:#111;"><span style="color:#111111;">•</span> Built foundational design workflow, tooling, and documentation enabling team growth and establishing scalable design practice across product areas</div><div style="height:3px;"></div><div style="margin-top:16px;margin-bottom:4px;"><div style="margin-bottom:7px;">
-                <span style="font-size:17px;font-weight:700;font-family:Lato,Arial,sans-serif;">Quirky</span><span style="font-size:17px;font-weight:400;">, New York, NY</span>
-               </div><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:2px;">
-                <div style="font-size:15px;font-weight:700;font-family:Lato,Arial,sans-serif;">Lead Product Designer</div>
-                <div style="font-weight:400;color:#888;white-space:nowrap;flex-shrink:0;">03/13 – 12/14</div>
-               </div></div><div style="color:#333;margin-bottom:7px;">Built Quirky's first responsive experience through close collaboration with engineering teams, applying agency design expertise to product development.</div><div style="height:3px;"></div><div style="margin-top:16px;margin-bottom:4px;"><div style="margin-bottom:7px;">
-                <span style="font-size:17px;font-weight:700;font-family:Lato,Arial,sans-serif;">Huge</span><span style="font-size:17px;font-weight:400;">, Brooklyn, NY</span>
-               </div><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:2px;">
-                <div style="font-size:15px;font-weight:700;font-family:Lato,Arial,sans-serif;">Art Director</div>
-                <div style="font-weight:400;color:#888;white-space:nowrap;flex-shrink:0;">08/11 – 02/13</div>
-               </div></div><div style="color:#333;margin-bottom:7px;">Led creative design for global enterprise clients, managing teams to deliver brand experiences and digital platforms that drive business growth.</div><div style="height:3px;"></div><div style="margin-top:16px;margin-bottom:4px;"><div style="margin-bottom:7px;">
-                <span style="font-size:17px;font-weight:700;font-family:Lato,Arial,sans-serif;">Wunmi.design</span><span style="font-size:17px;font-weight:400;">, Brooklyn, NY</span>
-               </div><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:2px;">
-                <div style="font-size:15px;font-weight:700;font-family:Lato,Arial,sans-serif;">Independent Art Director</div>
-                <div style="font-weight:400;color:#888;white-space:nowrap;flex-shrink:0;">06/07 – 07/11</div>
-               </div></div><div style="color:#333;margin-bottom:7px;">Delivered award-winning interactive brand experiences for Nike, Reebok, FedEx, and BMW as independent Art Director across top-tier agencies including RGA, Atmosphere, and BBDO.</div><div style="height:3px;"></div></div></div><div style="margin-bottom:.16in"><div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#888;font-family:Lato,Arial,sans-serif;margin-bottom:6px;margin-top:4px;">EDUCATION</div><div style="font-size:11pt;font-family:Lato,Arial,sans-serif;line-height:1.45;"><div style="color:#333;margin-bottom:1px;">Bachelor of Fine Arts, Communication Design · Syracuse University</div><div style="height:3px;"></div></div></div><div style="margin-bottom:.16in"><div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#888;font-family:Lato,Arial,sans-serif;margin-bottom:6px;margin-top:4px;">AWARDS</div><div style="font-size:11pt;font-family:Lato,Arial,sans-serif;line-height:1.45;"><div style="color:#333;margin-bottom:1px;">NY Top Creative Winner · WIx and Vitamin T · 2014</div></div></div></div>
+        <div id="fmt-preview-pages-wrapper">
+          <div class="fmt-preview-page-slot"><div id="fmt-preview-page" class="fmt-preview-page"></div></div>
+        </div>
       </div>
       <div class="resume-panel-foot" id="resume-foot" style="display: none;">
         <div class="loading-row" id="editor-loading"><div class="spin"></div><span id="editor-msg">Generating...</span></div>
@@ -7126,49 +7083,122 @@ function updateLivePreview() {
   }
   const sections = fmtParseText(text);
   const html = fmtRenderSections(sections);
-  console.log('DEBUG updateLivePreview: fmtRenderSections returned html length:', html?.length || 0, ', first 100 chars:', html?.substring(0, 100) || '(empty)');
-  page.style.fontFamily = _fmt.bodyFont + ',Arial,sans-serif';
-  page.style.fontSize = _fmt.size;
-  // Asymmetric top padding so the Name sits higher in the live preview. Mirrors buildPrintHtml.
-  page.style.padding = `calc(${_fmt.margin} / 4) ${_fmt.margin} ${_fmt.margin} ${_fmt.margin}`;
-  page.style.lineHeight = _fmt.template === 'compact' ? '1.3' : '1.35';
-  page.style.background = _fmt.bgColor || '#ffffff';
-  page.style.color = _fmt.textColor || '#111111';
-  page.innerHTML = html;
-  drawPageBreakLines(page);
+  applyPreviewToPages(html);
 }
 
-// Adds a non-printing overlay of dashed horizontal lines on the preview page at every US Letter
-// boundary, so the user can see roughly where their content will break across pages. The lines
-// are absolutely positioned inside the page element. They have class 'page-break-line' which is
-// excluded from print via @media print.
-function drawPageBreakLines(pageEl) {
-  if (!pageEl) return;
-  // Clear any existing lines from the previous render
-  pageEl.querySelectorAll('.page-break-line').forEach(el => el.remove());
-  // Need position:relative on the page so absolute children pin to it
-  if (getComputedStyle(pageEl).position === 'static') pageEl.style.position = 'relative';
-  // Compute page height: US Letter aspect ratio = 11 / 8.5 applied to current rendered width.
-  // offsetWidth includes padding, which is correct since the preview's box matches a real page.
-  const w = pageEl.offsetWidth;
-  if (!w) return;
-  const pageHeightPx = w * (11 / 8.5);
-  const totalHeight = pageEl.scrollHeight;
-  let y = pageHeightPx;
-  while (y < totalHeight) {
-    const line = document.createElement('div');
-    line.className = 'page-break-line';
-    line.style.cssText = `position:absolute;left:0;right:0;top:${y}px;height:0;border-top:1px dashed #aaa;pointer-events:none;z-index:1;`;
-    // Small label on the right showing which page boundary this is
-    const pageNum = Math.round(y / pageHeightPx) + 1;
-    const label = document.createElement('span');
-    label.style.cssText = 'position:absolute;right:0;top:-9px;font-size:9px;color:#888;background:#f5f3ef;padding:0 4px;font-family:system-ui,sans-serif;';
-    label.textContent = `Page ${pageNum}`;
-    line.appendChild(label);
-    pageEl.appendChild(line);
-    y += pageHeightPx;
+// In-page units. CSS uses physical inches at 96 CSS DPI.
+const PAGE_WIDTH_IN = 8.5;
+const PAGE_HEIGHT_IN = 11;
+
+// Rebuilds the print-preview pages. Renders all content into a hidden measuring page at full
+// 8.5" width, splits children across multiple page elements when content exceeds 11" of vertical
+// height, then applies a CSS transform: scale(N) so the pages fit the preview panel width while
+// the page itself stays at literal Letter dimensions. Result reads as a true print preview.
+function applyPreviewToPages(html) {
+  const wrapper = document.getElementById('fmt-preview-pages-wrapper');
+  if (!wrapper) return;
+  // Sync per-page styles (so the measurement matches the visible page)
+  const pageStyle = {
+    fontFamily: _fmt.bodyFont + ',Arial,sans-serif',
+    fontSize: _fmt.size,
+    padding: `calc(${_fmt.margin} / 4) ${_fmt.margin} ${_fmt.margin} ${_fmt.margin}`,
+    lineHeight: _fmt.template === 'compact' ? '1.3' : '1.35',
+    background: _fmt.bgColor || '#ffffff',
+    color: _fmt.textColor || '#111111',
+  };
+
+  // Phase 1: Measure. Render the content into an offscreen page-sized div at full Letter width.
+  // Walking children works because fmtRenderSections produces a flat sequence of section divs.
+  const meas = document.createElement('div');
+  meas.className = 'fmt-preview-page';
+  Object.assign(meas.style, pageStyle, { position:'absolute', left:'-99999px', top:'0', visibility:'hidden', height:'auto', overflow:'visible' });
+  meas.innerHTML = html;
+  document.body.appendChild(meas);
+
+  // 96 CSS px per inch is the standard at default zoom; scale only affects how the page is
+  // drawn on screen, not measurement.
+  const PAGE_HEIGHT_PX = PAGE_HEIGHT_IN * 96;
+  // We need to know the inner content height (after padding). Simplest: use the offset top of
+  // each child relative to the measurement div.
+  const children = Array.from(meas.children);
+  // Compute the available content height = page height minus top + bottom padding.
+  // padding strings like "0.65in" — convert via getComputedStyle.
+  const cs = getComputedStyle(meas);
+  const padTop = parseFloat(cs.paddingTop) || 0;
+  const padBot = parseFloat(cs.paddingBottom) || 0;
+  const availableHeight = PAGE_HEIGHT_PX - padTop - padBot;
+
+  // Phase 2: Walk children, assigning each to a page. If a single child exceeds availableHeight,
+  // it stays on its own page (anything taller than a page can't be subdivided cleanly here).
+  const pages = [[]];
+  let accumulated = 0;
+  for (const child of children) {
+    const h = child.getBoundingClientRect().height;
+    // If adding this child would overflow, start a new page (unless current page is empty).
+    if (accumulated + h > availableHeight && pages[pages.length - 1].length > 0) {
+      pages.push([]);
+      accumulated = 0;
+    }
+    pages[pages.length - 1].push(child.outerHTML);
+    accumulated += h;
   }
+  document.body.removeChild(meas);
+
+  // Phase 3: Build the actual page elements in the wrapper.
+  wrapper.innerHTML = '';
+  pages.forEach((pageHtml, idx) => {
+    const slot = document.createElement('div');
+    slot.className = 'fmt-preview-page-slot';
+    const pageEl = document.createElement('div');
+    pageEl.className = 'fmt-preview-page';
+    if (idx === 0) pageEl.id = 'fmt-preview-page'; // legacy id on first page
+    Object.assign(pageEl.style, pageStyle);
+    pageEl.innerHTML = pageHtml.join('');
+    slot.appendChild(pageEl);
+    wrapper.appendChild(slot);
+  });
+
+  // Phase 4: Apply the scale transform based on the wrapper's current width.
+  scalePreviewPages();
 }
+
+// Computes the scale factor so the 8.5in pages fit the preview panel width, then applies the
+// transform to each page element. Also sets the slot's height so layout reserves space for the
+// scaled page (transform doesn't affect layout box by default).
+function scalePreviewPages() {
+  const wrapper = document.getElementById('fmt-preview-pages-wrapper');
+  const previewEl = document.getElementById('fmt-live-preview');
+  if (!wrapper || !previewEl) return;
+  // Use the live preview container's content width minus its padding so we don't push past edges.
+  const previewStyle = getComputedStyle(previewEl);
+  const padL = parseFloat(previewStyle.paddingLeft) || 0;
+  const padR = parseFloat(previewStyle.paddingRight) || 0;
+  const availableWidth = previewEl.clientWidth - padL - padR - 8; // a little breathing room
+  const PAGE_WIDTH_PX = PAGE_WIDTH_IN * 96;
+  const PAGE_HEIGHT_PX = PAGE_HEIGHT_IN * 96;
+  const scale = Math.max(0.1, Math.min(1, availableWidth / PAGE_WIDTH_PX));
+  wrapper.querySelectorAll('.fmt-preview-page-slot').forEach(slot => {
+    const page = slot.querySelector('.fmt-preview-page');
+    if (!page) return;
+    page.style.transform = `scale(${scale})`;
+    // Reserve scaled-page space; height of the scaled page in the layout flow.
+    slot.style.width = (PAGE_WIDTH_PX * scale) + 'px';
+    slot.style.height = (PAGE_HEIGHT_PX * scale) + 'px';
+  });
+}
+
+// Re-scale on window resize so the preview tracks the panel width.
+window.addEventListener('resize', () => {
+  // Debounce so rapid resize doesn't thrash
+  clearTimeout(window._previewResizeTimer);
+  window._previewResizeTimer = setTimeout(scalePreviewPages, 60);
+});
+
+// Legacy stub kept so other callers don't break — paginatePreview now handles boundaries.
+function drawPageBreakLines() {}
+
+// Adds a non-printing overlay of dashed horizontal lines on the preview page at every US Letter
+// boundary. (Replaced by paginatePreview in 2.4.71 — kept as no-op alias above for safety.)
 
 function showFmtPreviewPanel(show) {
   const previewEl = document.getElementById('fmt-live-preview');
@@ -8551,24 +8581,37 @@ function renderLivePreview() {
   if (proj.drafts.length === 0) proj.drafts.push(text);
   else proj.drafts[proj.drafts.length - 1] = text;
   // Update right panel — always show formatted preview
-  const page = document.getElementById('fmt-preview-page');
   const bodyEl = document.getElementById('resume-panel-body');
   const previewEl = document.getElementById('fmt-live-preview');
-  if (page && previewEl) {
-    // Always show formatted preview
+  const wrapper = document.getElementById('fmt-preview-pages-wrapper');
+  if (wrapper && previewEl) {
     if (bodyEl) bodyEl.style.display = 'none';
     const footEl = document.getElementById('resume-foot');
     if (footEl) footEl.style.display = 'none';
     previewEl.classList.add('show');
-    // Render
-    const sections = fmtParseText(text);
-    const html = fmtRenderSections(sections);
-    page.style.fontFamily = _fmt.font + ',Arial,sans-serif';
-    page.style.fontSize = _fmt.size;
-    page.style.padding = `calc(${_fmt.margin} / 4) ${_fmt.margin} ${_fmt.margin} ${_fmt.margin}`;
-    page.style.lineHeight = _fmt.template === 'compact' ? '1.3' : '1.35';
-    page.innerHTML = html || '<div style="padding:2rem;text-align:center;color:#aaa;font-size:13px;">Start filling in your details to see the preview.</div>';
-    drawPageBreakLines(page);
+    // Empty CE → render a single placeholder page so the preview isn't blank.
+    if (!text || !text.trim()) {
+      wrapper.innerHTML = '';
+      const slot = document.createElement('div');
+      slot.className = 'fmt-preview-page-slot';
+      const pageEl = document.createElement('div');
+      pageEl.className = 'fmt-preview-page';
+      pageEl.id = 'fmt-preview-page';
+      pageEl.style.fontFamily = _fmt.bodyFont + ',Arial,sans-serif';
+      pageEl.style.fontSize = _fmt.size;
+      pageEl.style.padding = `calc(${_fmt.margin} / 4) ${_fmt.margin} ${_fmt.margin} ${_fmt.margin}`;
+      pageEl.style.lineHeight = _fmt.template === 'compact' ? '1.3' : '1.35';
+      pageEl.style.background = _fmt.bgColor || '#ffffff';
+      pageEl.style.color = _fmt.textColor || '#111111';
+      pageEl.innerHTML = '<div style="padding:2rem;text-align:center;color:#aaa;font-size:13px;">Start filling in your details to see the preview.</div>';
+      slot.appendChild(pageEl);
+      wrapper.appendChild(slot);
+      scalePreviewPages();
+    } else {
+      const sections = fmtParseText(text);
+      const html = fmtRenderSections(sections);
+      applyPreviewToPages(html);
+    }
   }
   // Update version badge
   const badge = document.getElementById('editor-version-badge');
