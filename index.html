@@ -611,7 +611,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.75</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.76</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -1867,7 +1867,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
           <div class="field">
             <label class="fl">Job posting URL</label>
             <div style="display:flex;gap:8px;">
-              <input type="url" id="jd-url" style="flex:1;" onkeydown="if(event.key===&#39;Enter&#39;)fetchJobFromUrl()">
+              <input type="url" id="jd-url" style="flex:1;" oninput="syncJDToWorkspace()" onkeydown="if(event.key===&#39;Enter&#39;)fetchJobFromUrl()">
               <button class="btn btn-secondary btn-sm" onclick="fetchJobFromUrl()" style="white-space:nowrap;">Fetch →</button>
             </div>
           </div>
@@ -1879,7 +1879,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <div class="card mb-3">
           <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Or enter manually</div>
           <div class="two"><div class="field"><label class="fl">Job title</label><input type="text" id="jd-title" oninput="syncJDToWorkspace()"></div><div class="field"><label class="fl">Company</label><input type="text" id="jd-company" oninput="syncJDToWorkspace()"></div></div>
-          <div class="field"><label class="fl">Full job description</label><textarea id="jd-text" style="min-height:180px;"></textarea></div>
+          <div class="field"><label class="fl">Full job description</label><textarea id="jd-text" oninput="syncJDToWorkspace()" style="min-height:180px;"></textarea></div>
         </div>
 
         <div class="flex-c gap-2">
@@ -3263,7 +3263,7 @@ function loadProject(id) {
   if (strengths) strengths.innerHTML = '';
   const gaps = document.getElementById('score-gaps');
   if (gaps) gaps.innerHTML = '';
-  try { s('jd-title', proj.jdTitle||''); s('jd-company', proj.jdCompany||''); s('jd-text', proj.jdText||''); } catch(e) {}
+  try { s('jd-title', proj.jdTitle||''); s('jd-company', proj.jdCompany||''); s('jd-text', proj.jdText||''); s('jd-url', proj.jdUrl||''); } catch(e) {}
   try { if (proj.jdAnalysis) renderJDAnalysis(proj.jdAnalysis); } catch(e) {}
   try { if (proj.questions?.length) renderQuestions(proj.questions); } catch(e) {}
   // Reveal the inline qa-section if this project already has questions; hide it otherwise
@@ -4020,10 +4020,13 @@ function fileToBase64(file){return new Promise((r,j)=>{const rd=new FileReader()
 //  JD ANALYZER
 // ─────────────────────────────────────────────────────────
 function syncJDToWorkspace() {
-  // Keep proj in sync so prompts always use latest JD title/company
+  // Keep proj in sync so prompts always use latest JD title/company/url/text
   if (!proj) return;
   proj.jdTitle = g('jd-title');
   proj.jdCompany = g('jd-company');
+  proj.jdText = g('jd-text');
+  proj.jdUrl = g('jd-url');
+  autoSave();
 }
 
 // ─────────────────────────────────────────────────────────
@@ -4208,18 +4211,37 @@ Please provide the complete job posting text including title, company, responsib
 
     // Use Claude to extract structured job info from the raw text
     if (msgEl) msgEl.textContent = 'Extracting job details...';
-    const raw = await claudeFetch(`From this job posting page text, extract the job information. Return ONLY valid JSON:
-{"title":"exact job title","company":"company name","description":"full job description text only, no navigation or footer content"}
+    const raw = await claudeFetch(`Extract the job posting from the page text below. ALL THREE FIELDS ARE REQUIRED — do not skip any.
+
+Return ONLY valid JSON with no other text:
+{"title":"the exact job title from the posting","company":"the company name","description":"the COMPLETE job description: responsibilities, qualifications, requirements, what you'll do, what you have. Include the full body text of the posting. Do NOT include navigation, footer, cookie banners, application instructions, or boilerplate."}
+
+Rules:
+- Title must be the actual job title (e.g. "Senior Product Designer"). Never return a department, page header, or page title.
+- Company must be the hiring organization name. Never return the job board or aggregator name (Lever, Greenhouse, LinkedIn, Indeed, etc.) — extract the actual company.
+- Description must contain the full posting body. If the page has multiple sections (Overview, What You'll Do, Requirements, etc.), include them all concatenated with line breaks.
+- Strip JSON-breaking characters from the description (newlines OK, but escape any quotes).
+
 PAGE TEXT:
-${bodyText.slice(0, 6000)}`, 2000);
+${bodyText.slice(0, 12000)}`, 4000);
 
     const parsed = parseJson(raw);
     if (parsed.title) { s('jd-title', parsed.title); if (proj) proj.jdTitle = parsed.title; }
     if (parsed.company) { s('jd-company', parsed.company); if (proj) proj.jdCompany = parsed.company; }
     if (parsed.description) { s('jd-text', parsed.description); if (proj) proj.jdText = parsed.description; }
+    if (proj) autoSave();
 
+    // Diagnostic so missing fields are visible to the user instead of silently failing.
+    const missing = [];
+    if (!parsed.title) missing.push('title');
+    if (!parsed.company) missing.push('company');
+    if (!parsed.description) missing.push('description');
     loading?.classList.remove('show');
-    toast('Job details extracted — review and click Analyze');
+    if (missing.length) {
+      toast(`Extracted partial data — missing: ${missing.join(', ')}. Fill them in manually.`);
+    } else {
+      toast('Job details extracted — review and click Analyze');
+    }
   } catch(e) {
     loading?.classList.remove('show');
     if (errEl) { errEl.textContent = e.message; errEl.style.display = 'block'; }
