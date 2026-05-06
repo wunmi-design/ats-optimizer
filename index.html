@@ -611,7 +611,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.71</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.72</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -7111,18 +7111,20 @@ function applyPreviewToPages(html) {
   // Walking children works because fmtRenderSections produces a flat sequence of section divs.
   const meas = document.createElement('div');
   meas.className = 'fmt-preview-page';
-  Object.assign(meas.style, pageStyle, { position:'absolute', left:'-99999px', top:'0', visibility:'hidden', height:'auto', overflow:'visible' });
+  Object.assign(meas.style, pageStyle, {
+    position: 'absolute',
+    left: '-99999px',
+    top: '-99999px',                 // moved offscreen rather than visibility:hidden so layout/measurement is fully accurate
+    width: PAGE_WIDTH_IN + 'in',
+    height: 'auto',
+    overflow: 'visible',
+    transform: 'none',
+  });
   meas.innerHTML = html;
   document.body.appendChild(meas);
 
-  // 96 CSS px per inch is the standard at default zoom; scale only affects how the page is
-  // drawn on screen, not measurement.
   const PAGE_HEIGHT_PX = PAGE_HEIGHT_IN * 96;
-  // We need to know the inner content height (after padding). Simplest: use the offset top of
-  // each child relative to the measurement div.
   const children = Array.from(meas.children);
-  // Compute the available content height = page height minus top + bottom padding.
-  // padding strings like "0.65in" — convert via getComputedStyle.
   const cs = getComputedStyle(meas);
   const padTop = parseFloat(cs.paddingTop) || 0;
   const padBot = parseFloat(cs.paddingBottom) || 0;
@@ -7134,7 +7136,6 @@ function applyPreviewToPages(html) {
   let accumulated = 0;
   for (const child of children) {
     const h = child.getBoundingClientRect().height;
-    // If adding this child would overflow, start a new page (unless current page is empty).
     if (accumulated + h > availableHeight && pages[pages.length - 1].length > 0) {
       pages.push([]);
       accumulated = 0;
@@ -7143,6 +7144,7 @@ function applyPreviewToPages(html) {
     accumulated += h;
   }
   document.body.removeChild(meas);
+  console.log('[paginate]', children.length, 'children →', pages.length, 'page(s); availableHeight=', Math.round(availableHeight), 'totalContentHeight=', Math.round(accumulated));
 
   // Phase 3: Build the actual page elements in the wrapper.
   wrapper.innerHTML = '';
@@ -7590,17 +7592,33 @@ async function fmtSavePdf() {
   updateLivePreview();
   await new Promise(r => setTimeout(r, 150));
 
-  const page = document.getElementById('fmt-preview-page');
-  if (!page || !page.innerHTML.trim()) {
+  // The screen preview now paginates content across multiple page elements (2.4.71). Reading
+  // #fmt-preview-page would only capture page 1, so we re-render the full resume HTML from the
+  // current text. This guarantees the PDF/print contains every section regardless of preview
+  // pagination state.
+  const fullText = getResumeText();
+  if (!fullText || !fullText.trim()) {
     toast('Open the Template tab first so the preview renders');
     return;
   }
+  const fullHtml = fmtRenderSections(fmtParseText(fullText));
+  // Mock a page-like object so existing references to page.style.* still work below.
+  const page = {
+    innerHTML: fullHtml,
+    style: {
+      background: _fmt.bgColor || '#ffffff',
+      color: _fmt.textColor || '#111111',
+      fontFamily: (_fmt.bodyFont || 'Arial') + ',Arial,sans-serif',
+      fontSize: ((_fmt.bodySize || 11) + 'pt'),
+      lineHeight: _fmt.template === 'compact' ? '1.3' : '1.35',
+    }
+  };
 
-  const bg      = page.style.background || _fmt.bgColor || '#ffffff';
-  const color   = page.style.color || _fmt.textColor || '#111111';
-  const fontFam = page.style.fontFamily || (_fmt.bodyFont + ',Arial,sans-serif');
-  const fontSize = page.style.fontSize || ((_fmt.bodySize||11) + 'px');
-  const lineH   = page.style.lineHeight || '1.45';
+  const bg      = page.style.background;
+  const color   = page.style.color;
+  const fontFam = page.style.fontFamily;
+  const fontSize = page.style.fontSize;
+  const lineH   = page.style.lineHeight;
   const pad     = _fmt.margin || '0.65in';
 
   // Embed used fonts as base64 so print renderer uses them
