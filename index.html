@@ -611,7 +611,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.77</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.78</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -4029,6 +4029,43 @@ function syncJDToWorkspace() {
   autoSave();
 }
 
+// Converts HTML (often double-encoded — entities embedded in JSON, then literal HTML inside) to
+// clean plaintext suitable for the JD textarea. Decodes entities, parses as DOM, and walks block
+// elements emitting newlines so headings and lists don't run together. Used by the Ashby/Lever/
+// Greenhouse handlers.
+function htmlToText(htmlOrEncoded) {
+  if (!htmlOrEncoded) return '';
+  // Decode HTML entities once. If the source is already raw HTML, this is a no-op.
+  const ta = document.createElement('textarea');
+  ta.innerHTML = String(htmlOrEncoded);
+  const decoded = ta.value;
+  // Now parse decoded HTML and walk it.
+  const doc = new DOMParser().parseFromString(decoded, 'text/html');
+  if (!doc.body) return decoded.replace(/\s+/g, ' ').trim();
+
+  const blockTags = new Set(['DIV','P','BR','H1','H2','H3','H4','H5','H6','LI','UL','OL','TR','TD','TH','SECTION','ARTICLE','HEADER','FOOTER','BLOCKQUOTE','PRE']);
+  const out = [];
+  const walk = (node) => {
+    if (node.nodeType === 3) { // text node
+      out.push(node.nodeValue);
+      return;
+    }
+    if (node.nodeType !== 1) return;
+    const tag = node.tagName;
+    const isBlock = blockTags.has(tag);
+    if (isBlock) out.push('\n');
+    if (tag === 'LI') out.push('- ');
+    for (const child of node.childNodes) walk(child);
+    if (isBlock) out.push('\n');
+  };
+  walk(doc.body);
+  return out.join('')
+    .replace(/[ \t]+\n/g, '\n')      // trim trailing spaces on each line
+    .replace(/\n{3,}/g, '\n\n')      // collapse 3+ newlines to 2
+    .replace(/^[\s\n]+|[\s\n]+$/g, '') // trim outer whitespace
+    .replace(/[ \t]{2,}/g, ' ');     // collapse runs of spaces
+}
+
 // ─────────────────────────────────────────────────────────
 //  URL FETCH
 // ─────────────────────────────────────────────────────────
@@ -4068,8 +4105,7 @@ async function fetchJobFromUrl() {
           const info = ashbyGql?.data?.jobPosting;
           if (!info) throw new Error('Job not found');
           const title = info.title || '';
-          const descDoc = new DOMParser().parseFromString(info.descriptionHtml || '', 'text/html');
-          const descText = descDoc.body?.textContent?.trim() || '';
+          const descText = htmlToText(info.descriptionHtml || '');
           
           if (title) { s('jd-title', title); if (proj) proj.jdTitle = title; }
           const company = ashbyMatch[1].charAt(0).toUpperCase() + ashbyMatch[1].slice(1);
@@ -4114,8 +4150,7 @@ async function fetchJobFromUrl() {
           if (ghData.title) { s('jd-title', ghData.title); if (proj) proj.jdTitle = ghData.title; }
           s('jd-company', ghMatch[1].charAt(0).toUpperCase() + ghMatch[1].slice(1));
           if (proj) proj.jdCompany = ghMatch[1].charAt(0).toUpperCase() + ghMatch[1].slice(1);
-          const descDoc = new DOMParser().parseFromString(ghData.content || '', 'text/html');
-          const descText = descDoc.body?.textContent?.trim() || '';
+          const descText = htmlToText(ghData.content || '');
           if (descText) { s('jd-text', descText); if (proj) proj.jdText = descText; }
           loading?.classList.remove('show');
           toast('Job details extracted — review and click Analyze');
@@ -4158,8 +4193,7 @@ async function fetchJobFromUrl() {
           if (ghData.title) { s('jd-title', ghData.title); if (proj) proj.jdTitle = ghData.title; }
           const companyName = resolvedSlug.charAt(0).toUpperCase() + resolvedSlug.slice(1);
           s('jd-company', companyName); if (proj) proj.jdCompany = companyName;
-          const descDoc = new DOMParser().parseFromString(ghData.content || '', 'text/html');
-          const descText = descDoc.body?.textContent?.trim() || '';
+          const descText = htmlToText(ghData.content || '');
           if (descText) { s('jd-text', descText); if (proj) proj.jdText = descText; }
           loading?.classList.remove('show');
           toast('Job details extracted — review and click Analyze');
