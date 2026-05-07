@@ -632,7 +632,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.92</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.93</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -3133,6 +3133,7 @@ function renderProjGrid() {
             <label><input type="radio" name="status-${p.id}" value="ready-to-send" ${p.status==='ready-to-send'?'checked':''} onchange="setProjectStatus('${p.id}','ready-to-send')"> Ready to Send</label>
             <label><input type="radio" name="status-${p.id}" value="applied" ${p.status==='applied'?'checked':''} onchange="setProjectStatus('${p.id}','applied')"> Applied</label>
             <label><input type="radio" name="status-${p.id}" value="interviewing" ${p.status==='interviewing'?'checked':''} onchange="setProjectStatus('${p.id}','interviewing')"> Interviewing</label>
+            <label><input type="radio" name="status-${p.id}" value="not-pursuing" ${p.status==='not-pursuing'?'checked':''} onchange="setProjectStatus('${p.id}','not-pursuing')"> Not Pursuing</label>
           </div>
         </div>
         <div class="proj-card-menu">
