@@ -642,45 +642,16 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:12px;">Build 3.0.1</span>
+      <span style="color:var(--muted);font-size:12px;">Build 3.0.2</span>
       <div class="topbar-divider"></div>
       <div class="topbar-project" onclick="promptRenameProject()" style="flex:0 1 200px;">
-        <span class="topbar-project-name" id="proj-name-display">OpenAI01 -scored 1, optimized 0</span>
+        <span class="topbar-project-name" id="proj-name-display">Project</span>
         <span class="edit-icon" id="proj-edit-icon" style="display: inline;">✎</span>
       </div>
     </div>
     
-    <div class="topbar-right" style="gap:16px;">
-      <div style="display:flex;align-items:center;gap:16px;font-size:12px;font-weight:500;">
-        <div style="display:flex;align-items:center;gap:6px;">
-          <span style="color:var(--muted);">Daily:</span>
-          <span id="daily-usage" style="color:var(--ink);">0/50000</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;">
-          <span style="color:var(--muted);">Monthly:</span>
-          <span id="monthly-usage" style="color:var(--ink);">0/200000</span>
-        </div>
-      </div>
-      
-      <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
-      <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in</button>
-      
-      <div class="topbar-key">
-        <label>API Key</label>
-        <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
-        <span id="api-saved" style="display: inline;">✓</span>
-      </div>
-      
-      <button id="save-btn" class="btn btn-secondary btn-sm" onclick="if(!window._atsUser){handleAuthClick();return;}if(!proj){toast('No project open');return;}saveProject();toast('Saved to cloud')" title="Save">Save</button>
-      
-      <div style="position:relative;display:inline-block;" id="file-menu-wrap">
-        <button class="btn btn-secondary btn-sm" onmouseenter="document.getElementById('file-dropdown').style.display='block'" onclick="document.getElementById('file-dropdown').style.display=document.getElementById('file-dropdown').style.display==='block'?'none':'block'">File ▾</button>
-        <div id="file-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:999;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-lg);min-width:160px;overflow:hidden;" onmouseleave="this.style.display='none'">
-          <div style="padding:6px 14px;font-size:12px;cursor:pointer;white-space:nowrap;" onmouseenter="this.style.background='var(--surface)'" onmouseleave="this.style.background=''" onclick="saveProjectToDisk();document.getElementById('file-dropdown').style.display='none'">💾 Export</div>
-          <div style="padding:6px 14px;font-size:12px;cursor:pointer;white-space:nowrap;" onmouseenter="this.style.background='var(--surface)'" onmouseleave="this.style.background=''" onclick="loadProjectFromDisk();document.getElementById('file-dropdown').style.display='none'">📂 Load</div>
-          <div style="padding:6px 14px;font-size:12px;cursor:pointer;white-space:nowrap;" onmouseenter="this.style.background='var(--surface)'" onmouseleave="this.style.background=''" onclick="saveAsNewProject();document.getElementById('file-dropdown').style.display='none'">📄 Save as New</div>
-        </div>
-      </div>
+    <div class="topbar-right" style="gap:12px;justify-content:flex-end;">
+      <button id="save-btn" class="btn btn-secondary btn-sm" onclick="if(!window._atsUser){handleAuthClick();return;}if(!proj){toast('No project open');return;}saveProject();toast('Saved to cloud')">Save</button>
       
       <div style="position:relative;display:inline-block;" id="download-menu-wrap">
         <button class="btn btn-primary btn-sm" onclick="toggleDownloadMenu(event)">↓ Download Resume ▾</button>
@@ -690,6 +661,14 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
           <div style="height:1px;background:var(--border);margin:4px 0;"></div>
           <button onclick="closeDownloadMenu();setTimeout(exportWorkday,50)" style="display:block;width:100%;text-align:left;padding:9px 14px;font-size:12px;background:none;border:none;cursor:pointer;color:var(--ink);" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='none'">↓ Workday Export</button>
           <button onclick="closeDownloadMenu();setTimeout(exportIcims,50)" style="display:block;width:100%;text-align:left;padding:9px 14px;font-size:12px;background:none;border:none;cursor:pointer;color:var(--ink);" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='none'">↓ iCIMS Export</button>
+        </div>
+      </div>
+      
+      <div style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 8px;border-radius:8px;transition:background 0.2s;" id="user-profile-btn" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''" onclick="handleAuthClick()">
+        <img id="user-avatar" src="" alt="User" style="width:32px;height:32px;border-radius:50%;object-fit:cover;background:var(--border);display:none;">
+        <div style="display:flex;flex-direction:column;align-items:flex-start;font-size:11px;line-height:1.4;">
+          <span id="user-first-name" style="font-weight:600;color:var(--ink);">User</span>
+          <span id="user-dropdown-arrow" style="color:var(--muted);font-size:10px;">▼</span>
         </div>
       </div>
     </div>
@@ -703,8 +682,35 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
     <div class="tab" id="tab-format" onclick="switchTab('format')">Template</div>
     <div class="tab" id="tab-analyzer" onclick="switchTab(&#39;analyzer&#39;)">Optimizer <span id="tab-analyzer-score" class="score-pill" style="font-size: 10px; padding: 1px 5px; margin-left: 4px;">82%</span></div>
     <div style="flex:1;"></div>
+    
+    <div style="display:flex;align-items:center;gap:14px;margin-right:10px;font-size:12px;font-weight:500;padding:0 8px;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="color:var(--muted);">Daily:</span>
+        <span id="daily-usage" style="color:var(--ink);">0/50000</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="color:var(--muted);">Monthly:</span>
+        <span id="monthly-usage" style="color:var(--ink);">0/200000</span>
+      </div>
+    </div>
+    
+    <div class="topbar-key" style="padding:4px 8px;gap:4px;height:32px;align-items:center;margin-right:2px;">
+      <label style="flex-shrink:0;font-size:11px;">API Key</label>
+      <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)" style="width:100px;font-size:11px;">
+      <span id="api-saved" style="display:inline;flex-shrink:0;font-size:11px;">✓</span>
+    </div>
+    
     <button class="btn btn-ghost btn-sm" id="undo-btn" onclick="undoVersion()" title="Undo" style="font-size:12px;padding:4px 10px;white-space:nowrap;">↩ Undo</button>
     <button class="btn btn-ghost btn-sm" id="redo-btn" onclick="redoVersion()" title="Redo" style="font-size:12px;padding:4px 10px;white-space:nowrap;">Redo ↪</button>
+    
+    <div style="position:relative;display:inline-block;" id="file-menu-wrap">
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('file-dropdown').style.display=document.getElementById('file-dropdown').style.display==='block'?'none':'block'" style="font-size:12px;padding:4px 10px;white-space:nowrap;">File ▾</button>
+      <div id="file-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);right:0;z-index:999;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-lg);min-width:140px;overflow:hidden;" onmouseleave="this.style.display='none'">
+        <div style="padding:6px 14px;font-size:12px;cursor:pointer;white-space:nowrap;" onmouseenter="this.style.background='var(--surface)'" onmouseleave="this.style.background=''" onclick="saveProjectToDisk();document.getElementById('file-dropdown').style.display='none'">💾 Export</div>
+        <div style="padding:6px 14px;font-size:12px;cursor:pointer;white-space:nowrap;" onmouseenter="this.style.background='var(--surface)'" onmouseleave="this.style.background=''" onclick="loadProjectFromDisk();document.getElementById('file-dropdown').style.display='none'">📂 Load</div>
+        <div style="padding:6px 14px;font-size:12px;cursor:pointer;white-space:nowrap;" onmouseenter="this.style.background='var(--surface)'" onmouseleave="this.style.background=''" onclick="saveAsNewProject();document.getElementById('file-dropdown').style.display='none'">📄 Save as New</div>
+      </div>
+    </div>
   </div>
 
   <!-- ═══ MAIN LAYOUT ═══ -->
@@ -2753,12 +2759,29 @@ function handleAuthClick() {
 
 function setAuthUI() {
   if (window._atsUser) {
-    document.getElementById('auth-btn').textContent = 'Sign Out';
-    const name = window._atsUser.name || window._atsUser.email || 'Signed in';
-    document.getElementById('user-display').textContent = name;
-    document.getElementById('user-display').style.display = 'inline';
+    const profileBtn = document.getElementById('user-profile-btn');
+    const avatar = document.getElementById('user-avatar');
+    const firstName = document.getElementById('user-first-name');
+    
+    // Show user profile button
+    if (profileBtn) profileBtn.style.display = 'flex';
+    
+    // Set user's first name
+    const fullName = window._atsUser.name || window._atsUser.email || 'User';
+    const first = fullName.split(' ')[0];
+    if (firstName) firstName.textContent = first;
+    
+    // Set user's avatar if available from Google OAuth
+    if (window._atsUser.picture && avatar) {
+      avatar.src = window._atsUser.picture;
+      avatar.style.display = 'block';
+    }
+    
     // Update token usage display
     TokenTracker.updateUI(window._atsUser.id);
+  } else {
+    const profileBtn = document.getElementById('user-profile-btn');
+    if (profileBtn) profileBtn.style.display = 'none';
   }
 }
 
@@ -2782,7 +2805,8 @@ async function handleAuthCallback() {
         window._atsUser = {
           id: userData.id,
           email: userData.email,
-          name: userData.user_metadata?.full_name || userData.user_metadata?.name || userData.email
+          name: userData.user_metadata?.full_name || userData.user_metadata?.name || userData.email,
+          picture: userData.user_metadata?.picture || userData.user_metadata?.avatar_url
         };
         localStorage.setItem('ats_user', JSON.stringify(window._atsUser));
       } catch(e) {
