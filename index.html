@@ -629,7 +629,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.88</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.89</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -7885,12 +7885,18 @@ function drawPageBreakLinesOnPage(pageEl) {
     pageNum++;
   }
 
-  // Max-length indicator: red dashed line at maxPages × 11in. Drawn even if the resume is short
-  // (so the user can see they have room) and even if the resume exceeds it (so they can see by
-  // how much). Skipped only if maxPages is 0 (no roles → no signal).
+  // Max-length indicator: red dashed line accounting for page margins. The line is positioned at
+  // the actual content limit, not the raw page boundary. Each page loses height to top margin
+  // (margin/4) and bottom margin (margin). Drawn even if resume is short (shows available room)
+  // and even if it exceeds (shows overage). Skipped only if maxPages is 0 (no roles → no signal).
   const maxPages = recommendedMaxPages();
   if (maxPages > 0) {
-    const maxY = maxPages * PAGE_HEIGHT_PX;
+    // Parse margin value (e.g., "0.65in" → 62.4px at 96 DPI)
+    const marginStr = _fmt.margin || '0.65in';
+    const marginVal = parseFloat(marginStr);
+    const marginPx = marginVal * 96;  // Convert inches to pixels at 96 DPI
+    const usableHeightPerPagePx = PAGE_HEIGHT_PX - (marginPx * 1.25);  // margin/4 + margin = 1.25×margin
+    const maxY = (maxPages - 1) * PAGE_HEIGHT_PX + usableHeightPerPagePx;
     const line = document.createElement('div');
     line.className = 'max-length-line';
     line.style.cssText = `position:absolute;left:0;right:0;top:${maxY}px;height:0;border-top:2px dashed #dc2626;pointer-events:none;z-index:6;`;
@@ -8248,21 +8254,44 @@ function fmtLinkify(raw) {
     }
     body = html;
   } else {
-    body = sec.lines.map(line=>{
-      const t=line.trim();
-      if(!t) return'<div style="height:4px;"></div>';
-      if(t.startsWith('•')||t.startsWith('-'))
-        return`<div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:2px;">${fmtLinkify(t)}</div>`;
-      if(/\d{2}\/\d{2}/.test(t)&&t.length<120)
-        return`<div style="font-weight:600;margin-top:6px;margin-bottom:1px;">${fmtLinkify(t)}</div>`;
-      const labelMatch=t.match(/^([A-Z][a-zA-Z\s&]+):\s(.+)$/);
-      if(labelMatch&&labelMatch[1].length<30) {
-        if (isSkillsSection) return renderSkillLine(labelMatch[1], labelMatch[2]);
-        return`<div style="margin-bottom:3px;"><strong>${e(labelMatch[1])}:</strong> ${fmtLinkify(labelMatch[2])}</div>`;
+    // For EDUCATION sections, combine adjacent non-empty lines into single entries to keep them on one line
+    const isEducationSection = (sec.heading||'').toUpperCase().includes('EDUCATION');
+    if (isEducationSection) {
+      const entries = [];
+      let currentEntry = [];
+      for (const line of sec.lines) {
+        const t = line.trim();
+        if (!t) {
+          if (currentEntry.length > 0) {
+            entries.push(currentEntry);
+            currentEntry = [];
+          }
+        } else {
+          currentEntry.push(t);
+        }
       }
-      if (isSkillsSection && t.includes(',')) return renderSkillLine('', t);
-      return`<div style="color:#333;margin-bottom:1px;">${fmtLinkify(t)}</div>`;
-    }).join('');
+      if (currentEntry.length > 0) entries.push(currentEntry);
+      body = entries.map(entry => {
+        const combined = entry.join(' · ');
+        return `<div style="color:#333;margin-bottom:4px;white-space:normal;">${fmtLinkify(combined)}</div>`;
+      }).join('');
+    } else {
+      body = sec.lines.map(line=>{
+        const t=line.trim();
+        if(!t) return'<div style="height:4px;"></div>';
+        if(t.startsWith('•')||t.startsWith('-'))
+          return`<div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:2px;">${fmtLinkify(t)}</div>`;
+        if(/\d{2}\/\d{2}/.test(t)&&t.length<120)
+          return`<div style="font-weight:600;margin-top:6px;margin-bottom:1px;">${fmtLinkify(t)}</div>`;
+        const labelMatch=t.match(/^([A-Z][a-zA-Z\s&]+):\s(.+)$/);
+        if(labelMatch&&labelMatch[1].length<30) {
+          if (isSkillsSection) return renderSkillLine(labelMatch[1], labelMatch[2]);
+          return`<div style="margin-bottom:3px;"><strong>${e(labelMatch[1])}:</strong> ${fmtLinkify(labelMatch[2])}</div>`;
+        }
+        if (isSkillsSection && t.includes(',')) return renderSkillLine('', t);
+        return`<div style="color:#333;margin-bottom:1px;">${fmtLinkify(t)}</div>`;
+      }).join('');
+    }
   }
     // Section heading style per template
   let headingHtml;
