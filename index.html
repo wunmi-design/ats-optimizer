@@ -629,7 +629,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.89</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.90</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -8248,6 +8248,42 @@ function fmtLinkify(raw) {
         html += renderSkillLine('', t);
         i++; continue;
       }
+      
+      // Special handling for EDUCATION sections: combine adjacent non-empty lines with " · " separator
+      const isEducationHeading = /EDUCATION|CERTIFICATIONS|DEGREES/i.test(sec.heading || '');
+      if (isEducationHeading && !t.includes(':')) {
+        // Look ahead for next non-empty line to combine education entries
+        let eduLines = [t];
+        let nextIdx = i + 1;
+        while (nextIdx < lines.length) {
+          const nextLine = lines[nextIdx].trim();
+          if (!nextLine) {
+            nextIdx++;
+            continue;
+          }
+          // Stop if next line looks like a new institution (has a university/school name pattern)
+          if (/university|college|school|institute|academy|polytechnic/i.test(nextLine) && 
+              eduLines.length >= 1 &&
+              !eduLines[0].match(/university|college|school|institute|academy|polytechnic/i)) {
+            // This is the location/school line, include it
+            eduLines.push(nextLine);
+            i = nextIdx;
+            break;
+          }
+          // Otherwise, include this line
+          eduLines.push(nextLine);
+          nextIdx++;
+          // Stop after second line (degree + school combo is standard)
+          if (eduLines.length >= 2) break;
+        }
+        if (eduLines.length > 1) {
+          html += `<div style="color:#333;margin-bottom:4px;">${fmtLinkify(eduLines.join(' · '))}</div>`;
+        } else {
+          html += `<div style="color:#333;margin-bottom:1px;">${fmtLinkify(t)}</div>`;
+        }
+        i++; continue;
+      }
+      
       const isContextLine = t.length > 40 && t.endsWith('.');
       html += `<div style="color:#333;margin-bottom:${isContextLine?'7':'1'}px;">${fmtLinkify(t)}</div>`;
       i++;
