@@ -555,6 +555,9 @@ select option{background:var(--white);}
 /* Didn't Apply — gray */
 .status-btn.didnt-apply{color:#555;background:#f5f5f5;border:1.5px solid #d4d4d4;}
 .status-btn.didnt-apply:hover{background:#e5e5e5;}
+/* Not Pursuing — muted amber */
+.status-btn.not-pursuing{color:#92400e;background:#fef5f0;border:1.5px solid #fed7aa;}
+.status-btn.not-pursuing:hover{background:#feedde;}
 .status-popup{position:absolute;bottom:calc(100% + 6px);right:0;z-index:200;background:var(--white);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-lg);padding:8px;min-width:170px;display:none;}
 .status-popup.open{display:block;}
 .status-popup label{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:500;}
@@ -629,7 +632,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.91</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.92</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -717,6 +720,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
             <label><input type="radio" name="status-p_1776811923794" value="didnt-apply" checked="" onchange="setProjectStatus(&#39;p_1776811923794&#39;,&#39;didnt-apply&#39;)"> Didn't Apply</label>
             <label><input type="radio" name="status-p_1776811923794" value="applied" onchange="setProjectStatus(&#39;p_1776811923794&#39;,&#39;applied&#39;)"> Applied</label>
             <label><input type="radio" name="status-p_1776811923794" value="interviewing" onchange="setProjectStatus(&#39;p_1776811923794&#39;,&#39;interviewing&#39;)"> Interviewing</label>
+            <label><input type="radio" name="status-p_1776811923794" value="not-pursuing" onchange="setProjectStatus(&#39;p_1776811923794&#39;,&#39;not-pursuing&#39;)"> Not Pursuing</label>
           </div>
         </div>
         <div class="proj-card-menu">
@@ -749,6 +753,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
             <label><input type="radio" name="status-p_1776807559083" value="didnt-apply" checked="" onchange="setProjectStatus(&#39;p_1776807559083&#39;,&#39;didnt-apply&#39;)"> Didn't Apply</label>
             <label><input type="radio" name="status-p_1776807559083" value="applied" onchange="setProjectStatus(&#39;p_1776807559083&#39;,&#39;applied&#39;)"> Applied</label>
             <label><input type="radio" name="status-p_1776807559083" value="interviewing" onchange="setProjectStatus(&#39;p_1776807559083&#39;,&#39;interviewing&#39;)"> Interviewing</label>
+            <label><input type="radio" name="status-p_1776807559083" value="not-pursuing" onchange="setProjectStatus(&#39;p_1776807559083&#39;,&#39;not-pursuing&#39;)"> Not Pursuing</label>
           </div>
         </div>
         <div class="proj-card-menu">
@@ -780,6 +785,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
             <label><input type="radio" name="status-p_1776807340067" value="didnt-apply" checked="" onchange="setProjectStatus(&#39;p_1776807340067&#39;,&#39;didnt-apply&#39;)"> Didn't Apply</label>
             <label><input type="radio" name="status-p_1776807340067" value="applied" onchange="setProjectStatus(&#39;p_1776807340067&#39;,&#39;applied&#39;)"> Applied</label>
             <label><input type="radio" name="status-p_1776807340067" value="interviewing" onchange="setProjectStatus(&#39;p_1776807340067&#39;,&#39;interviewing&#39;)"> Interviewing</label>
+            <label><input type="radio" name="status-p_1776807340067" value="not-pursuing" onchange="setProjectStatus(&#39;p_1776807340067&#39;,&#39;not-pursuing&#39;)"> Not Pursuing</label>
           </div>
         </div>
         <div class="proj-card-menu">
@@ -812,6 +818,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
             <label><input type="radio" name="status-p_1776809316489" value="didnt-apply" checked="" onchange="setProjectStatus(&#39;p_1776809316489&#39;,&#39;didnt-apply&#39;)"> Didn't Apply</label>
             <label><input type="radio" name="status-p_1776809316489" value="applied" onchange="setProjectStatus(&#39;p_1776809316489&#39;,&#39;applied&#39;)"> Applied</label>
             <label><input type="radio" name="status-p_1776809316489" value="interviewing" onchange="setProjectStatus(&#39;p_1776809316489&#39;,&#39;interviewing&#39;)"> Interviewing</label>
+            <label><input type="radio" name="status-p_1776809316489" value="not-pursuing" onchange="setProjectStatus(&#39;p_1776809316489&#39;,&#39;not-pursuing&#39;)"> Not Pursuing</label>
           </div>
         </div>
         <div class="proj-card-menu">
@@ -844,6 +851,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
             <label><input type="radio" name="status-p_1776745363953" value="didnt-apply" onchange="setProjectStatus(&#39;p_1776745363953&#39;,&#39;didnt-apply&#39;)"> Didn't Apply</label>
             <label><input type="radio" name="status-p_1776745363953" value="applied" onchange="setProjectStatus(&#39;p_1776745363953&#39;,&#39;applied&#39;)"> Applied</label>
             <label><input type="radio" name="status-p_1776745363953" value="interviewing" onchange="setProjectStatus(&#39;p_1776745363953&#39;,&#39;interviewing&#39;)"> Interviewing</label>
+            <label><input type="radio" name="status-p_1776745363953" value="not-pursuing" onchange="setProjectStatus(&#39;p_1776745363953&#39;,&#39;not-pursuing&#39;)"> Not Pursuing</label>
           </div>
         </div>
         <div class="proj-card-menu">
@@ -875,6 +883,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
             <label><input type="radio" name="status-undefined" value="didnt-apply" onchange="setProjectStatus(&#39;undefined&#39;,&#39;didnt-apply&#39;)"> Didn't Apply</label>
             <label><input type="radio" name="status-undefined" value="applied" onchange="setProjectStatus(&#39;undefined&#39;,&#39;applied&#39;)"> Applied</label>
             <label><input type="radio" name="status-undefined" value="interviewing" onchange="setProjectStatus(&#39;undefined&#39;,&#39;interviewing&#39;)"> Interviewing</label>
+            <label><input type="radio" name="status-undefined" value="not-pursuing" onchange="setProjectStatus(&#39;undefined&#39;,&#39;not-pursuing&#39;)"> Not Pursuing</label>
           </div>
         </div>
         <div class="proj-card-menu">
@@ -907,6 +916,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
             <label><input type="radio" name="status-p_1776545535351" value="didnt-apply" onchange="setProjectStatus(&#39;p_1776545535351&#39;,&#39;didnt-apply&#39;)"> Didn't Apply</label>
             <label><input type="radio" name="status-p_1776545535351" value="applied" onchange="setProjectStatus(&#39;p_1776545535351&#39;,&#39;applied&#39;)"> Applied</label>
             <label><input type="radio" name="status-p_1776545535351" value="interviewing" onchange="setProjectStatus(&#39;p_1776545535351&#39;,&#39;interviewing&#39;)"> Interviewing</label>
+            <label><input type="radio" name="status-p_1776545535351" value="not-pursuing" onchange="setProjectStatus(&#39;p_1776545535351&#39;,&#39;not-pursuing&#39;)"> Not Pursuing</label>
           </div>
         </div>
         <div class="proj-card-menu">
@@ -939,6 +949,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
             <label><input type="radio" name="status-p_1775494396940" value="didnt-apply" onchange="setProjectStatus(&#39;p_1775494396940&#39;,&#39;didnt-apply&#39;)"> Didn't Apply</label>
             <label><input type="radio" name="status-p_1775494396940" value="applied" onchange="setProjectStatus(&#39;p_1775494396940&#39;,&#39;applied&#39;)"> Applied</label>
             <label><input type="radio" name="status-p_1775494396940" value="interviewing" onchange="setProjectStatus(&#39;p_1775494396940&#39;,&#39;interviewing&#39;)"> Interviewing</label>
+            <label><input type="radio" name="status-p_1775494396940" value="not-pursuing" onchange="setProjectStatus(&#39;p_1775494396940&#39;,&#39;not-pursuing&#39;)"> Not Pursuing</label>
           </div>
         </div>
         <div class="proj-card-menu">
@@ -971,6 +982,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
             <label><input type="radio" name="status-p_1776704054216" value="didnt-apply" onchange="setProjectStatus(&#39;p_1776704054216&#39;,&#39;didnt-apply&#39;)"> Didn't Apply</label>
             <label><input type="radio" name="status-p_1776704054216" value="applied" onchange="setProjectStatus(&#39;p_1776704054216&#39;,&#39;applied&#39;)"> Applied</label>
             <label><input type="radio" name="status-p_1776704054216" value="interviewing" onchange="setProjectStatus(&#39;p_1776704054216&#39;,&#39;interviewing&#39;)"> Interviewing</label>
+            <label><input type="radio" name="status-p_1776704054216" value="not-pursuing" onchange="setProjectStatus(&#39;p_1776704054216&#39;,&#39;not-pursuing&#39;)"> Not Pursuing</label>
           </div>
         </div>
         <div class="proj-card-menu">
@@ -1003,6 +1015,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
             <label><input type="radio" name="status-p_1776450855863" value="didnt-apply" onchange="setProjectStatus(&#39;p_1776450855863&#39;,&#39;didnt-apply&#39;)"> Didn't Apply</label>
             <label><input type="radio" name="status-p_1776450855863" value="applied" checked="" onchange="setProjectStatus(&#39;p_1776450855863&#39;,&#39;applied&#39;)"> Applied</label>
             <label><input type="radio" name="status-p_1776450855863" value="interviewing" onchange="setProjectStatus(&#39;p_1776450855863&#39;,&#39;interviewing&#39;)"> Interviewing</label>
+            <label><input type="radio" name="status-p_1776450855863" value="not-pursuing" onchange="setProjectStatus(&#39;p_1776450855863&#39;,&#39;not-pursuing&#39;)"> Not Pursuing</label>
           </div>
         </div>
         <div class="proj-card-menu">
@@ -1035,6 +1048,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
             <label><input type="radio" name="status-p_1774801300697" value="didnt-apply" onchange="setProjectStatus(&#39;p_1774801300697&#39;,&#39;didnt-apply&#39;)"> Didn't Apply</label>
             <label><input type="radio" name="status-p_1774801300697" value="applied" checked="" onchange="setProjectStatus(&#39;p_1774801300697&#39;,&#39;applied&#39;)"> Applied</label>
             <label><input type="radio" name="status-p_1774801300697" value="interviewing" onchange="setProjectStatus(&#39;p_1774801300697&#39;,&#39;interviewing&#39;)"> Interviewing</label>
+            <label><input type="radio" name="status-p_1774801300697" value="not-pursuing" onchange="setProjectStatus(&#39;p_1774801300697&#39;,&#39;not-pursuing&#39;)"> Not Pursuing</label>
           </div>
         </div>
         <div class="proj-card-menu">
@@ -1067,6 +1081,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
             <label><input type="radio" name="status-p_1776545495433" value="didnt-apply" onchange="setProjectStatus(&#39;p_1776545495433&#39;,&#39;didnt-apply&#39;)"> Didn't Apply</label>
             <label><input type="radio" name="status-p_1776545495433" value="applied" checked="" onchange="setProjectStatus(&#39;p_1776545495433&#39;,&#39;applied&#39;)"> Applied</label>
             <label><input type="radio" name="status-p_1776545495433" value="interviewing" onchange="setProjectStatus(&#39;p_1776545495433&#39;,&#39;interviewing&#39;)"> Interviewing</label>
+            <label><input type="radio" name="status-p_1776545495433" value="not-pursuing" onchange="setProjectStatus(&#39;p_1776545495433&#39;,&#39;not-pursuing&#39;)"> Not Pursuing</label>
           </div>
         </div>
         <div class="proj-card-menu">
@@ -2986,6 +3001,7 @@ let proj = null;
 function statusLabel(s) {
   if (s === 'applied') return 'Applied';
   if (s === 'interviewing') return 'Interviewing';
+  if (s === 'not-pursuing') return 'Not Pursuing';
   if (s === 'didnt-apply') return "Didn't Apply";
   if (s === 'ready-to-send') return 'Ready to Send';
   return 'Status?';
@@ -2993,6 +3009,7 @@ function statusLabel(s) {
 function statusCls(s) {
   if (s === 'applied') return 'applied';
   if (s === 'interviewing') return 'interviewing';
+  if (s === 'not-pursuing') return 'not-pursuing';
   if (s === 'didnt-apply') return 'didnt-apply';
   if (s === 'ready-to-send') return 'ready-to-send';
   return 'none';
