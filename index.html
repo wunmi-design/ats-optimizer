@@ -629,7 +629,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.86</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.87</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -1934,6 +1934,20 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
           </div>
 
           <div id="questions-list"></div>
+
+          <!-- Outcome questions: appears after the screening Q&A. One question per bullet,
+               eliciting business outcomes that can be folded back into the bullet at Optimize
+               time. Has its own Copy Prompt + paste-answers flow. Hidden until generated. -->
+          <div id="outcome-section" style="display:none;margin-top:24px;padding-top:20px;border-top:1px solid var(--border);">
+            <div class="flex-between mb-3">
+              <div>
+                <div class="bold" style="font-size:15px;">Bullet outcomes <span class="text-xs text-muted" style="font-weight:400;">(optional)</span></div>
+                <div class="text-xs text-muted mt-1">Add a measurable business outcome to each bullet. Answers fold into the next Optimize run without exceeding the 30-word bullet cap.</div>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="showOutcomeAnswerModal()" id="outcome-answer-btn">✦ Answer with AI</button>
+            </div>
+            <div id="outcome-questions-list"></div>
+          </div>
 
           <div class="flex-c gap-2 mt-3" style="padding-top:16px;border-top:1px solid var(--border);">
             <button class="btn btn-primary" onclick="optimizeFromJD()" id="optimize-from-jd-btn">⚡ Optimize Resume →</button>
@@ -3313,6 +3327,7 @@ function loadProject(id) {
   try { s('jd-title', proj.jdTitle||''); s('jd-company', proj.jdCompany||''); s('jd-text', proj.jdText||''); s('jd-url', proj.jdUrl||''); } catch(e) {}
   try { if (proj.jdAnalysis) renderJDAnalysis(proj.jdAnalysis); } catch(e) {}
   try { if (proj.questions?.length) renderQuestions(proj.questions); } catch(e) {}
+  try { if (proj.outcomeQuestions?.length) renderOutcomeQuestions(); } catch(e) {}
   // Reveal the inline qa-section if this project already has questions; hide it otherwise
   try {
     const qaSection = document.getElementById('qa-section');
@@ -4396,6 +4411,54 @@ function hideAnswerModal() {
   const ta = document.getElementById('ai-paste-answers');
   if (ta) ta.value = '';
   document.getElementById('answer-modal')?.classList.add('hidden');
+  // Reset answer mode so the next showAnswerModal defaults back to screening questions.
+  if (proj) proj._answerMode = null;
+}
+
+// Parses pasted numbered answers and assigns them to outcome questions in order. Mirrors the
+// answer onto proj.ce.roles[].bullets[].outcomeNote so Optimize can fold the outcome back into
+// the matching bullet at apply time.
+async function applyPastedOutcomeAnswers(text) {
+  if (!proj?.outcomeQuestions?.length) { toast('No outcome questions to fill in'); return; }
+
+  // Strip trailing AI sign-offs / closers.
+  text = text
+    .replace(/\n\s*---+\s*\n[\s\S]*$/g, '')
+    .replace(/\n\s*(?:Let me know|Want me to|I can (?:also|further|happily)|Happy to|Would you like|Feel free to|If you'?d like)[\s\S]*$/gi, '')
+    .trim();
+
+  const btn = document.getElementById('apply-answers-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Applying...'; }
+
+  try {
+    const numberedPattern = /(?:^|\n)\s*(?:\*{0,2})\s*(\d+)[.):\-]\s*([\s\S]+?)(?=\n\s*\**\s*\d+[.):\-]|\s*$)/g;
+    const matches = [...text.matchAll(numberedPattern)];
+    let filled = 0;
+    if (matches.length) {
+      matches.forEach(m => {
+        const idx = parseInt(m[1], 10) - 1;
+        const answer = (m[2] || '').trim();
+        if (idx < 0 || idx >= proj.outcomeQuestions.length || !answer) return;
+        const q = proj.outcomeQuestions[idx];
+        q.answer = answer;
+        saveOutcomeNoteToBullet(q.bulletId, answer);
+        filled++;
+      });
+    }
+    if (filled === 0) {
+      toast("Couldn't parse numbered answers. Make sure they're formatted '1. answer / 2. answer / ...'");
+      return;
+    }
+    autoSave();
+    renderOutcomeQuestions();
+    hideAnswerModal();
+    toast(`Saved ${filled} outcome${filled === 1 ? '' : 's'} — they'll fold into the next Optimize run`);
+  } catch (e) {
+    console.error('applyPastedOutcomeAnswers:', e);
+    toast('Error applying answers — try again');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Apply Answers'; }
+  }
 }
 
 // Computes a line-level diff between two text blocks using Myers' LCS-based algorithm.
@@ -4642,6 +4705,8 @@ function copyQuestionsPromptAndOpen() {
 async function applyPastedAnswers() {
   let text = (document.getElementById('ai-paste-answers')?.value || '').trim();
   if (!text) { toast('Paste your AI answers first'); return; }
+  const isOutcome = proj?._answerMode === 'outcome';
+  if (isOutcome) return applyPastedOutcomeAnswers(text);
   if (!proj?.questions?.length) { toast('No questions — analyze a job description first'); return; }
 
   // Scrub trailing meta-commentary that AI agents tend to append:
@@ -4923,6 +4988,8 @@ Return ONLY valid JSON:
 // ─────────────────────────────────────────────────────────
 function copyQuestionsPrompt() {
   if (!proj) { toast('Open a project first'); return; }
+  const isOutcome = proj._answerMode === 'outcome';
+  if (isOutcome) return copyOutcomePrompt();
   if (!proj.questions?.length) { toast('Analyze a job description first to generate questions'); return; }
 
   const ws = collectWorkspace();
@@ -4978,6 +5045,51 @@ function clearBrainDump() {
   if (el) { el.value = ''; autoSave(); toast('Brain Dump cleared'); }
 }
 
+// Builds a prompt that asks the user's external AI assistant to answer outcome questions for
+// each bullet. Each question quotes the bullet so the AI can produce a relevant outcome.
+function copyOutcomePrompt() {
+  if (!proj?.outcomeQuestions?.length) { toast('No outcome questions yet — re-run Analyze first'); return; }
+  const ws = collectWorkspace();
+  const jdText = g('jd-text') || proj.jdText || '';
+
+  const questionBlocks = proj.outcomeQuestions.map((q, i) =>
+    `${i + 1}. [${q.role}]\n   Bullet: "${q.currentBullet}"\n   Q: ${q.question}`
+  ).join('\n\n');
+
+  const prompt = `I am tightening my resume's bullet points by adding measurable business outcomes. For each bullet below, I'm asking you to suggest a concrete outcome based on what my work was likely to have produced. Use realistic-sounding metrics in the right ballpark for the work described — but never fabricate specific numbers I haven't confirmed. Phrase the answer so I can verify and edit it.
+
+MY BACKGROUND:
+Name: ${ws.name || '(not provided)'}
+Current title: ${ws.title || '(not provided)'}
+Years of experience: ${ws.years || '(not provided)'}
+Most recent role: ${ws['r1-title'] || '(not provided)'} at ${ws['r1-company'] || '(not provided)'} (${ws['r1-dates'] || ''})
+Key responsibilities: ${ws['r1-duties'] || '(not provided)'}
+Key results: ${ws['r1-results'] || '(not provided)'}
+Key metrics — Business: ${ws['m-biz'] || '(not provided)'}
+Key metrics — Operational: ${ws['m-ops'] || '(not provided)'}
+Key metrics — Product/customer: ${ws['m-prod'] || '(not provided)'}
+Career narrative: ${ws.thread || '(not provided)'}
+
+TARGET ROLE: ${ws['tgt-title'] || '(not provided)'} at ${ws['tgt-company'] || '(not provided)'}
+${jdText ? `\nJOB DESCRIPTION EXCERPT:\n${jdText.slice(0, 800)}` : ''}
+
+BULLETS AND OUTCOME QUESTIONS:
+${questionBlocks}
+
+OUTPUT INSTRUCTIONS — read carefully:
+1. Answer each numbered question in order. ONE sentence per answer, max 20 words. Lead with the metric or business outcome.
+2. Use realistic ranges from my background where possible. If you don't have a real metric, suggest a plausible category-of-outcome the user can verify (e.g. "completion rate lift in the 20–30% range", "App Store rating from 3.x to 4.x").
+3. Do NOT invent specific exact numbers. If you give a number, frame it as a range or as something the user should confirm.
+4. Format each answer exactly as "1. [your answer]" — numbered to match the question.
+5. No preamble. No headers. No closing remarks or follow-up offers. End immediately after the final answer.`;
+
+  navigator.clipboard.writeText(prompt).then(() => {
+    toast('Outcome prompt copied — paste it into Claude or ChatGPT');
+  }).catch(() => {
+    toast('Copy failed — check browser permissions');
+  });
+}
+
 async function generateQuestions(analysis) {
   if(!proj) return;
   const ws=collectWorkspace();
@@ -5013,7 +5125,139 @@ CANDIDATE HAS: ${ws.name}, ${ws.title}, ${ws.years}yrs, Skills: ${ws.hard?.slice
     if (proj.questions.length) {
       try { showAnswerModal(); } catch(e) {}
     }
+    // Generate outcome questions in the background — one per bullet — so the user can fill in
+    // business outcomes that bullets currently lack. These run as a separate pass with their own
+    // Copy Prompt button so the user can choose to do them or skip.
+    generateOutcomeQuestions().catch(e => console.warn('Outcome questions:', e));
   } catch(e){proj.questions=[];}
+}
+
+// Asks the AI to generate one outcome-elicitation question per bullet in the resume. Each
+// question quotes the bullet back to the user and asks about measurable business impact. Saved to
+// proj.outcomeQuestions[] with bulletId tagging so answers can be matched to bullets at apply time.
+async function generateOutcomeQuestions() {
+  if (!proj || !proj.ce?.roles?.length) return;
+  // Build a flat list of bullets with their role context. Bullets need IDs (existing CE schema
+  // already attaches r.bullets[].id) so we can match answers back later.
+  const bulletList = [];
+  for (const r of proj.ce.roles) {
+    if (!r.bullets?.length) continue;
+    for (const b of r.bullets) {
+      if (!b.text || !b.text.trim()) continue;
+      bulletList.push({
+        bulletId: b.id,
+        role: `${r.title || 'Role'} at ${r.company || 'Company'}`,
+        text: b.text.trim().slice(0, 280),
+      });
+    }
+  }
+  if (!bulletList.length) { proj.outcomeQuestions = []; renderOutcomeQuestions(); return; }
+
+  // Hydrate any existing answers so we don't lose them when regenerating.
+  const previousAnswers = {};
+  (proj.outcomeQuestions || []).forEach(q => {
+    if (q.bulletId && q.answer) previousAnswers[q.bulletId] = q.answer;
+  });
+
+  try {
+    const jdTitle = g('jd-title') || proj?.jdTitle || '';
+    const jdContext = jdTitle ? `Target role: ${jdTitle}.\n` : '';
+    const raw = await claudeFetch(
+      `For each resume bullet below, write ONE specific question that elicits the measurable business outcome. The user will answer in their own words; their answer will later be folded into a rewritten bullet that stays under 30 words.\n\n` +
+      `Question rules:\n` +
+      `- Quote the bullet back so the user remembers what work it describes.\n` +
+      `- Ask for a concrete metric, timeframe, or business outcome — engagement lift, revenue, cycle-time reduction, completion rate, NPS, retention, App Store rating, team size, scope, etc.\n` +
+      `- Pick the metric type that's most relevant to the bullet. For a launch bullet, ask about adoption or rating. For a process bullet, ask about cycle-time or efficiency. For a team bullet, ask about size or growth.\n` +
+      `- If the bullet already has a metric, ask whether there's an additional outcome worth adding (NEVER suggest replacing the existing metric).\n` +
+      `- Keep questions short (one sentence + the quoted bullet). No multi-part questions.\n\n` +
+      `Return ONLY a JSON array, in the same order as input bullets. Format:\n` +
+      `[{"bulletId":"...","question":"For your work on [paraphrase]: what was the [metric type]?"}, ...]\n\n` +
+      jdContext +
+      `BULLETS:\n${JSON.stringify(bulletList)}`,
+      3000
+    );
+    const cleaned = raw.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim();
+    const parsed = JSON.parse(cleaned);
+    if (!Array.isArray(parsed)) throw new Error('expected array');
+
+    proj.outcomeQuestions = parsed.map(q => {
+      const orig = bulletList.find(b => b.bulletId === q.bulletId);
+      return {
+        id: q.bulletId, // reuse bullet id as question id
+        bulletId: q.bulletId,
+        role: orig?.role || '',
+        currentBullet: orig?.text || '',
+        question: q.question || '',
+        answer: previousAnswers[q.bulletId] || '',
+      };
+    }).filter(q => q.question);
+
+    autoSave();
+    renderOutcomeQuestions();
+  } catch (e) {
+    console.warn('generateOutcomeQuestions failed:', e);
+    proj.outcomeQuestions = [];
+    renderOutcomeQuestions();
+  }
+}
+
+// Renders the outcome questions list inside the #outcome-section. Shows the bullet (so the user
+// remembers what work it describes), the AI's outcome question, and a textarea for the answer.
+// Live-saves answers on blur. Hidden if no questions or no roles.
+function renderOutcomeQuestions() {
+  const sec = document.getElementById('outcome-section');
+  const list = document.getElementById('outcome-questions-list');
+  if (!sec || !list) return;
+  const qs = (proj?.outcomeQuestions) || [];
+  if (!qs.length) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+  const answered = qs.filter(q => (q.answer||'').trim()).length;
+  list.innerHTML = `
+    <div class="text-xs text-muted mb-2">${answered} of ${qs.length} answered</div>
+    ${qs.map(q => `
+      <div class="q-item" id="oq-${q.id}" style="border-left:3px solid var(--teal-lt);">
+        <div class="q-priority" style="color:var(--muted);">${esc(q.role || 'Bullet')}</div>
+        <div style="font-size:11px;color:var(--ink2);font-style:italic;margin:4px 0 6px 0;">"${esc(q.currentBullet||'')}"</div>
+        <div class="q-text">${esc(q.question)}</div>
+        <textarea id="oqa-${q.id}" style="min-height:60px;font-size:12px;" placeholder="e.g. Lifted MAU 26% in 6 months; rating moved from 3.7 → 4.5" oninput="markOutcomeAnswered('${q.id}')">${esc(q.answer||'')}</textarea>
+      </div>
+    `).join('')}`;
+}
+
+function markOutcomeAnswered(id) {
+  const ta = document.getElementById('oqa-' + id);
+  if (!ta || !proj?.outcomeQuestions) return;
+  const q = proj.outcomeQuestions.find(x => x.id === id);
+  if (!q) return;
+  q.answer = ta.value;
+  // Mirror onto the bullet itself so it's available at apply time even if outcomeQuestions
+  // is regenerated. Stored at proj.ce.roles[].bullets[].outcomeNote.
+  saveOutcomeNoteToBullet(q.bulletId, ta.value);
+  autoSave();
+}
+
+// Writes an answer into the matching bullet's outcomeNote field. Walks all roles to find the
+// bullet by id. No-op if not found (bullet may have been deleted since the question was generated).
+function saveOutcomeNoteToBullet(bulletId, note) {
+  if (!proj?.ce?.roles) return;
+  for (const r of proj.ce.roles) {
+    if (!r.bullets) continue;
+    for (const b of r.bullets) {
+      if (b.id === bulletId) { b.outcomeNote = (note || '').trim() || undefined; return; }
+    }
+  }
+}
+
+// Opens the existing Answer modal but populates it with the outcome questions instead of
+// screening questions. Reuses the same paste-answers UX so the user has one mental model.
+function showOutcomeAnswerModal() {
+  if (!proj?.outcomeQuestions?.length) {
+    toast('No outcome questions yet — re-run Analyze first');
+    return;
+  }
+  // Toggle a flag so the existing copy/paste flow targets outcomeQuestions instead of questions.
+  proj._answerMode = 'outcome';
+  showAnswerModal();
 }
 
 function renderQuestions(questions) {
@@ -6157,6 +6401,31 @@ TRUTH GROUNDING (highest-priority rule, overrides JD-matching):
 - When the JD asks for a domain the candidate lacks, the right move is transferable framing: lead with the candidate's real scale, platform thinking, cross-functional leadership, or strategic vision — never invent the missing domain.
 `;
 
+// Builds the BULLET CONTEXT block injected into apply prompts. Lists every bullet that has a
+// user-confirmed outcomeNote so the AI can fold the outcome into the matching bullet without
+// exceeding the 30-word cap. Returns '' if no notes exist.
+function buildBulletContextBlock() {
+  if (!proj?.ce?.roles) return '';
+  const notes = [];
+  for (const r of proj.ce.roles) {
+    if (!r.bullets) continue;
+    for (const b of r.bullets) {
+      if (b.outcomeNote && b.outcomeNote.trim()) {
+        notes.push({
+          role: `${r.title || ''} at ${r.company || ''}`.trim(),
+          bullet: (b.text || '').trim(),
+          outcome: b.outcomeNote.trim(),
+        });
+      }
+    }
+  }
+  if (!notes.length) return '';
+  const formatted = notes.map((n, i) =>
+    `${i + 1}. [${n.role}]\n   Original bullet: "${n.bullet}"\n   Outcome to fold in: ${n.outcome}`
+  ).join('\n\n');
+  return `\n\nBULLET CONTEXT — the user has provided outcomes for these specific bullets. Fold each outcome INTO its matching bullet so the bullet now leads with measurable impact. CRITICAL: each rewritten bullet MUST stay under 30 words. Trim setup language to make room for the outcome — do NOT just append. If the outcome contains a range or hedge ("around 25%", "in the 20-30% range"), keep it as the user wrote it; do NOT pretend it's a precise figure.\n\n${formatted}\n\n`;
+}
+
 async function applySelectedFixes(){
   const fixCbs = Array.from(document.querySelectorAll('.fix-cb:checked'));
   const kwCbs = Array.from(document.querySelectorAll('.kw-missing-row input[data-kw]:checked'));
@@ -6199,6 +6468,7 @@ async function applySelectedFixes(){
     const titleRule = jdTitle ? `\\n- The person's job title line (directly under their name) MUST be exactly: "${jdTitle}"` : '';
     const verifiedFacts = buildVerifiedFacts();
     const verifiedFactsBlock = verifiedFacts ? `\n\nVERIFIED FACTS — the closed world of this candidate's actual experience. You may rephrase, reorder, emphasize, or sharpen anything below. You may NOT introduce anything outside it.\n\n${verifiedFacts}` : '';
+    const bulletContextBlock = buildBulletContextBlock();
 
     const result = await claudeFetch(
       `GOAL: Find the strongest HONEST angle this candidate has on this JD, and amplify it. The goal is NOT to make the resume look like the JD. Bridges to gaps must come from real transferable strengths, never from invented experience.
@@ -6206,7 +6476,7 @@ ${TRUTH_GROUNDING_RULES}
 Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT same section structure and order as the original resume${titleRule}\n- SKILLS must stay organized in labeled categories (e.g. Leadership:, Design:, Product:, Engineering:). If the original has categories, keep them. If not, organize skills into logical categories.\n- When adding keywords to skills, place them in the correct category\n- Do NOT merge all skills into one flat list\n- FORMATTING IS SACRED: Output must use IDENTICAL format as input — same line breaks, spacing, bullet characters, section header style.\n- Do NOT reformat, restructure, merge lines, split lines, add/remove blank lines, or change bullet style.\n- Do NOT change the number of roles, reorder roles, or alter dates/companies.\n- ONLY change the specific text content requested. Everything else stays EXACTLY as-is.\n- WHEN A FIX MODIFIES A BULLET: REPLACE the original bullet with the rewritten version. Never keep both the old bullet AND a rewritten variant of it. The output must contain exactly one bullet for each accomplishment, not the original plus a near-duplicate.\n- NEVER ADD NEW BULLETS that describe the same team, product area, or accomplishment as an existing bullet. If a fix would generate a new bullet, check whether an existing bullet already covers that team/scope/metric. If yes, modify the existing bullet instead of appending a new one.
 - CRITICAL: Before returning, check for duplicate job entries. If any company + title + date combination appears more than once, remove the duplicate. Each role must appear exactly once.
 - CRITICAL: NEVER output placeholder metric tokens. Forbidden: "X%", "XX%", "Y%", "Z%", "[number]%", "[percent]%", "[metric]%", "___%", "TBD%", or any bracketed/blank stand-in for a number. If you don't have a real value from the original resume, write the bullet WITHOUT a percentage — a bullet with no metric is acceptable, a bullet with a placeholder metric is NOT.
-- CRITICAL: Within each role, check for repeated metrics or phrases across bullets. If the same metric (e.g. '26% MAU growth') appears in more than one bullet, remove it from the less specific bullet and keep it only in the bullet that explains it most clearly.\n- NEVER FABRICATE metrics, percentages, revenue figures, outcomes, team members, products, domains, or accomplishments not present in VERIFIED FACTS. If the original says '26% MAU growth', keep that exact number. Never invent '40% user growth' or '$2M revenue' unless those exact figures exist in VERIFIED FACTS.\n- NEVER USE competitor brand names anywhere in the resume. 'Commercial Card', 'Capital One brand', 'Chase', 'Amex', etc. are competitor product names. Replace with generic terms.\n- BEFORE returning the resume, scan every bullet, summary line, and skill for: (1) any metric not in VERIFIED FACTS, (2) any competitor brand name, (3) any domain/product/team-member that does not appear in VERIFIED FACTS, (4) any verbatim JD phrase grafted onto unrelated work. Remove or rewrite all four.\n- SKILLS must stay in labeled categories. NEVER merge into one block.\n- Remove non-skills from the skills section: phrases like 'Business Goals', 'portfolio strategy', 'Experience Design organization' are NOT skills.\n- SUMMARY must be 50-75 words. If the current summary exceeds 75 words, trim it. NEVER let it grow beyond 75 words.\n- NEVER repeat the same phrase twice in the summary. Check for duplicates before returning.\n- The job title directly under the candidate's name MUST exactly match the JD title. Do not revert it.\n- Bullets target: 20-30 words each. Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n${verifiedFactsBlock}\n\n${promptBody}RESUME:\n${resume}`,
+- CRITICAL: Within each role, check for repeated metrics or phrases across bullets. If the same metric (e.g. '26% MAU growth') appears in more than one bullet, remove it from the less specific bullet and keep it only in the bullet that explains it most clearly.\n- NEVER FABRICATE metrics, percentages, revenue figures, outcomes, team members, products, domains, or accomplishments not present in VERIFIED FACTS. If the original says '26% MAU growth', keep that exact number. Never invent '40% user growth' or '$2M revenue' unless those exact figures exist in VERIFIED FACTS.\n- NEVER USE competitor brand names anywhere in the resume. 'Commercial Card', 'Capital One brand', 'Chase', 'Amex', etc. are competitor product names. Replace with generic terms.\n- BEFORE returning the resume, scan every bullet, summary line, and skill for: (1) any metric not in VERIFIED FACTS, (2) any competitor brand name, (3) any domain/product/team-member that does not appear in VERIFIED FACTS, (4) any verbatim JD phrase grafted onto unrelated work. Remove or rewrite all four.\n- SKILLS must stay in labeled categories. NEVER merge into one block.\n- Remove non-skills from the skills section: phrases like 'Business Goals', 'portfolio strategy', 'Experience Design organization' are NOT skills.\n- SUMMARY must be 50-75 words. If the current summary exceeds 75 words, trim it. NEVER let it grow beyond 75 words.\n- NEVER repeat the same phrase twice in the summary. Check for duplicates before returning.\n- The job title directly under the candidate's name MUST exactly match the JD title. Do not revert it.\n- Bullets target: 20-30 words each. Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n${verifiedFactsBlock}${bulletContextBlock}\n\n${promptBody}RESUME:\n${resume}`,
       4000
     );
     const firstPass = deduplicateResume(result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim());
@@ -6423,6 +6693,7 @@ async function autoOptimize(opts) {
     const titleRule = jdTitle ? `\\n- The person's job title line (directly under their name) MUST be exactly: "${jdTitle}"` : '';
     const verifiedFacts = buildVerifiedFacts();
     const verifiedFactsBlock = verifiedFacts ? `\n\nVERIFIED FACTS — the closed world of this candidate's actual experience. You may rephrase, reorder, emphasize, or sharpen anything below. You may NOT introduce anything outside it.\n\n${verifiedFacts}` : '';
+    const bulletContextBlock = buildBulletContextBlock();
 
     const result = await claudeFetch(
       `GOAL: Find the strongest HONEST angle this candidate has on this JD, and amplify it. The goal is NOT to make the resume look like the JD. Bridges to gaps must come from real transferable strengths, never from invented experience.
@@ -6430,7 +6701,7 @@ ${TRUTH_GROUNDING_RULES}
 Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT same section structure and order as the original resume${titleRule}\n- SKILLS must stay organized in labeled categories (e.g. Leadership:, Design:, Product:, Engineering:). If the original has categories, keep them. If not, organize skills into logical categories.\n- When adding keywords to skills, place them in the correct category\n- Do NOT merge all skills into one flat list\n- FORMATTING IS SACRED: Output must use IDENTICAL format as input — same line breaks, spacing, bullet characters, section header style.\n- Do NOT reformat, restructure, merge lines, split lines, add/remove blank lines, or change bullet style.\n- Do NOT change the number of roles, reorder roles, or alter dates/companies.\n- ONLY change the specific text content requested. Everything else stays EXACTLY as-is.\n- WHEN A FIX MODIFIES A BULLET: REPLACE the original bullet with the rewritten version. Never keep both the old bullet AND a rewritten variant of it. The output must contain exactly one bullet for each accomplishment, not the original plus a near-duplicate.\n- NEVER ADD NEW BULLETS that describe the same team, product area, or accomplishment as an existing bullet. If a fix would generate a new bullet, check whether an existing bullet already covers that team/scope/metric. If yes, modify the existing bullet instead of appending a new one.
 - CRITICAL: Before returning, check for duplicate job entries. If any company + title + date combination appears more than once, remove the duplicate. Each role must appear exactly once.
 - CRITICAL: NEVER output placeholder metric tokens. Forbidden: "X%", "XX%", "Y%", "Z%", "[number]%", "[percent]%", "[metric]%", "___%", "TBD%", or any bracketed/blank stand-in for a number. If you don't have a real value from the original resume, write the bullet WITHOUT a percentage — a bullet with no metric is acceptable, a bullet with a placeholder metric is NOT.
-- CRITICAL: Within each role, check for repeated metrics or phrases across bullets. If the same metric (e.g. '26% MAU growth') appears in more than one bullet, remove it from the less specific bullet and keep it only in the bullet that explains it most clearly.\n- NEVER FABRICATE metrics, percentages, revenue figures, outcomes, team members, products, domains, or accomplishments not present in VERIFIED FACTS. If the original says '26% MAU growth', keep that exact number. Never invent '40% user growth' or '$2M revenue' unless those exact figures exist in VERIFIED FACTS.\n- NEVER USE competitor brand names anywhere in the resume. 'Commercial Card', 'Capital One brand', 'Chase', 'Amex', etc. are competitor product names. Replace with generic terms.\n- BEFORE returning the resume, scan every bullet, summary line, and skill for: (1) any metric not in VERIFIED FACTS, (2) any competitor brand name, (3) any domain/product/team-member that does not appear in VERIFIED FACTS, (4) any verbatim JD phrase grafted onto unrelated work. Remove or rewrite all four.\n- SKILLS must stay in labeled categories. NEVER merge into one block.\n- Remove non-skills from the skills section: phrases like 'Business Goals', 'portfolio strategy', 'Experience Design organization' are NOT skills.\n- SUMMARY must be 50-75 words. If the current summary exceeds 75 words, trim it. NEVER let it grow beyond 75 words.\n- NEVER repeat the same phrase twice in the summary. Check for duplicates before returning.\n- The job title directly under the candidate's name MUST exactly match the JD title. Do not revert it.\n- Bullets target: 20-30 words each. Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n${verifiedFactsBlock}\n\n${promptBody}RESUME:\n${currentResume}`,
+- CRITICAL: Within each role, check for repeated metrics or phrases across bullets. If the same metric (e.g. '26% MAU growth') appears in more than one bullet, remove it from the less specific bullet and keep it only in the bullet that explains it most clearly.\n- NEVER FABRICATE metrics, percentages, revenue figures, outcomes, team members, products, domains, or accomplishments not present in VERIFIED FACTS. If the original says '26% MAU growth', keep that exact number. Never invent '40% user growth' or '$2M revenue' unless those exact figures exist in VERIFIED FACTS.\n- NEVER USE competitor brand names anywhere in the resume. 'Commercial Card', 'Capital One brand', 'Chase', 'Amex', etc. are competitor product names. Replace with generic terms.\n- BEFORE returning the resume, scan every bullet, summary line, and skill for: (1) any metric not in VERIFIED FACTS, (2) any competitor brand name, (3) any domain/product/team-member that does not appear in VERIFIED FACTS, (4) any verbatim JD phrase grafted onto unrelated work. Remove or rewrite all four.\n- SKILLS must stay in labeled categories. NEVER merge into one block.\n- Remove non-skills from the skills section: phrases like 'Business Goals', 'portfolio strategy', 'Experience Design organization' are NOT skills.\n- SUMMARY must be 50-75 words. If the current summary exceeds 75 words, trim it. NEVER let it grow beyond 75 words.\n- NEVER repeat the same phrase twice in the summary. Check for duplicates before returning.\n- The job title directly under the candidate's name MUST exactly match the JD title. Do not revert it.\n- Bullets target: 20-30 words each. Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n${verifiedFactsBlock}${bulletContextBlock}\n\n${promptBody}RESUME:\n${currentResume}`,
       4000
     );
     const firstPass = deduplicateResume(result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim());
