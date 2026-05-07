@@ -632,7 +632,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.93</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.5.0</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -2535,6 +2535,51 @@ NY Top Creative Winner · WIx and Vitamin T · 2014</div>
 
 <script>
 // ═══════════════════════════════════════════════════════
+//  CONFIG & CONSTANTS
+// ═══════════════════════════════════════════════════════
+const CONFIG = {
+  // Project status definitions — single source of truth
+  statuses: [
+    { id: 'didnt-apply', label: "Didn't Apply", cssClass: 'didnt-apply' },
+    { id: 'ready-to-send', label: 'Ready to Send', cssClass: 'ready-to-send' },
+    { id: 'applied', label: 'Applied', cssClass: 'applied' },
+    { id: 'interviewing', label: 'Interviewing', cssClass: 'interviewing' },
+    { id: 'not-pursuing', label: 'Not Pursuing', cssClass: 'not-pursuing' }
+  ],
+  
+  // Helper: get status by ID
+  getStatus: function(id) {
+    return this.statuses.find(s => s.id === id) || { id: 'Status?', label: 'Status?', cssClass: 'none' };
+  },
+  
+  // Helper: get label for a status ID
+  getStatusLabel: function(id) {
+    return this.getStatus(id).label;
+  },
+  
+  // Helper: get CSS class for a status ID
+  getStatusClass: function(id) {
+    return this.getStatus(id).cssClass;
+  }
+};
+
+// ═══════════════════════════════════════════════════════
+//  TEMPLATE GENERATORS
+// ═══════════════════════════════════════════════════════
+const Templates = {
+  // Generate status popup HTML with all status options
+  statusPopup: function(projectId, currentStatus) {
+    const options = CONFIG.statuses.map(status => 
+      `<label><input type="radio" name="status-${projectId}" value="${status.id}" ${currentStatus===status.id?'checked':''} onchange="setProjectStatus('${projectId}','${status.id}')"> ${status.label}</label>`
+    ).join('\n            ');
+    
+    return `<div class="status-popup" id="status-${projectId}" role="menu">
+            ${options}
+          </div>`;
+  }
+};
+
+// ═══════════════════════════════════════════════════════
 //  UI LAYER
 // ═══════════════════════════════════════════════════════
 
@@ -2999,20 +3044,10 @@ let proj = null;
 //  PROJECT GRID
 // ─────────────────────────────────────────────────────────
 function statusLabel(s) {
-  if (s === 'applied') return 'Applied';
-  if (s === 'interviewing') return 'Interviewing';
-  if (s === 'not-pursuing') return 'Not Pursuing';
-  if (s === 'didnt-apply') return "Didn't Apply";
-  if (s === 'ready-to-send') return 'Ready to Send';
-  return 'Status?';
+  return CONFIG.getStatusLabel(s);
 }
 function statusCls(s) {
-  if (s === 'applied') return 'applied';
-  if (s === 'interviewing') return 'interviewing';
-  if (s === 'not-pursuing') return 'not-pursuing';
-  if (s === 'didnt-apply') return 'didnt-apply';
-  if (s === 'ready-to-send') return 'ready-to-send';
-  return 'none';
+  return CONFIG.getStatusClass(s);
 }
 function toggleStatusPopup(id, e) {
   e.stopPropagation();
@@ -3128,13 +3163,7 @@ function renderProjGrid() {
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);" onclick="event.stopPropagation()">
         <div class="status-wrap">
           <button class="status-btn ${statusCls(p.status)}" onclick="toggleStatusPopup('${p.id}',event)" aria-label="Set application status">${statusLabel(p.status)}</button>
-          <div class="status-popup" id="status-${p.id}" role="menu">
-            <label><input type="radio" name="status-${p.id}" value="didnt-apply" ${p.status==='didnt-apply'?'checked':''} onchange="setProjectStatus('${p.id}','didnt-apply')"> Didn't Apply</label>
-            <label><input type="radio" name="status-${p.id}" value="ready-to-send" ${p.status==='ready-to-send'?'checked':''} onchange="setProjectStatus('${p.id}','ready-to-send')"> Ready to Send</label>
-            <label><input type="radio" name="status-${p.id}" value="applied" ${p.status==='applied'?'checked':''} onchange="setProjectStatus('${p.id}','applied')"> Applied</label>
-            <label><input type="radio" name="status-${p.id}" value="interviewing" ${p.status==='interviewing'?'checked':''} onchange="setProjectStatus('${p.id}','interviewing')"> Interviewing</label>
-            <label><input type="radio" name="status-${p.id}" value="not-pursuing" ${p.status==='not-pursuing'?'checked':''} onchange="setProjectStatus('${p.id}','not-pursuing')"> Not Pursuing</label>
-          </div>
+          ${Templates.statusPopup(p.id, p.status)}
         </div>
         <div class="proj-card-menu">
           <button class="proj-ellipsis" onclick="toggleProjMenu('${p.id}',event)" title="More options" aria-label="Project options">···</button>
