@@ -558,7 +558,25 @@ select option{background:var(--white);}
 /* Not Pursuing — muted amber */
 .status-btn.not-pursuing{color:#92400e;background:#fef5f0;border:1.5px solid #fed7aa;}
 .status-btn.not-pursuing:hover{background:#feedde;}
-.status-popup{position:absolute;bottom:calc(100% + 6px);right:0;z-index:200;background:var(--white);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-lg);padding:8px;min-width:170px;display:none;}
+.status-popup{
+  position:absolute;
+  bottom:calc(100% + 6px);
+  right:0;
+  z-index:200;
+  background:var(--white);
+  border:1px solid var(--border);
+  border-radius:10px;
+  box-shadow:var(--shadow-lg);
+  padding:8px;
+  min-width:170px;
+  display:none;
+  max-width:90vw;
+}
+/* If popup would go off-screen right, align to left instead */
+.status-popup.left-align{
+  right:auto;
+  left:0;
+}
 .status-popup.open{display:block;}
 .status-popup label{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:500;}
 .status-popup label:hover{background:var(--surface);}
@@ -619,25 +637,42 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
 
   <!-- ═══ TOP BAR ═══ -->
   <div class="topbar">
-    <div class="topbar-brand">
-      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
-      ATS Resume
+    <div style="display:flex;align-items:center;gap:12px;flex:0 0 auto;">
+      <div class="topbar-brand">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
+        Resume Optimizer
+      </div>
+      <span style="color:var(--muted);font-size:12px;">Build 3.0.0</span>
+      <div class="topbar-divider"></div>
+      <div class="topbar-project" onclick="promptRenameProject()" style="flex:0 1 200px;">
+        <span class="topbar-project-name" id="proj-name-display">OpenAI01 -scored 1, optimized 0</span>
+        <span class="edit-icon" id="proj-edit-icon" style="display: inline;">✎</span>
+      </div>
     </div>
-    <div class="topbar-divider"></div>
-    <div class="topbar-project" onclick="promptRenameProject()">
-      <span class="topbar-project-name" id="proj-name-display">OpenAI01 -scored 1, optimized 0</span>
-      <span class="edit-icon" id="proj-edit-icon" style="display: inline;">✎</span>
-    </div>
-    <div class="topbar-right">
+    
+    <div class="topbar-right" style="gap:16px;">
+      <div style="display:flex;align-items:center;gap:16px;font-size:12px;font-weight:500;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="color:var(--muted);">Daily:</span>
+          <span id="daily-usage" style="color:var(--ink);">0/50000</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="color:var(--muted);">Monthly:</span>
+          <span id="monthly-usage" style="color:var(--ink);">0/200000</span>
+        </div>
+      </div>
+      
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
-      <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
+      <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in</button>
+      
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.5.0</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
       </div>
+      
       <button id="save-btn" class="btn btn-secondary btn-sm" onclick="if(!window._atsUser){handleAuthClick();return;}if(!proj){toast('No project open');return;}saveProject();toast('Saved to cloud')" title="Save">Save</button>
+      
       <div style="position:relative;display:inline-block;" id="file-menu-wrap">
         <button class="btn btn-secondary btn-sm" onmouseenter="document.getElementById('file-dropdown').style.display='block'" onclick="document.getElementById('file-dropdown').style.display=document.getElementById('file-dropdown').style.display==='block'?'none':'block'">File ▾</button>
         <div id="file-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:999;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-lg);min-width:160px;overflow:hidden;" onmouseleave="this.style.display='none'">
@@ -646,8 +681,9 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
           <div style="padding:6px 14px;font-size:12px;cursor:pointer;white-space:nowrap;" onmouseenter="this.style.background='var(--surface)'" onmouseleave="this.style.background=''" onclick="saveAsNewProject();document.getElementById('file-dropdown').style.display='none'">📄 Save as New</div>
         </div>
       </div>
+      
       <div style="position:relative;display:inline-block;" id="download-menu-wrap">
-        <button class="btn btn-primary btn-sm" onclick="toggleDownloadMenu(event)">↓ Resume ▾</button>
+        <button class="btn btn-primary btn-sm" onclick="toggleDownloadMenu(event)">↓ Download Resume ▾</button>
         <div id="download-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);right:0;z-index:999;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-lg);min-width:170px;overflow:hidden;">
           <button onclick="fmtSavePdf();closeDownloadMenu()" style="display:block;width:100%;text-align:left;padding:9px 14px;font-size:12px;background:none;border:none;cursor:pointer;color:var(--ink);" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='none'">↓ Save as PDF</button>
           <button onclick="fmtSaveDocx();closeDownloadMenu()" style="display:block;width:100%;text-align:left;padding:9px 14px;font-size:12px;background:none;border:none;cursor:pointer;color:var(--ink);" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='none'">↓ Save as .docx</button>
@@ -2547,6 +2583,15 @@ const CONFIG = {
     { id: 'not-pursuing', label: 'Not Pursuing', cssClass: 'not-pursuing' }
   ],
   
+  // Token limits per user
+  tokens: {
+    dailyLimit: 50000,
+    monthlyLimit: 200000,
+    // Estimated tokens per operation
+    estimatedPerAnalysis: 3000,        // Analyze JD + answer questions
+    estimatedPerOptimization: 5500     // One optimization pass
+  },
+  
   // Helper: get status by ID
   getStatus: function(id) {
     return this.statuses.find(s => s.id === id) || { id: 'Status?', label: 'Status?', cssClass: 'none' };
@@ -2576,6 +2621,88 @@ const Templates = {
     return `<div class="status-popup" id="status-${projectId}" role="menu">
             ${options}
           </div>`;
+  }
+};
+
+// ═══════════════════════════════════════════════════════
+//  TOKEN TRACKING & LIMITS
+// ═══════════════════════════════════════════════════════
+const TokenTracker = {
+  // Get daily usage for current user
+  getDailyUsage: function(userId) {
+    if (!userId) return 0;
+    const key = `tokens_daily_${userId}_${new Date().toISOString().split('T')[0]}`;
+    return parseInt(localStorage.getItem(key) || '0');
+  },
+  
+  // Get monthly usage for current user
+  getMonthlyUsage: function(userId) {
+    if (!userId) return 0;
+    const year = new Date().getFullYear();
+    const month = String(new Date().getMonth() + 1).padStart(2, '0');
+    const key = `tokens_monthly_${userId}_${year}-${month}`;
+    return parseInt(localStorage.getItem(key) || '0');
+  },
+  
+  // Add tokens to both daily and monthly counters
+  addTokens: function(userId, amount) {
+    if (!userId) return;
+    const today = new Date().toISOString().split('T')[0];
+    const dailyKey = `tokens_daily_${userId}_${today}`;
+    const year = new Date().getFullYear();
+    const month = String(new Date().getMonth() + 1).padStart(2, '0');
+    const monthlyKey = `tokens_monthly_${userId}_${year}-${month}`;
+    
+    const currentDaily = parseInt(localStorage.getItem(dailyKey) || '0');
+    const currentMonthly = parseInt(localStorage.getItem(monthlyKey) || '0');
+    
+    localStorage.setItem(dailyKey, currentDaily + amount);
+    localStorage.setItem(monthlyKey, currentMonthly + amount);
+    
+    TokenTracker.updateUI(userId);
+  },
+  
+  // Check if user has tokens available for an operation
+  canUseTokens: function(userId, estimatedTokens) {
+    const daily = TokenTracker.getDailyUsage(userId);
+    const monthly = TokenTracker.getMonthlyUsage(userId);
+    const dailyOK = daily + estimatedTokens <= CONFIG.tokens.dailyLimit;
+    const monthlyOK = monthly + estimatedTokens <= CONFIG.tokens.monthlyLimit;
+    return dailyOK && monthlyOK;
+  },
+  
+  // Get remaining tokens
+  getRemaining: function(userId) {
+    const daily = TokenTracker.getDailyUsage(userId);
+    const monthly = TokenTracker.getMonthlyUsage(userId);
+    return {
+      daily: CONFIG.tokens.dailyLimit - daily,
+      monthly: CONFIG.tokens.monthlyLimit - monthly
+    };
+  },
+  
+  // Update UI with current usage
+  updateUI: function(userId) {
+    if (!userId) return;
+    const daily = TokenTracker.getDailyUsage(userId);
+    const monthly = TokenTracker.getMonthlyUsage(userId);
+    const dailyEl = document.getElementById('daily-usage');
+    const monthlyEl = document.getElementById('monthly-usage');
+    if (dailyEl) dailyEl.textContent = `${daily}/${CONFIG.tokens.dailyLimit}`;
+    if (monthlyEl) monthlyEl.textContent = `${monthly}/${CONFIG.tokens.monthlyLimit}`;
+    
+    // Color warn if approaching limits
+    if (dailyEl && daily > CONFIG.tokens.dailyLimit * 0.8) {
+      dailyEl.style.color = '#dc2626';
+    } else if (dailyEl) {
+      dailyEl.style.color = 'var(--ink)';
+    }
+    
+    if (monthlyEl && monthly > CONFIG.tokens.monthlyLimit * 0.8) {
+      monthlyEl.style.color = '#dc2626';
+    } else if (monthlyEl) {
+      monthlyEl.style.color = 'var(--ink)';
+    }
   }
 };
 
@@ -2630,6 +2757,8 @@ function setAuthUI() {
     const name = window._atsUser.name || window._atsUser.email || 'Signed in';
     document.getElementById('user-display').textContent = name;
     document.getElementById('user-display').style.display = 'inline';
+    // Update token usage display
+    TokenTracker.updateUI(window._atsUser.id);
   }
 }
 
@@ -3054,8 +3183,21 @@ function toggleStatusPopup(id, e) {
   const popup = document.getElementById('status-' + id);
   const isOpen = popup?.classList.contains('open');
   // Close all popups
-  document.querySelectorAll('.status-popup.open').forEach(p => p.classList.remove('open'));
-  if (!isOpen && popup) popup.classList.add('open');
+  document.querySelectorAll('.status-popup.open').forEach(p => {
+    p.classList.remove('open');
+    p.classList.remove('left-align');
+  });
+  if (!isOpen && popup) {
+    popup.classList.add('open');
+    // Check if popup would go off-screen to the right
+    const rect = popup.getBoundingClientRect();
+    const popupWidth = popup.offsetWidth || 170;
+    const buttonRect = e.target.closest('[onclick*="toggleStatusPopup"]')?.getBoundingClientRect() || rect;
+    const rightEdge = buttonRect.right + popupWidth;
+    if (rightEdge > window.innerWidth - 20) {
+      popup.classList.add('left-align');
+    }
+  }
 }
 function setProjectStatus(id, status) {
   const p = ProjectStore.load(id);
@@ -6482,6 +6624,15 @@ function buildBulletContextBlock() {
 }
 
 async function applySelectedFixes(){
+  // Check token limits before proceeding
+  if (window._atsUser) {
+    if (!TokenTracker.canUseTokens(window._atsUser.id, CONFIG.tokens.estimatedPerOptimization)) {
+      const remaining = TokenTracker.getRemaining(window._atsUser.id);
+      toast(`Optimization requires ~${CONFIG.tokens.estimatedPerOptimization} tokens. You have ${remaining.daily} daily remaining, ${remaining.monthly} monthly remaining.`);
+      return;
+    }
+  }
+  
   const fixCbs = Array.from(document.querySelectorAll('.fix-cb:checked'));
   const kwCbs = Array.from(document.querySelectorAll('.kw-missing-row input[data-kw]:checked'));
 
@@ -6599,6 +6750,11 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     updateFixBar();
     const totalApplied = selectedFixes.length + selectedKws.length;
     toast(`${totalApplied} fix${totalApplied>1?'es':''} applied`);
+    
+    // Track tokens used for this optimization
+    if (window._atsUser) {
+      TokenTracker.addTokens(window._atsUser.id, CONFIG.tokens.estimatedPerOptimization);
+    }
 
     // Phase 2: Scoring — update overlay message
     overlayMsg.textContent = 'Scoring resume...';
