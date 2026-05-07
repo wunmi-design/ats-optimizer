@@ -266,6 +266,8 @@ select option{background:var(--white);}
   padding:14px;cursor:pointer;transition:all .15s;box-shadow:var(--shadow);
 }
 .proj-card:hover{border-color:var(--teal);box-shadow:var(--shadow-md);background:var(--teal-lt);cursor:pointer;}
+.proj-card.active{border-color:var(--green);box-shadow:0 0 0 1px var(--green) inset;}
+.proj-card.active:hover{border-color:var(--green);background:var(--white);}
 .proj-card.new-card{border-style:dashed;background:transparent;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:100px;color:var(--muted);}
 .proj-card.new-card:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-lt);}
 .proj-card-icon{font-size:1.4rem;margin-bottom:4px;}
@@ -627,7 +629,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.82</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.83</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -3078,7 +3080,8 @@ function renderProjGrid() {
          <div class="proj-logo-placeholder" style="display:none;">${esc((p.jdCompany||'?')[0].toUpperCase())}</div>`
       : `<div class="proj-logo-placeholder">${esc((p.jdCompany||p.name||'?')[0].toUpperCase())}</div>`;
 
-    html += `<div class="proj-card" onclick="loadProject('${p.id}')" data-company="${esc(p.jdCompany||'')}" style="min-height:140px;display:flex;flex-direction:column;">
+    const activeCls = (proj && proj.id === p.id) ? ' active' : '';
+    html += `<div class="proj-card${activeCls}" onclick="loadProject('${p.id}')" data-company="${esc(p.jdCompany||'')}" style="min-height:140px;display:flex;flex-direction:column;">
       <!-- Top row: logo + score -->
       <div class="flex-between" style="margin-bottom:10px;align-items:flex-start;">
         <div style="display:flex;align-items:center;gap:8px;">${logoHtml}</div>
@@ -3400,6 +3403,8 @@ function loadProject(id) {
   if (proj.fmt) restoreFmt(proj.fmt);
   // Render the applied fixes inventory when loading
   renderAppliedFixes();
+  // Re-render grid so the active-project border moves to the newly loaded tile.
+  try { renderProjGrid(); } catch(e) {}
   toast('Loaded: ' + proj.name);
   // Stay on projects tab — don't switch tabs when loading. Resume loads on right side.
   // switchTab(draft ? 'content' : 'jd');
@@ -5840,7 +5845,7 @@ function deduplicateResume(text) {
 // Caps total skill count at 24, prioritizing skills most relevant to the JD.
 // Runs after the dedup passes so it operates on a clean resume.
 // If JD context isn't available or the resume already has <=30 skills, returns input unchanged.
-async function capSkillsTo24(text) {
+async function capSkillsTo30(text) {
   try {
     // Find the SKILLS section. Match from "SKILLS" header to the next ALL-CAPS section header
     // or end-of-string. The previous regex used a zero-width lookahead that matched empty trailing
@@ -5861,13 +5866,13 @@ async function capSkillsTo24(text) {
       const items = line.replace(/^[^:]+:\s*/, '').split(',').filter(s => s.trim());
       return sum + items.length;
     }, 0);
-    console.log('[capSkillsTo24] Current skill count:', totalSkills);
+    console.log('[capSkillsTo30] Current skill count:', totalSkills);
     if (totalSkills <= 30) return text;
 
     const jdText = (proj?.jdText || g('jd-text') || '').slice(0, 4000);
     const jdTitle = proj?.jdTitle || g('jd-title') || '';
     if (!jdText && !jdTitle) {
-      console.warn('[capSkillsTo24] No JD context; skipping cap to avoid arbitrary trimming');
+      console.warn('[capSkillsTo30] No JD context; skipping cap to avoid arbitrary trimming');
       return text;
     }
 
@@ -5904,7 +5909,7 @@ ${text}`;
     const result = await claudeFetch(prompt, 4000);
     return result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim();
   } catch (e) {
-    console.warn('capSkillsTo24 failed, returning original:', e);
+    console.warn('capSkillsTo30 failed, returning original:', e);
     return text;
   }
 }
@@ -6227,7 +6232,7 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
 
     // Phase 5: Cap skills at 24, prioritizing JD-relevant ones.
     overlaySub.textContent = 'Prioritizing skills for this role';
-    const skillsCapped = await capSkillsTo24(boilerplateCleaned);
+    const skillsCapped = await capSkillsTo30(boilerplateCleaned);
 
     // Phase 6: Regex safety net — strip any placeholder tokens (X%, [number]%, ___%, etc.).
     const cleaned = stripPlaceholders(skillsCapped);
@@ -6440,7 +6445,7 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     const boilerplateCleaned = await dedupeCrossRoleBoilerplate(differentiated);
 
     overlaySub.textContent = 'Prioritizing skills for this role';
-    const skillsCapped = await capSkillsTo24(boilerplateCleaned);
+    const skillsCapped = await capSkillsTo30(boilerplateCleaned);
 
     const cleaned = stripPlaceholders(skillsCapped);
 
@@ -8897,7 +8902,7 @@ function liveUpdate() {
 }
 
 // Note: maybeTrimSkillsInCE is no longer called from liveUpdate. Skill capping happens only during
-// Optimize / Apply Selected via capSkillsTo24 in the apply pipeline. Users can add as many skills
+// Optimize / Apply Selected via capSkillsTo30 in the apply pipeline. Users can add as many skills
 // as they want in the Content Editor without triggering an automatic trim.
 let _skillCapTimer = null;
 let _skillCapInFlight = false;
