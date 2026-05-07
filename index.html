@@ -627,7 +627,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
       <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
       <div class="topbar-key">
-        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.81</span>
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.82</span>
         <label>API Key</label>
         <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
         <span id="api-saved" style="display: inline;">✓</span>
@@ -1944,7 +1944,8 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <div class="flex-between mb-3">
           <div><div class="bold" style="font-size:15px;">Analyzer</div><div class="text-xs text-muted mt-1">Score, gaps, and suggested fixes against the job description</div></div>
           <div class="flex-c gap-2">
-            <button class="btn btn-secondary" onclick="autoOptimize()" id="auto-opt-btn" title="Analyze the resume once and apply all suggestions in one pass">⚡ Optimize</button>
+            <button class="btn btn-secondary" onclick="autoOptimize()" id="auto-opt-btn" title="Apply all suggestions from one analysis pass">⚡ Optimize</button>
+            <button class="btn btn-secondary" onclick="autoOptimizeExtreme()" id="auto-opt-extreme-btn" title="Run Optimize 3 times in a row. Each pass re-analyzes and re-applies all suggestions. Use to push the score harder; takes ~3x longer.">🔥 Optimize Extreme</button>
             <button class="btn btn-primary" onclick="runFullAnalysis()">🔍 Analyze Resume →</button>
           </div>
         </div>
@@ -1997,8 +1998,10 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
             </div>
           </div>
 
-          <!-- Single unified suggestions card -->
-          <div class="card" style="margin-top:0;">
+          <!-- Single unified suggestions card. Hidden from user since 2.4.82 — Optimize/Optimize
+               Extreme apply suggestions automatically. The DOM elements (#top-fixes, #fix-cb, etc.)
+               must remain in the document because autoOptimize iterates them to gather fixes. -->
+          <div class="card" style="margin-top:0;display:none;">
             <div class="card-head" style="margin-bottom:12px;">
               <span class="card-title">Suggestions</span>
             </div>
@@ -6302,7 +6305,29 @@ function optimizeFromJD() {
   setTimeout(() => autoOptimize(), 100);
 }
 
-async function autoOptimize() {
+// Runs autoOptimize 3 times in a row. Each pass gets a fresh analysis (runFullAnalysis is called
+// at the top of autoOptimize) so each round targets whatever gaps remain. The post-Optimize
+// summary view runs only at the end with diff = original draft → final draft.
+async function autoOptimizeExtreme() {
+  if (!proj) { toast('Create a project first'); return; }
+  const originalBefore = getResumeText();
+  const scoreBefore = proj._cachedScore?.overall || 0;
+  const passes = 3;
+  for (let i = 0; i < passes; i++) {
+    const isLast = i === passes - 1;
+    await autoOptimize({ suppressPostView: !isLast, passLabel: `Pass ${i+1} of ${passes}` });
+  }
+  // Final post-view spans the WHOLE diff so the user sees what changed across all 3 passes.
+  const finalDraft = getResumeText();
+  const scoreAfter = proj._cachedScore?.overall || 0;
+  try { await showPostOptimizeView(originalBefore, finalDraft, scoreBefore, scoreAfter); }
+  catch(viewErr) { console.warn('Post-optimize view (extreme):', viewErr); }
+}
+
+async function autoOptimize(opts) {
+  opts = opts || {};
+  const suppressPostView = !!opts.suppressPostView;
+  const passLabel = opts.passLabel || '';
   const resume = getResumeText();
   const jdText = g('jd-text') || proj?.jdText || '';
   if (!resume) { toast('Add resume content first'); return; }
@@ -6313,7 +6338,9 @@ async function autoOptimize() {
   const overlayMsg = document.getElementById('overlay-msg');
   const overlaySub = document.getElementById('overlay-sub');
   const autoBtn = document.getElementById('auto-opt-btn');
-  autoBtn.disabled = true;
+  const extremeBtn = document.getElementById('auto-opt-extreme-btn');
+  if (autoBtn) autoBtn.disabled = true;
+  if (extremeBtn) extremeBtn.disabled = true;
 
   overlay.style.display = 'flex';
 
@@ -6360,7 +6387,8 @@ async function autoOptimize() {
       overlaySub.textContent = `No suggestions to apply. Score: ${scoreBefore}`;
       await new Promise(r => setTimeout(r, 1500));
       overlay.style.display = 'none';
-      autoBtn.disabled = false;
+      if (autoBtn) autoBtn.disabled = false;
+      if (extremeBtn) extremeBtn.disabled = false;
       switchTab('analyzer');
       return;
     }
@@ -6445,14 +6473,16 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     } catch(ceErr) { console.warn('CE sync:', ceErr); }
 
     // Re-score so the user sees the new number after this single pass
-    overlayMsg.textContent = 'Scoring updated resume...';
+    overlayMsg.textContent = passLabel ? `${passLabel} — scoring updated resume` : 'Scoring updated resume...';
     overlaySub.textContent = '';
     await runFullAnalysis(true);
     const scoreAfter = proj._cachedScore?.overall || 0;
-    toast(`Optimize complete. Score: ${scoreBefore} → ${scoreAfter}`);
+    toast(`${passLabel ? passLabel + ': ' : 'Optimize complete. '}Score: ${scoreBefore} → ${scoreAfter}`);
     // Replace the suggestions panel with the post-Optimize view (score + AI-titled change list).
-    try { await showPostOptimizeView(beforeDraft, cleaned, scoreBefore, scoreAfter); }
-    catch(viewErr) { console.warn('Post-optimize view:', viewErr); }
+    if (!suppressPostView) {
+      try { await showPostOptimizeView(beforeDraft, cleaned, scoreBefore, scoreAfter); }
+      catch(viewErr) { console.warn('Post-optimize view:', viewErr); }
+    }
   } catch(e) {
     let msg;
     if (e.message === 'RATE_LIMIT') msg = 'Rate limit reached — try again in 1 minute';
@@ -6462,7 +6492,8 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
   }
 
   overlay.style.display = 'none';
-  autoBtn.disabled = false;
+  if (autoBtn) autoBtn.disabled = false;
+  if (extremeBtn) extremeBtn.disabled = false;
   switchTab('analyzer');
 }
 
