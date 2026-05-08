@@ -650,7 +650,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.1.0</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.1.1</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -2618,6 +2618,12 @@ const CONFIG = {
     estimatedPerOptimization: 5500     // One optimization pass
   },
   
+  // Model routing — Sonnet for lower-stakes tasks (scoring, titles), Opus for everything else
+  models: {
+    opus: 'claude-opus-4-5',     // Default — bullet rewrites, optimization, truth-grounded tasks
+    sonnet: 'claude-sonnet-4-5'  // Used for: initial scoring, re-scoring, change titles
+  },
+  
   // Helper: get status by ID
   getStatus: function(id) {
     return this.statuses.find(s => s.id === id) || { id: 'Status?', label: 'Status?', cssClass: 'none' };
@@ -3024,10 +3030,11 @@ try { const k=localStorage.getItem('ats_key'); if(k){_apiKey=k;const el=document
 // ─────────────────────────────────────────────────────────
 //  CLAUDE FETCH
 // ─────────────────────────────────────────────────────────
-async function claudeFetch(prompt, maxTokens, att, temperature) {
+async function claudeFetch(prompt, maxTokens, att, temperature, model) {
   const key = getKey();
   const attempt = att||1;
-  const reqBody = {model:'claude-opus-4-5',max_tokens:maxTokens||3000,messages:[{role:'user',content:prompt}]};
+  const useModel = model || CONFIG.models.opus;
+  const reqBody = {model:useModel,max_tokens:maxTokens||3000,messages:[{role:'user',content:prompt}]};
   if (temperature !== undefined) reqBody.temperature = temperature;
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method:'POST',
@@ -3039,13 +3046,13 @@ async function claudeFetch(prompt, maxTokens, att, temperature) {
       const w = Math.min(attempt * 15000, 60000);
       if (attempt === 1) toast(`Rate limit — waiting ${w/1000}s...`);
       await new Promise(r=>setTimeout(r,w));
-      return claudeFetch(prompt,maxTokens,attempt+1,temperature);
+      return claudeFetch(prompt,maxTokens,attempt+1,temperature,model);
     }
     // All retries exhausted — throw a clean error without the API URL
     throw new Error('RATE_LIMIT');
   }
   if (resp.status===529||resp.status===503||resp.status===500) {
-    if (attempt<4) { const w=attempt*8000; if (attempt===1) toast(`Retrying in ${w/1000}s...`); await new Promise(r=>setTimeout(r,w)); return claudeFetch(prompt,maxTokens,attempt+1,temperature); }
+    if (attempt<4) { const w=attempt*8000; if (attempt===1) toast(`Retrying in ${w/1000}s...`); await new Promise(r=>setTimeout(r,w)); return claudeFetch(prompt,maxTokens,attempt+1,temperature,model); }
     throw new Error('API_UNAVAILABLE');
   }
   if (!resp.ok) {
@@ -4793,7 +4800,10 @@ async function titleChangeBlocks(blocks) {
       `- One short sentence, max 15 words\n` +
       `- Say what improved (e.g. "Now leads with client journeys and AI-enhanced design")\n\n` +
       `BLOCKS:\n${JSON.stringify(compactBlocks)}`,
-      1500
+      1500,
+      undefined,
+      undefined,
+      CONFIG.models.sonnet
     );
     const cleaned = raw.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim();
     const parsed = JSON.parse(cleaned);
@@ -5753,7 +5763,7 @@ CRITICAL RULES:
 2. Each "before" field must be an EXACT quote from the resume.
 3. ONLY suggest improvements for content that is genuinely MISSING or WEAK.
 4. Do NOT suggest adding keywords already present in the resume.
-${(proj.appliedFixes||[]).length ? 'ALREADY APPLIED (do NOT re-suggest these):\n' + (proj.appliedFixes||[]).map(f=>f.title||f.text).join('\n') + '\n' : ''}JOB:\n${jdText.slice(0,2500)}\nRESUME:\n${resume.slice(0,2500)}`, 3000, undefined, 0);
+${(proj.appliedFixes||[]).length ? 'ALREADY APPLIED (do NOT re-suggest these):\n' + (proj.appliedFixes||[]).map(f=>f.title||f.text).join('\n') + '\n' : ''}JOB:\n${jdText.slice(0,2500)}\nRESUME:\n${resume.slice(0,2500)}`, 3000, undefined, 0, CONFIG.models.sonnet);
 
     const score = useCachedScore ? cachedScore : parseJson(scoreRaw);
 
@@ -5931,7 +5941,7 @@ TOP_FIXES PRIORITY: 1) Missing keywords 2) Title mismatch 3) Summary length fix 
 CRITICAL RULES: Read resume carefully. Mark keywords found:true if anywhere in resume. Each "before" = exact quote. Only suggest genuinely missing/weak content.
 ${(proj.appliedFixes||[]).length ? 'ALREADY APPLIED (do NOT re-suggest):\n' + (proj.appliedFixes||[]).map(f=>f.title||f.text).join('\n') + '\n' : ''}
 QUALITY RULES: Do not invent metrics. Only use real documented accomplishments.
-JOB:\n${jdText.slice(0,3000)}\nRESUME:\n${resume.slice(0,3000)}`,3000);
+JOB:\n${jdText.slice(0,3000)}\nRESUME:\n${resume.slice(0,3000)}`,3000,undefined,undefined,CONFIG.models.sonnet);
     const score=parseJson(raw);
     proj.scores.push(score); autoSave();
     renderDashboard(score);
