@@ -637,24 +637,24 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
 
   <!-- ═══ TOP BAR ═══ -->
   <div class="topbar">
-    <div style="display:flex;align-items:center;gap:12px;flex:0 0 auto;">
-      <div class="topbar-brand">
-        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
+    <div style="display:flex;align-items:center;gap:6px;flex:0 0 auto;white-space:nowrap;min-width:0;">
+      <div class="topbar-brand" style="gap:4px;font-size:13px;">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:12px;">Build 3.0.2</span>
-      <div class="topbar-divider"></div>
-      <div class="topbar-project" onclick="promptRenameProject()" style="flex:0 1 200px;">
-        <span class="topbar-project-name" id="proj-name-display">Project</span>
-        <span class="edit-icon" id="proj-edit-icon" style="display: inline;">✎</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.0.2</span>
+      <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
+      <div class="topbar-project" onclick="promptRenameProject()" style="flex:0 1 auto;gap:4px;min-width:0;">
+        <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Project</span>
+        <span class="edit-icon" id="proj-edit-icon" style="display:inline;font-size:10px;flex-shrink:0;">✎</span>
       </div>
     </div>
     
-    <div class="topbar-right" style="gap:12px;justify-content:flex-end;">
-      <button id="save-btn" class="btn btn-secondary btn-sm" onclick="if(!window._atsUser){handleAuthClick();return;}if(!proj){toast('No project open');return;}saveProject();toast('Saved to cloud')">Save</button>
+    <div class="topbar-right" style="gap:10px;justify-content:flex-end;">
+      <button id="save-btn" class="btn btn-secondary btn-sm" onclick="if(!window._atsUser){handleAuthClick();return;}if(!proj){toast('No project open');return;}saveProject();toast('Saved to cloud')" style="font-size:11px;padding:5px 10px;">Save</button>
       
       <div style="position:relative;display:inline-block;" id="download-menu-wrap">
-        <button class="btn btn-primary btn-sm" onclick="toggleDownloadMenu(event)">↓ Download Resume ▾</button>
+        <button class="btn btn-primary btn-sm" onclick="toggleDownloadMenu(event)" style="font-size:11px;padding:5px 10px;">↓ Download Resume ▾</button>
         <div id="download-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);right:0;z-index:999;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-lg);min-width:170px;overflow:hidden;">
           <button onclick="fmtSavePdf();closeDownloadMenu()" style="display:block;width:100%;text-align:left;padding:9px 14px;font-size:12px;background:none;border:none;cursor:pointer;color:var(--ink);" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='none'">↓ Save as PDF</button>
           <button onclick="fmtSaveDocx();closeDownloadMenu()" style="display:block;width:100%;text-align:left;padding:9px 14px;font-size:12px;background:none;border:none;cursor:pointer;color:var(--ink);" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='none'">↓ Save as .docx</button>
@@ -664,11 +664,11 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         </div>
       </div>
       
-      <div style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 8px;border-radius:8px;transition:background 0.2s;" id="user-profile-btn" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''" onclick="handleAuthClick()">
-        <img id="user-avatar" src="" alt="User" style="width:32px;height:32px;border-radius:50%;object-fit:cover;background:var(--border);display:none;">
-        <div style="display:flex;flex-direction:column;align-items:flex-start;font-size:11px;line-height:1.4;">
-          <span id="user-first-name" style="font-weight:600;color:var(--ink);">User</span>
-          <span id="user-dropdown-arrow" style="color:var(--muted);font-size:10px;">▼</span>
+      <div style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:3px 6px;border-radius:6px;transition:background 0.2s;flex-shrink:0;" id="user-profile-btn" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''" onclick="handleAuthClick()">
+        <img id="user-avatar" src="" alt="User" style="width:26px;height:26px;border-radius:50%;object-fit:cover;background:var(--border);display:none;flex-shrink:0;">
+        <div style="display:flex;flex-direction:column;align-items:flex-start;font-size:9px;line-height:1.2;">
+          <span id="user-first-name" style="font-weight:600;color:var(--ink);white-space:nowrap;">User</span>
+          <span style="color:var(--muted);font-size:8px;">▼</span>
         </div>
       </div>
     </div>
