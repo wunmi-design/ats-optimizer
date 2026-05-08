@@ -650,7 +650,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.1.2</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.1.3</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -2618,10 +2618,10 @@ const CONFIG = {
     estimatedPerOptimization: 5500     // One optimization pass
   },
   
-  // Model routing — Sonnet for lower-stakes tasks (scoring, titles), Opus for everything else
+  // Model routing — all calls now use Opus (Sonnet routing reverted; Opus performs better)
   models: {
-    opus: 'claude-opus-4-5',     // Default — bullet rewrites, optimization, truth-grounded tasks
-    sonnet: 'claude-sonnet-4-5'  // Used for: initial scoring, re-scoring, change titles
+    opus: 'claude-opus-4-5',     // Default for all operations
+    sonnet: 'claude-opus-4-5'    // Reverted: was Sonnet for scoring/titles, now Opus
   },
   
   // Helper: get status by ID
@@ -3677,6 +3677,22 @@ function loadProject(id) {
   renderAppliedFixes();
   // Re-render grid so the active-project border moves to the newly loaded tile.
   try { renderProjGrid(); } catch(e) {}
+  
+  // If this project has been optimized before, restore the What Has Changed view.
+  // We persisted blocks (with AI titles) on proj.lastOptimize, so this renders without
+  // any API calls — instant restore, no token cost.
+  if (proj.lastOptimize?.blocks?.length) {
+    setTimeout(() => {
+      try {
+        renderWhatHasChangedView(
+          proj.lastOptimize.blocks,
+          proj.lastOptimize.scoreBefore || 0,
+          proj.lastOptimize.scoreAfter || 0
+        );
+      } catch(e) { console.warn('Failed to restore What Has Changed view:', e); }
+    }, 150);
+  }
+  
   toast('Loaded: ' + proj.name);
   // Stay on projects tab — don't switch tabs when loading. Resume loads on right side.
   // switchTab(draft ? 'content' : 'jd');
@@ -4833,18 +4849,13 @@ function autoTitleForBlock(b) {
   return `${verb} content`;
 }
 
-// Shows the post-Optimize view inside analyzer-content. Hides Applied Fixes and ATS Format
-// Audit, shows the new "What Has Changed" card with before/after diffs and hover highlighting.
-async function showPostOptimizeView(beforeText, afterText, scoreBefore, scoreAfter) {
-  const ops = computeLineDiff(beforeText, afterText);
-  let blocks = groupDiffIntoBlocks(ops);
-  // Filter out trivially small blocks (single-line, fewer than 3 chars of change) which clutter
-  // the list without telling the user anything useful.
-  blocks = blocks.filter(b => (b.before + b.after).trim().length >= 3);
-  
+// Pure render function: paints the What Has Changed UI from already-built blocks.
+// Used both by showPostOptimizeView (after computing diff + AI titles) and by loadProject
+// (when restoring a previously-optimized project from saved state).
+function renderWhatHasChangedView(blocks, scoreBefore, scoreAfter) {
   // Make sure analyzer-content stays visible
   const analyzerEl = document.getElementById('analyzer-content');
-  if (analyzerEl) analyzerEl.style.display = '';
+  if (analyzerEl) analyzerEl.style.display = 'block';
   
   // Hide the legacy post-optimize content (we don't use it anymore)
   const postEl = document.getElementById('post-optimize-content');
@@ -4856,7 +4867,7 @@ async function showPostOptimizeView(beforeText, afterText, scoreBefore, scoreAft
   const atsAuditCard = document.getElementById('ats-audit-card');
   if (atsAuditCard) atsAuditCard.style.display = 'none';
   
-  // Show the new What Has Changed card
+  // Show the What Has Changed card
   const whatChangedCard = document.getElementById('what-changed-card');
   if (whatChangedCard) whatChangedCard.style.display = 'block';
   
@@ -4873,75 +4884,98 @@ async function showPostOptimizeView(beforeText, afterText, scoreBefore, scoreAft
   if (countEl) countEl.textContent = blocks.length + (blocks.length === 1 ? ' change' : ' changes');
   
   const list = document.getElementById('what-changed-list');
-  if (list) {
-    list.innerHTML = '';
-    if (!blocks.length) {
-      list.innerHTML = '<div class="text-xs text-muted" style="padding:14px 0;text-align:center;">No content changes detected.</div>';
-      return;
-    }
-    blocks.forEach((b, i) => {
-      const div = document.createElement('div');
-      div.className = 'change-item kind-' + b.kind;
-      div.dataset.idx = i;
-      
-      // Build the before/after content
-      const beforeText = (b.before || '').trim();
-      const afterText = (b.after || '').trim();
-      const truncate = (s, n) => s.length > n ? s.slice(0, n) + '…' : s;
-      
-      let beforeAfterHTML = '';
-      if (b.kind === 'add') {
-        // Pure addition - show only after
-        beforeAfterHTML = `
-          <div class="change-ba-row">
-            <div class="change-ba-label change-ba-add">+ Added</div>
-            <div class="change-ba-text change-ba-after-text">${truncate(afterText, 200)}</div>
-          </div>`;
-      } else if (b.kind === 'del') {
-        // Pure deletion - show only before
-        beforeAfterHTML = `
-          <div class="change-ba-row">
-            <div class="change-ba-label change-ba-del">− Removed</div>
-            <div class="change-ba-text change-ba-before-text">${truncate(beforeText, 200)}</div>
-          </div>`;
-      } else {
-        // Edit - show both
-        beforeAfterHTML = `
-          <div class="change-ba-row">
-            <div class="change-ba-label change-ba-del">Before</div>
-            <div class="change-ba-text change-ba-before-text">${truncate(beforeText, 200)}</div>
-          </div>
-          <div class="change-ba-row">
-            <div class="change-ba-label change-ba-add">After</div>
-            <div class="change-ba-text change-ba-after-text">${truncate(afterText, 200)}</div>
-          </div>`;
-      }
-      
-      div.innerHTML = `
-        <span class="change-dot"></span>
-        <div style="flex:1;min-width:0;">
-          <div class="change-title">Loading…</div>
-          <div class="change-detail"></div>
-          <div class="change-ba" style="margin-top:8px;">${beforeAfterHTML}</div>
+  if (!list) return;
+  list.innerHTML = '';
+  if (!blocks.length) {
+    list.innerHTML = '<div class="text-xs text-muted" style="padding:14px 0;text-align:center;">No content changes detected.</div>';
+    return;
+  }
+  
+  blocks.forEach((b, i) => {
+    const div = document.createElement('div');
+    div.className = 'change-item kind-' + b.kind;
+    div.dataset.idx = i;
+    
+    const beforeText = (b.before || '').trim();
+    const afterText = (b.after || '').trim();
+    const truncate = (s, n) => s.length > n ? s.slice(0, n) + '…' : s;
+    
+    let beforeAfterHTML = '';
+    if (b.kind === 'add') {
+      beforeAfterHTML = `
+        <div class="change-ba-row">
+          <div class="change-ba-label change-ba-add">+ Added</div>
+          <div class="change-ba-text change-ba-after-text">${esc(truncate(afterText, 200))}</div>
         </div>`;
-      div.addEventListener('mouseenter', () => highlightPreviewForBlock(b));
-      div.addEventListener('mouseleave', () => clearPreviewHighlight());
-      list.appendChild(div);
-    });
-  }
-  // Now batch-call AI for titles and update each item in place.
+    } else if (b.kind === 'del') {
+      beforeAfterHTML = `
+        <div class="change-ba-row">
+          <div class="change-ba-label change-ba-del">− Removed</div>
+          <div class="change-ba-text change-ba-before-text">${esc(truncate(beforeText, 200))}</div>
+        </div>`;
+    } else {
+      beforeAfterHTML = `
+        <div class="change-ba-row">
+          <div class="change-ba-label change-ba-del">Before</div>
+          <div class="change-ba-text change-ba-before-text">${esc(truncate(beforeText, 200))}</div>
+        </div>
+        <div class="change-ba-row">
+          <div class="change-ba-label change-ba-add">After</div>
+          <div class="change-ba-text change-ba-after-text">${esc(truncate(afterText, 200))}</div>
+        </div>`;
+    }
+    
+    div.innerHTML = `
+      <span class="change-dot"></span>
+      <div style="flex:1;min-width:0;">
+        <div class="change-title">${esc(b.title || 'Loading…')}</div>
+        <div class="change-detail">${esc(b.detail || '')}</div>
+        <div class="change-ba" style="margin-top:8px;">${beforeAfterHTML}</div>
+      </div>`;
+    div.addEventListener('mouseenter', () => highlightPreviewForBlock(b));
+    div.addEventListener('mouseleave', () => clearPreviewHighlight());
+    list.appendChild(div);
+  });
+  if (proj) proj._postOptimizeBlocks = blocks;
+}
+
+// Shows the post-Optimize view inside analyzer-content. Hides Applied Fixes and ATS Format
+// Audit, shows the new "What Has Changed" card with before/after diffs and hover highlighting.
+// After AI labels the blocks, persists them on proj.lastOptimize so the view survives reload.
+async function showPostOptimizeView(beforeText, afterText, scoreBefore, scoreAfter) {
+  const ops = computeLineDiff(beforeText, afterText);
+  let blocks = groupDiffIntoBlocks(ops);
+  // Filter out trivially small blocks (single-line, fewer than 3 chars of change) which clutter
+  // the list without telling the user anything useful.
+  blocks = blocks.filter(b => (b.before + b.after).trim().length >= 3);
+  
+  // First render with placeholder titles so user sees the panel immediately
+  renderWhatHasChangedView(blocks, scoreBefore, scoreAfter);
+  
+  // Get AI titles for each block
   await titleChangeBlocks(blocks);
-  if (list) {
-    Array.from(list.children).forEach((el, i) => {
-      const b = blocks[i];
-      if (!b) return;
-      const titleEl = el.querySelector('.change-title');
-      const detailEl = el.querySelector('.change-detail');
-      if (titleEl) titleEl.textContent = b.title || 'Change';
-      if (detailEl) detailEl.textContent = b.detail || '';
-    });
+  
+  // Re-render with the real titles
+  renderWhatHasChangedView(blocks, scoreBefore, scoreAfter);
+  
+  // Persist on the project so reload + tab switch can restore the view without recomputing
+  if (proj) {
+    proj.lastOptimize = {
+      beforeText: beforeText,
+      afterText: afterText,
+      scoreBefore: scoreBefore,
+      scoreAfter: scoreAfter,
+      blocks: blocks.map(b => ({
+        kind: b.kind,
+        before: b.before || '',
+        after: b.after || '',
+        title: b.title || '',
+        detail: b.detail || ''
+      })),
+      timestamp: Date.now()
+    };
+    try { autoSave(); } catch(e) {}
   }
-  proj._postOptimizeBlocks = blocks; // stash for potential re-render
 }
 
 // Finds text in the resume preview that matches a block's content, highlights the matching
