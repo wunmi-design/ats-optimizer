@@ -650,7 +650,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.1.4</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.1.5</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -5865,7 +5865,7 @@ TRUTH GROUNDING (highest-priority rule):
 - Do NOT suggest lifting JD marketing phrases ("win-win-win", "talk and hang out", "players and users") into bullets describing unrelated work.
 - A missing keyword is acceptable. A fabricated bullet is not. When in doubt, suggest dropping the keyword rather than forcing it.
 
-Rules: only flag real issues. Never fabricate metrics, skills, brands, domains, team members, or accomplishments. NEVER output placeholder tokens (X%, Y%, [number], [percent], ___, TBD) in any "stronger" or "suggestion" field — if you don't have a real metric from the resume, write the suggestion without a percentage.
+Rules: only flag real issues. Never fabricate metrics, skills, brands, domains, team members, or accomplishments. NEVER output placeholder tokens (X%, Y%, [number], [percent], ___, TBD) in any "stronger" or "suggestion" field — if you don't have a real metric from the resume, write the suggestion without a percentage. NEVER use em dashes (—) in any rewrite. Use commas, periods, or restructure the sentence. Em dashes are an AI tell and don't sound human.
 JOB:\n${jdText.slice(0,2000)}\nRESUME:\n${resume.slice(0,2500)}`, 3000);
     const auditRaw = await claudeFetch(`Audit this resume for ATS issues. Return ONLY valid JSON:
 {"checks":[{"id":"c1","label":"Check name","status":"pass|fail|warn","issue":"description if fail/warn"}],"overall":"pass|warn|fail","summary":"..."}
@@ -6722,6 +6722,39 @@ function stripPlaceholders(text) {
   return out;
 }
 
+// Replace em dashes with commas. Em dashes (—) are an AI tell — they don't sound human in
+// resume copy. We replace them with comma+space, which is the natural human equivalent in
+// most contexts. Examples:
+//   "non-designers—partnering with research" → "non-designers, partnering with research"
+//   "team — across products"                 → "team, across products"
+//   "word -- word" (double hyphen as dash)   → "word, word"
+//
+// We deliberately LEAVE en dashes (–) alone because they're used legitimately in date ranges
+// like "01/16 – 06/17". Touching them would break formatting in the EXPERIENCE section.
+function stripEmDashes(text) {
+  let out = text;
+  
+  // Replace em dashes with comma+space, absorbing any surrounding whitespace.
+  out = out.replace(/\s*—\s*/g, ', ');
+  
+  // Replace double-hyphen used as em dash (only when surrounded by whitespace).
+  out = out.replace(/\s+--\s+/g, ', ');
+  
+  // Cleanup: collapse double commas, fix space-before-punctuation, normalize whitespace.
+  out = out.split('\n').map(line => {
+    const lead = (line.match(/^(\s*)/) || ['', ''])[1];
+    const body = line.slice(lead.length)
+      .replace(/,\s*,/g, ',')           // ",, " or "," + ", " → ","
+      .replace(/\s+([,.;:])/g, '$1')    // " ," → ","
+      .replace(/\s{2,}/g, ' ')          // collapse multi-spaces
+      .replace(/^[,\s]+/, '')           // strip leading comma if dash was at start of line
+      .replace(/\s+$/, '');             // trailing whitespace
+    return lead + body;
+  }).join('\n');
+  
+  return out;
+}
+
 // Builds a "VERIFIED FACTS" block from the project's Content Editor data.
 // This is the closed world the optimizer must work within — companies, role titles, dates,
 // every existing bullet, every skill. The model may rephrase or amplify anything in this list
@@ -6787,6 +6820,15 @@ TRUTH GROUNDING (highest-priority rule, overrides JD-matching):
   • Lifting verbatim phrases from the JD (e.g. "win-win-win", "talk and hang out", "players and users", "intuitive scalable experiences") into bullets that describe work where those concepts didn't apply. JD vocabulary is fine where it genuinely matches; it is fabrication where it doesn't.
 - If a fix or keyword would require fabrication to apply cleanly, apply it only to the role(s) where the underlying experience actually supports it. If no role supports it, leave it out — a missing keyword is acceptable; a fabricated bullet is not.
 - When the JD asks for a domain the candidate lacks, the right move is transferable framing: lead with the candidate's real scale, platform thinking, cross-functional leadership, or strategic vision — never invent the missing domain.
+
+VOICE RULES (apply to every rewrite):
+- NEVER use em dashes (—) anywhere in the resume output. Em dashes don't sound human and are an AI tell.
+- When you would use an em dash for a parenthetical aside, use a comma or restructure into two sentences. Examples:
+  • Wrong: "design systems that empower non-designers—partnering with research to generate ideas"
+  • Right: "design systems that empower non-designers, partnering with research to generate ideas"
+  • Right: "design systems that empower non-designers. I partner with research to generate ideas."
+- Hyphens in compound words (non-designers, cross-functional, end-to-end) are correct and stay.
+- En dashes (–) in date ranges (01/16 – 06/17) are correct and stay.
 `;
 
 // Builds the BULLET CONTEXT block injected into apply prompts. Lists every bullet that has a
@@ -6907,14 +6949,17 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
 
     // Phase 6: Regex safety net — strip any placeholder tokens (X%, [number]%, ___%, etc.).
     const cleaned = stripPlaceholders(skillsCapped);
+    
+    // Phase 7: Replace em dashes with commas — em dashes don't sound human.
+    const finalText = stripEmDashes(cleaned);
 
     // Push as a new draft so each Apply Selected click increments the version (v1 → v2 → v3...)
-    proj.drafts.push(cleaned);
+    proj.drafts.push(finalText);
     proj._redoStack = [];
     proj._aiApplied = true;
     proj._cachedScore = null; proj._analysisHash = null; proj.scores = [];
     autoSave();
-    showResume(cleaned, proj.drafts.length);
+    showResume(finalText, proj.drafts.length);
 
     // Mark applied items and record them
     fixCbs.forEach(cb => {
@@ -7120,14 +7165,17 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     const skillsCapped = await capSkillsTo30(boilerplateCleaned);
 
     const cleaned = stripPlaceholders(skillsCapped);
+    
+    // Phase 7: Replace em dashes with commas — em dashes don't sound human.
+    const finalText = stripEmDashes(cleaned);
 
     // Push as a new draft so the version increments by exactly one
-    proj.drafts.push(cleaned);
+    proj.drafts.push(finalText);
     proj._redoStack = [];
     proj._aiApplied = true;
     proj._cachedScore = null; proj._analysisHash = null; proj.scores = [];
     autoSave();
-    showResume(cleaned, proj.drafts.length);
+    showResume(finalText, proj.drafts.length);
 
     // Mark all applied
     unappliedFixes.forEach(f => recordAppliedFix('fix', f.title, f.title));
