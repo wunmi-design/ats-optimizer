@@ -213,7 +213,7 @@ select option{background:var(--white);}
 .diff-del{background:#fee2e2;color:#7f1d1d;text-decoration:line-through;}
 .diff-empty{background:#f9fafb;color:transparent;}
 /* Post-Optimize "what changed" list */
-.change-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg);cursor:pointer;transition:background .12s, border-color .12s;}
+.change-item{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg);cursor:pointer;transition:background .12s, border-color .12s;}
 .change-item:hover{background:#f0fdfa;border-color:var(--teal);}
 .change-item .change-dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex-shrink:0;}
 .change-item.kind-add .change-dot{background:#22c55e;}
@@ -221,6 +221,14 @@ select option{background:var(--white);}
 .change-item.kind-edit .change-dot{background:#f59e0b;}
 .change-item .change-title{font-size:13px;font-weight:600;color:var(--ink);}
 .change-item .change-detail{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4;}
+.change-ba{display:flex;flex-direction:column;gap:6px;}
+.change-ba-row{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.45;}
+.change-ba-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 7px;border-radius:4px;flex-shrink:0;min-width:55px;text-align:center;margin-top:1px;}
+.change-ba-label.change-ba-add{background:#dcfce7;color:#166534;}
+.change-ba-label.change-ba-del{background:#fee2e2;color:#991b1b;}
+.change-ba-text{flex:1;color:var(--ink2);}
+.change-ba-before-text{text-decoration:line-through;color:#991b1b;opacity:.7;}
+.change-ba-after-text{color:#166534;font-weight:500;}
 /* Preview highlight on hover-over-change */
 .fmt-change-highlight{background:#fef9c3 !important;outline:2px solid #facc15;outline-offset:2px;border-radius:3px;transition:background .15s, outline-color .15s;}
 .tag.required{background:var(--teal-mid);border-color:var(--teal-dim);color:var(--teal-dark);}
@@ -642,7 +650,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.0.4</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.1.0</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -2071,6 +2079,18 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
             </div>
           </div>
 
+          <!-- What Has Changed (shown after optimization, hidden by default) -->
+          <div class="card mb-3" id="what-changed-card" style="display:none;">
+            <div class="card-head" style="margin-bottom:12px;">
+              <span class="card-title">What Has Changed</span>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span class="text-xs text-muted" id="what-changed-count"></span>
+                <span class="text-xs text-muted" id="what-changed-score-line"></span>
+              </div>
+            </div>
+            <div id="what-changed-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+          </div>
+
           <!-- Single unified suggestions card. Hidden from user since 2.4.82 — Optimize/Optimize
                Extreme apply suggestions automatically. The DOM elements (#top-fixes, #fix-cb, etc.)
                must remain in the document because autoOptimize iterates them to gather fixes. -->
@@ -2112,7 +2132,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
           </div>
 
           <!-- Applied Fixes Inventory -->
-          <div class="card" style="margin-top:16px;">
+          <div class="card" id="applied-fixes-card" style="margin-top:16px;">
             <div class="card-title mb-2">Applied Fixes</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;">
               <!-- Left: Applied improvements -->
@@ -3037,8 +3057,8 @@ async function claudeFetch(prompt, maxTokens, att, temperature) {
   }
   const d=await resp.json();
   
-  // Track actual token usage from API response (only if not using own key)
-  if (d.usage && window._atsUser && !hasOwnApiKey()) {
+  // Track actual token usage from API response - always update counter so user sees real usage
+  if (d.usage && window._atsUser) {
     const totalTokens = (d.usage.input_tokens || 0) + (d.usage.output_tokens || 0);
     if (totalTokens > 0) {
       TokenTracker.addTokens(window._atsUser.id, totalTokens);
@@ -4803,38 +4823,46 @@ function autoTitleForBlock(b) {
   return `${verb} content`;
 }
 
-// Replaces the suggestions panel with the post-Optimize view. Computes diff, groups into change
-// blocks, asks the AI for short titles, and renders an interactive list. Hovering an item
-// highlights and scrolls to the matching content in the resume preview.
+// Shows the post-Optimize view inside analyzer-content. Hides Applied Fixes and ATS Format
+// Audit, shows the new "What Has Changed" card with before/after diffs and hover highlighting.
 async function showPostOptimizeView(beforeText, afterText, scoreBefore, scoreAfter) {
   const ops = computeLineDiff(beforeText, afterText);
   let blocks = groupDiffIntoBlocks(ops);
   // Filter out trivially small blocks (single-line, fewer than 3 chars of change) which clutter
   // the list without telling the user anything useful.
   blocks = blocks.filter(b => (b.before + b.after).trim().length >= 3);
-  // Show the panel immediately with placeholder titles so the user isn't staring at nothing
-  // while the AI batches the labels.
+  
+  // Make sure analyzer-content stays visible
   const analyzerEl = document.getElementById('analyzer-content');
+  if (analyzerEl) analyzerEl.style.display = '';
+  
+  // Hide the legacy post-optimize content (we don't use it anymore)
   const postEl = document.getElementById('post-optimize-content');
-  if (analyzerEl) analyzerEl.style.display = 'none';
-  if (postEl) postEl.style.display = 'block';
-  // Score line
+  if (postEl) postEl.style.display = 'none';
+  
+  // Hide Applied Fixes card and ATS Format Audit card while in post-optimize state
+  const appliedFixesCard = document.getElementById('applied-fixes-card');
+  if (appliedFixesCard) appliedFixesCard.style.display = 'none';
+  const atsAuditCard = document.getElementById('ats-audit-card');
+  if (atsAuditCard) atsAuditCard.style.display = 'none';
+  
+  // Show the new What Has Changed card
+  const whatChangedCard = document.getElementById('what-changed-card');
+  if (whatChangedCard) whatChangedCard.style.display = 'block';
+  
+  // Score delta line shown in the card head
   const delta = scoreAfter - scoreBefore;
   const arrow = delta > 0 ? '↑' : (delta < 0 ? '↓' : '=');
   const color = delta > 0 ? 'var(--green)' : (delta < 0 ? 'var(--red)' : 'var(--ink2)');
-  const scoreLine = document.getElementById('post-opt-score-line');
+  const scoreLine = document.getElementById('what-changed-score-line');
   if (scoreLine) {
-    scoreLine.innerHTML = `<span style="color:var(--muted);">${scoreBefore}</span> <span style="color:${color};">${arrow}</span> <span style="color:${color};">${scoreAfter}</span>`;
+    scoreLine.innerHTML = `Score: <span style="color:var(--muted);">${scoreBefore}%</span> <span style="color:${color};font-weight:700;">${arrow} ${scoreAfter}%</span>`;
   }
-  const summary = document.getElementById('post-opt-summary');
-  if (summary) {
-    if (delta > 0) summary.textContent = `Score improved by ${delta} points. Click Save in the header to commit these changes.`;
-    else if (delta < 0) summary.textContent = `Score dropped by ${Math.abs(delta)} points. Review the changes below — you can revert by reloading the project without saving.`;
-    else summary.textContent = 'Score is unchanged. The changes below are stylistic or structural improvements.';
-  }
-  const countEl = document.getElementById('post-opt-changes-count');
+  
+  const countEl = document.getElementById('what-changed-count');
   if (countEl) countEl.textContent = blocks.length + (blocks.length === 1 ? ' change' : ' changes');
-  const list = document.getElementById('post-opt-changes-list');
+  
+  const list = document.getElementById('what-changed-list');
   if (list) {
     list.innerHTML = '';
     if (!blocks.length) {
@@ -4845,11 +4873,46 @@ async function showPostOptimizeView(beforeText, afterText, scoreBefore, scoreAft
       const div = document.createElement('div');
       div.className = 'change-item kind-' + b.kind;
       div.dataset.idx = i;
+      
+      // Build the before/after content
+      const beforeText = (b.before || '').trim();
+      const afterText = (b.after || '').trim();
+      const truncate = (s, n) => s.length > n ? s.slice(0, n) + '…' : s;
+      
+      let beforeAfterHTML = '';
+      if (b.kind === 'add') {
+        // Pure addition - show only after
+        beforeAfterHTML = `
+          <div class="change-ba-row">
+            <div class="change-ba-label change-ba-add">+ Added</div>
+            <div class="change-ba-text change-ba-after-text">${truncate(afterText, 200)}</div>
+          </div>`;
+      } else if (b.kind === 'del') {
+        // Pure deletion - show only before
+        beforeAfterHTML = `
+          <div class="change-ba-row">
+            <div class="change-ba-label change-ba-del">− Removed</div>
+            <div class="change-ba-text change-ba-before-text">${truncate(beforeText, 200)}</div>
+          </div>`;
+      } else {
+        // Edit - show both
+        beforeAfterHTML = `
+          <div class="change-ba-row">
+            <div class="change-ba-label change-ba-del">Before</div>
+            <div class="change-ba-text change-ba-before-text">${truncate(beforeText, 200)}</div>
+          </div>
+          <div class="change-ba-row">
+            <div class="change-ba-label change-ba-add">After</div>
+            <div class="change-ba-text change-ba-after-text">${truncate(afterText, 200)}</div>
+          </div>`;
+      }
+      
       div.innerHTML = `
         <span class="change-dot"></span>
         <div style="flex:1;min-width:0;">
           <div class="change-title">Loading…</div>
           <div class="change-detail"></div>
+          <div class="change-ba" style="margin-top:8px;">${beforeAfterHTML}</div>
         </div>`;
       div.addEventListener('mouseenter', () => highlightPreviewForBlock(b));
       div.addEventListener('mouseleave', () => clearPreviewHighlight());
@@ -4917,12 +4980,24 @@ function clearPreviewHighlight() {
   document.querySelectorAll('.fmt-change-highlight').forEach(el => el.classList.remove('fmt-change-highlight'));
 }
 
-// Lets the user dismiss the post-Optimize view and go back to the suggestions panel.
+// Lets the user dismiss the post-Optimize view: hide the What Has Changed card and restore
+// the Applied Fixes and ATS Format Audit cards.
 function exitPostOptimizeView() {
   const analyzerEl = document.getElementById('analyzer-content');
   const postEl = document.getElementById('post-optimize-content');
   if (postEl) postEl.style.display = 'none';
   if (analyzerEl) analyzerEl.style.display = '';
+  
+  // Hide the new What Has Changed card
+  const whatChangedCard = document.getElementById('what-changed-card');
+  if (whatChangedCard) whatChangedCard.style.display = 'none';
+  
+  // Restore Applied Fixes card and ATS Format Audit card
+  const appliedFixesCard = document.getElementById('applied-fixes-card');
+  if (appliedFixesCard) appliedFixesCard.style.display = '';
+  const atsAuditCard = document.getElementById('ats-audit-card');
+  if (atsAuditCard) atsAuditCard.style.display = '';
+  
   clearPreviewHighlight();
 }
 
@@ -5873,7 +5948,7 @@ function renderDashboard(score) {
     const circ=document.getElementById('score-circle');
     if(circ){const c=2*Math.PI*42;circ.style.strokeDashoffset=c-(pct/100)*c;circ.style.stroke=pct>=80?'var(--green)':pct>=60?'var(--teal)':'var(--red)';}
     const numEl=document.getElementById('score-num');if(numEl)numEl.textContent=pct+'%';
-  const cells=[['keyword_match','Keywords'],['hard_skills','Hard Skills'],['soft_skills','Soft Skills'],['title_alignment','Title Match'],['yoe_alignment','Years of Experience'],['summary_quality','Summary'],['bullet_quality','Bullets']];
+  const cells=[['keyword_match','Keywords'],['hard_skills','Hard Skills'],['soft_skills','Soft Skills'],['yoe_alignment','Years of Experience'],['summary_quality','Summary'],['bullet_quality','Bullets']];
   const grid=document.getElementById('score-grid');
   if(grid)grid.innerHTML=cells.filter(([k])=>score[k]!==undefined&&score[k]!==null).map(([k,l])=>{
     const v=score[k]||0;
