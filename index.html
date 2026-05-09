@@ -650,7 +650,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.1.5</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.1.6</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -8832,46 +8832,35 @@ function fmtGetHtml(fp) {
 
 async function fmtSaveDocx(){await saveDocx();}
 
+// Print-to-PDF the resume by rendering it into a sandboxed iframe and printing only that.
+// Previous version (3.1.5 and earlier) tried to hide the rest of the app via @media print
+// rules, but the app's CSS was bleeding through and the print preview captured the whole UI.
+// The iframe approach has its own document, its own stylesheet, and its own print context, so
+// nothing from the parent app can leak in.
 async function fmtSavePdf() {
-  const text = getResumeText();
-  if (!text) { toast('No resume content'); return; }
-
-  updateLivePreview();
-  await new Promise(r => setTimeout(r, 150));
-
-  // The screen preview now paginates content across multiple page elements (2.4.71). Reading
-  // #fmt-preview-page would only capture page 1, so we re-render the full resume HTML from the
-  // current text. This guarantees the PDF/print contains every section regardless of preview
-  // pagination state.
   const fullText = getResumeText();
   if (!fullText || !fullText.trim()) {
     toast('Open the Template tab first so the preview renders');
     return;
   }
+  
+  updateLivePreview();
+  await new Promise(r => setTimeout(r, 150));
+  
   const fullHtml = fmtRenderSections(fmtParseText(fullText));
-  // Mock a page-like object so existing references to page.style.* still work below.
-  const page = {
-    innerHTML: fullHtml,
-    style: {
-      background: _fmt.bgColor || '#ffffff',
-      color: _fmt.textColor || '#111111',
-      fontFamily: (_fmt.bodyFont || 'Arial') + ',Arial,sans-serif',
-      fontSize: ((_fmt.bodySize || 11) + 'pt'),
-      lineHeight: _fmt.template === 'compact' ? '1.3' : '1.35',
-    }
-  };
-
-  const bg      = page.style.background;
-  const color   = page.style.color;
-  const fontFam = page.style.fontFamily;
-  const fontSize = page.style.fontSize;
-  const lineH   = page.style.lineHeight;
-  const pad     = _fmt.margin || '0.65in';
-
-  // Embed used fonts as base64 so print renderer uses them
+  
+  // Resolve all the formatting bits the print needs from the current template config.
+  const bg       = _fmt.bgColor || '#ffffff';
+  const color    = _fmt.textColor || '#111111';
+  const fontFam  = (_fmt.bodyFont || 'Arial') + ',Arial,sans-serif';
+  const fontSize = (_fmt.bodySize || 11) + 'pt';
+  const lineH    = _fmt.template === 'compact' ? '1.3' : '1.35';
+  const pad      = _fmt.margin || '0.65in';
+  
+  // Embed system fonts as base64 so the iframe's print renderer has them available.
   let fontFaceCSS = '';
   if (_systemFontsLoaded) {
-    const used = new Set([_fmt.nameFont,_fmt.bodyFont,_fmt.headingFont,_fmt.expFont,_fmt.roleFont].filter(Boolean));
+    const used = new Set([_fmt.nameFont, _fmt.bodyFont, _fmt.headingFont, _fmt.expFont, _fmt.roleFont].filter(Boolean));
     const jobs = [];
     document.fonts.forEach(face => {
       if (!used.has(face.family) || face.status !== 'loaded' || !face.$$url) return;
@@ -8887,95 +8876,85 @@ async function fmtSavePdf() {
     if (jobs.length) {
       toast('Embedding fonts...');
       await Promise.allSettled(jobs);
-      await new Promise(r => setTimeout(r, 400));
+      await new Promise(r => setTimeout(r, 300));
     }
   }
-
-  document.getElementById('pdf-print-fontfaces')?.remove();
-  if (fontFaceCSS) {
-    const fs = document.createElement('style');
-    fs.id = 'pdf-print-fontfaces';
-    fs.textContent = fontFaceCSS;
-    document.head.appendChild(fs);
-    await new Promise(r => setTimeout(r, 300));
-  }
-
-  document.getElementById('pdf-print-styles')?.remove();
-  const printStyle = document.createElement('style');
-  printStyle.id = 'pdf-print-styles';
-  printStyle.textContent = `
-    @media print {
-      /* Hide entire app UI */
-      body > * { display: none !important; }
-      #pdf-print-overlay { display: block !important; }
-      /* Hide preview-only page-break indicator lines */
-      .page-break-line { display: none !important; }
-      .max-length-line { display: none !important; }
-
-      /* Zero left/right page margins so bg color fills edge-to-edge.
-         Top/bottom use a small page margin PLUS matching bg so no white strip. */
-      @page {
-        margin: ${pad} 0;
-        size: letter;
-        background: ${bg};
-      }
-
-      html, body {
-        margin: 0 !important;
-        padding: 0 !important;
-        background: ${bg} !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      }
-
-      #pdf-print-overlay {
-        display: block !important;
-        position: static !important;
-        width: 100% !important;
-        min-height: 100vh !important;
-        background: ${bg} !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      }
-
-      /* Left/right padding on content; top/bottom come from @page margin */
-      #pdf-resume-inner {
-        padding: 0 ${pad} !important;
-        font-family: ${fontFam} !important;
-        font-size: ${fontSize} !important;
-        line-height: ${lineH} !important;
-        color: ${color} !important;
-        background: ${bg} !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      }
+  
+  // Pull all stylesheet rules that affect the resume preview (.fmt-* classes, headings, etc.)
+  // so the iframe inherits the same visual styling as the on-screen preview.
+  let appStyles = '';
+  try {
+    for (const sheet of document.styleSheets) {
+      try {
+        if (!sheet.cssRules) continue;
+        for (const rule of sheet.cssRules) {
+          appStyles += rule.cssText + '\n';
+        }
+      } catch(e) { /* cross-origin sheets can't be read */ }
     }
-  `;
-  document.head.appendChild(printStyle);
-
-  document.getElementById('pdf-print-overlay')?.remove();
-  const overlay = document.createElement('div');
-  overlay.id = 'pdf-print-overlay';
-  overlay.style.cssText = 'display:none;';
-
-  const inner = document.createElement('div');
-  inner.id = 'pdf-resume-inner';
-  inner.innerHTML = page.innerHTML;
-  overlay.appendChild(inner);
-  document.body.appendChild(overlay);
-
-  await new Promise(r => setTimeout(r, 300));
-  const origTitle = document.title;
-  document.title = (await getResumeFilenameSmart('pdf')).replace('.pdf','');
-  window.print();
-  document.title = origTitle;
-  toast('Check "Background graphics" in the print dialog to preserve colors');
-
-  setTimeout(() => {
-    document.getElementById('pdf-print-overlay')?.remove();
-    document.getElementById('pdf-print-styles')?.remove();
-    document.getElementById('pdf-print-fontfaces')?.remove();
-  }, 4000);
+  } catch(e) {}
+  
+  const filename = (await getResumeFilenameSmart('pdf')).replace('.pdf', '');
+  
+  // Build a complete, standalone HTML document for the iframe.
+  const printHtml = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>${esc(filename)}</title>
+<style>
+  ${fontFaceCSS}
+  ${appStyles}
+  @page { margin: ${pad} 0; size: letter; }
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: ${bg} !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  body {
+    padding: 0 ${pad} !important;
+    font-family: ${fontFam};
+    font-size: ${fontSize};
+    line-height: ${lineH};
+    color: ${color};
+  }
+  /* Hide preview-only indicators that don't belong in print */
+  .page-break-line, .max-length-line { display: none !important; }
+</style>
+</head>
+<body>${fullHtml}</body>
+</html>`;
+  
+  // Create a hidden iframe, write the doc, and print from inside it.
+  document.getElementById('pdf-print-iframe')?.remove();
+  const iframe = document.createElement('iframe');
+  iframe.id = 'pdf-print-iframe';
+  iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
+  document.body.appendChild(iframe);
+  
+  const idoc = iframe.contentDocument || iframe.contentWindow.document;
+  idoc.open();
+  idoc.write(printHtml);
+  idoc.close();
+  
+  // Wait for fonts and layout to settle inside the iframe before printing.
+  await new Promise(r => setTimeout(r, 500));
+  try {
+    if (idoc.fonts && idoc.fonts.ready) await idoc.fonts.ready;
+  } catch(e) {}
+  
+  try {
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+    toast('Tip: enable "Background graphics" in the print dialog to keep colors');
+  } catch(e) {
+    toast('Print failed: ' + (e.message || 'unknown'));
+  }
+  
+  // Clean up after a delay so the print dialog has time to read the iframe.
+  setTimeout(() => iframe.remove(), 5000);
 }
 
 // ─────────────────────────────────────────────────────────
