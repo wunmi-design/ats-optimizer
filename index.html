@@ -650,7 +650,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.1.7</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.1.8</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -8894,6 +8894,17 @@ async function fmtSavePdf() {
     }
   } catch(e) {}
   
+  // Build a Google Fonts URL covering every font used in the resume so the iframe can load
+  // them on its own. Cross-origin (Google) stylesheets can't be copied via cssRules above,
+  // so we have to re-import them inside the iframe document. Only include fonts we know are
+  // available on Google Fonts (defined in GOOGLE_FONTS).
+  const fontsUsed = [...new Set([
+    _fmt.nameFont, _fmt.bodyFont, _fmt.headingFont, _fmt.expFont, _fmt.roleFont
+  ].filter(f => f && GOOGLE_FONTS.includes(f)))];
+  const googleFontsLink = fontsUsed.length
+    ? `<link href="https://fonts.googleapis.com/css2?${fontsUsed.map(f => 'family=' + f.replace(/ /g,'+') + ':wght@400;500;600;700').join('&')}&display=swap" rel="stylesheet">`
+    : '';
+  
   const filename = (await getResumeFilenameSmart('pdf')).replace('.pdf', '');
   
   // Build a complete, standalone HTML document for the iframe.
@@ -8906,6 +8917,9 @@ async function fmtSavePdf() {
 <head>
 <meta charset="utf-8">
 <title>${esc(filename)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+${googleFontsLink}
 <style>
   ${fontFaceCSS}
   ${appStyles}
@@ -8946,10 +8960,13 @@ async function fmtSavePdf() {
   idoc.close();
   
   // Wait for fonts and layout to settle inside the iframe before printing.
-  await new Promise(r => setTimeout(r, 500));
+  // Google Fonts need a network round-trip, so we give them a moment.
+  await new Promise(r => setTimeout(r, 1000));
   try {
     if (idoc.fonts && idoc.fonts.ready) await idoc.fonts.ready;
   } catch(e) {}
+  // One more frame for the layout to apply the loaded fonts
+  await new Promise(r => setTimeout(r, 200));
   
   try {
     iframe.contentWindow.focus();
