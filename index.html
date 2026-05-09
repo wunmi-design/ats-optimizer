@@ -650,7 +650,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.2.3</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.3.0</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -5266,8 +5266,18 @@ JOB DESCRIPTION:\n${jdText}`,2000);
     renderJDAnalysis(analysis);
     await generateQuestions(analysis);
     autoSave();
-  } catch(e){toast('Error: '+e.message);}
-  loading.classList.remove('show');
+    loading.classList.remove('show');
+    
+    // Score the resume against the JD now so user sees the original score immediately.
+    // This runs only if a resume is present — otherwise we just stop after JD analysis.
+    const resume = getResumeText();
+    if (resume && resume.trim()) {
+      // Switch to the Optimizer tab so the user sees the score appear in context.
+      switchTab('analyzer');
+      // Brief delay so the tab transition completes before the analysis overlay opens.
+      setTimeout(() => { try { runFullAnalysis(); } catch(e) { console.warn('Initial scoring failed:', e); } }, 150);
+    }
+  } catch(e){toast('Error: '+e.message); loading.classList.remove('show');}
 }
 
 function renderJDAnalysis(a) {
@@ -6045,6 +6055,14 @@ function renderDashboard(score) {
     const circ=document.getElementById('score-circle');
     if(circ){const c=2*Math.PI*42;circ.style.strokeDashoffset=c-(pct/100)*c;circ.style.stroke=pct>=80?'var(--green)':pct>=60?'var(--teal)':'var(--red)';}
     const numEl=document.getElementById('score-num');if(numEl)numEl.textContent=pct+'%';
+    // Update the label under the score: shows "original match" when the resume hasn't been
+    // optimized in this project yet, or "match" once at least one fix has been applied. Lets
+    // the user see at a glance whether the displayed score reflects the un-optimized resume.
+    const labelEl = document.querySelector('#analyzer-content .score-ring-num .l');
+    if (labelEl) {
+      const hasFixes = (proj?.appliedFixes?.length || 0) > 0;
+      labelEl.textContent = hasFixes ? 'match' : 'original match';
+    }
   const cells=[['keyword_match','Keywords'],['hard_skills','Hard Skills'],['soft_skills','Soft Skills'],['yoe_alignment','Years of Experience'],['summary_quality','Summary'],['bullet_quality','Bullets']];
   const grid=document.getElementById('score-grid');
   if(grid)grid.innerHTML=cells.filter(([k])=>score[k]!==undefined&&score[k]!==null).map(([k,l])=>{
@@ -7077,6 +7095,33 @@ async function autoOptimize(opts) {
   if (!jdText) { toast('Paste a job description in the Job Description tab first'); return; }
   if (!proj) { toast('Create a project first'); return; }
 
+  // If the JD has questions and any are unanswered, give the user the chance to fill them in
+  // first. Answers feed into the optimizer as verified facts and produce noticeably better
+  // rewrites. We use a confirm dialog so they can choose to proceed without answering.
+  // Skip this check on subsequent passes inside Optimize Extreme so we don't prompt 3x.
+  if (!passLabel) {
+    const unanswered = (proj.questions || []).filter(q => !q.answer || !q.answer.trim()).length;
+    if (unanswered > 0) {
+      const goAnswer = confirm(
+        `You have ${unanswered} unanswered question${unanswered > 1 ? 's' : ''} about your experience.\n\n` +
+        `Answering them gives the optimizer verified facts to work with and produces a stronger rewrite.\n\n` +
+        `Click OK to answer them now (recommended).\n` +
+        `Click Cancel to skip and optimize anyway.`
+      );
+      if (goAnswer) {
+        switchTab('jd');
+        setTimeout(() => {
+          const firstUnanswered = (proj.questions || []).find(q => !q.answer || !q.answer.trim());
+          if (firstUnanswered) {
+            const ta = document.getElementById('qa-' + firstUnanswered.id);
+            if (ta) { ta.scrollIntoView({behavior:'smooth', block:'center'}); ta.focus(); }
+          }
+        }, 200);
+        return;
+      }
+    }
+  }
+
   const overlay = document.getElementById('apply-overlay');
   const overlayMsg = document.getElementById('overlay-msg');
   const overlaySub = document.getElementById('overlay-sub');
@@ -7088,11 +7133,12 @@ async function autoOptimize(opts) {
   overlay.style.display = 'flex';
 
   try {
-    // Phase 1: Score & analyze (single pass — both quick and deep analysis)
+    // Phase 1: Score & analyze. If the resume + JD haven't changed since last analysis,
+    // runFullAnalysis returns instantly from cache (via _analysisHash). No re-scoring,
+    // no token cost. We removed the cache-clear that used to force re-analysis here.
     overlayMsg.textContent = 'Analyzing resume...';
     overlaySub.textContent = 'Evaluating your resume against the job description';
 
-    proj._cachedScore = null; proj._analysisHash = null; proj.scores = [];
     await runFullAnalysis(true);
 
     // runFullAnalysis clears the deep-fix-items panel and produces only 1-3 score-level top fixes.
