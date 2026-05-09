@@ -650,7 +650,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.3.6</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.3.7</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -1894,25 +1894,29 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
           <span class="fmt-section-label" style="margin:0;">Typography</span>
           <button class="btn btn-ghost btn-sm" id="load-fonts-btn" onclick="loadSystemFonts()" style="font-size:11px;color:var(--teal);">Load system fonts</button>
         </div>
-        <div class="fmt-row"><label>Name</label><select class="fmt-select" id="fmt-name-font" onchange="fmtSetTypo('nameFont',this.value)" style="font-family: &quot;Playfair Display&quot;, Arial, sans-serif;"><option value="Arial">Arial</option><option value="Helvetica">Helvetica</option><option value="Georgia">Georgia</option><option value="Garamond">Garamond</option><option value="Palatino">Palatino</option><option value="Times New Roman">Times New Roman</option><option value="Lato">Lato</option><option value="DM Sans">DM Sans</option><option value="Source Sans 3">Source Sans 3</option><option value="Nunito">Nunito</option><option value="Merriweather">Merriweather</option><option value="Playfair Display" selected="">Playfair Display</option><option value="Libre Baskerville">Libre Baskerville</option><option value="Inter">Inter</option><option value="Roboto">Roboto</option><option value="Open Sans">Open Sans</option><option value="Raleway">Raleway</option><option value="Montserrat">Montserrat</option><option value="Poppins">Poppins</option><option value="Josefin Sans">Josefin Sans</option><option value="Cormorant">Cormorant</option><option value="Cormorant Garamond">Cormorant Garamond</option><option value="EB Garamond">EB Garamond</option><option value="Prata">Prata</option></select><input class="fmt-size-input" id="fmt-name-size" type="number" value="28" min="14" max="60" title="Size in px" onchange="fmtSetSize('nameSize',this.value)"><select class="fmt-select" id="fmt-name-weight" style="width:80px;" onchange="fmtSetTypo('nameFontWeight',parseInt(this.value))"><option value="300">Light</option><option value="400">Regular</option><option value="500">Medium</option><option value="600">SemiBold</option><option value="700" selected="">Bold</option><option value="800">ExtraBold</option><option value="900">Black</option></select><select class="fmt-select" id="fmt-name-style" style="width:70px;" onchange="fmtSetTypo('nameFontStyle',this.value)"><option value="normal" selected="">Normal</option><option value="italic">Italic</option></select></div>
-        <div class="fmt-row"><label>Body text</label><select class="fmt-select" id="fmt-body-font" onchange="fmtSetTypo('bodyFont',this.value)" style="font-family: Lato, Arial, sans-serif;"><option value="Arial">Arial</option><option value="Helvetica">Helvetica</option><option value="Georgia">Georgia</option><option value="Garamond">Garamond</option><option value="Palatino">Palatino</option><option value="Times New Roman">Times New Roman</option><option value="Lato" selected="">Lato</option><option value="DM Sans">DM Sans</option><option value="Source Sans 3">Source Sans 3</option><option value="Nunito">Nunito</option><option value="Merriweather">Merriweather</option><option value="Playfair Display">Playfair Display</option><option value="Libre Baskerville">Libre Baskerville</option><option value="Inter">Inter</option><option value="Roboto">Roboto</option><option value="Open Sans">Open Sans</option><option value="Raleway">Raleway</option><option value="Montserrat">Montserrat</option><option value="Poppins">Poppins</option><option value="Josefin Sans">Josefin Sans</option><option value="Cormorant Garamond">Cormorant Garamond</option><option value="EB Garamond">EB Garamond</option></select><input class="fmt-size-input" id="fmt-body-size" type="number" value="11" min="8" max="16" title="Size in px" onchange="fmtSetSize('bodySize',this.value)"></div>
-        <!-- Hidden heading font — always follows nameFont, synced programmatically -->
+        <!-- 1. NAME -->
+        <div class="fmt-row"><label>Name</label><select class="fmt-select" id="fmt-name-font" onchange="fmtSetTypo('nameFont',this.value)" style="font-family: &quot;Playfair Display&quot;, Arial, sans-serif;"><option value="Arial">Arial</option><option value="Helvetica">Helvetica</option><option value="Georgia">Georgia</option><option value="Garamond">Garamond</option><option value="Palatino">Palatino</option><option value="Times New Roman">Times New Roman</option><option value="Lato">Lato</option><option value="DM Sans">DM Sans</option><option value="Source Sans 3">Source Sans 3</option><option value="Nunito">Nunito</option><option value="Merriweather">Merriweather</option><option value="Playfair Display">Playfair Display</option><option value="Libre Baskerville">Libre Baskerville</option><option value="Inter">Inter</option><option value="Roboto">Roboto</option><option value="Open Sans">Open Sans</option><option value="Raleway">Raleway</option><option value="Montserrat">Montserrat</option><option value="Poppins">Poppins</option><option value="Josefin Sans">Josefin Sans</option><option value="Cormorant">Cormorant</option><option value="Cormorant Garamond">Cormorant Garamond</option><option value="EB Garamond">EB Garamond</option><option value="Prata">Prata</option></select><input class="fmt-size-input" id="fmt-name-size" type="number" value="28" min="14" max="60" title="Size in pt" onchange="fmtSetSize('nameSize',this.value)"><select class="fmt-select" id="fmt-name-weight" style="width:80px;" onchange="fmtSetTypo('nameFontWeight',parseInt(this.value))"><option value="300">Light</option><option value="400">Regular</option><option value="500">Medium</option><option value="600">SemiBold</option><option value="700" selected="">Bold</option><option value="800">ExtraBold</option><option value="900">Black</option></select><select class="fmt-select" id="fmt-name-style" style="width:70px;" onchange="fmtSetTypo('nameFontStyle',this.value)"><option value="normal" selected="">Normal</option><option value="italic">Italic</option></select></div>
+
+        <!-- 2. TITLE UNDER NAME (resume role/title) -->
+        <div class="fmt-row"><label>Title</label><select class="fmt-select" id="fmt-role-font" onchange="fmtSetTypo('roleFont',this.value)" style="font-family: Lato, Arial, sans-serif;"><option value="Arial">Arial</option><option value="Helvetica">Helvetica</option><option value="Georgia">Georgia</option><option value="Garamond">Garamond</option><option value="Palatino">Palatino</option><option value="Times New Roman">Times New Roman</option><option value="Lato">Lato</option><option value="DM Sans">DM Sans</option><option value="Source Sans 3">Source Sans 3</option><option value="Nunito">Nunito</option><option value="Merriweather">Merriweather</option><option value="Playfair Display">Playfair Display</option><option value="Libre Baskerville">Libre Baskerville</option><option value="Inter">Inter</option><option value="Roboto">Roboto</option><option value="Open Sans">Open Sans</option><option value="Raleway">Raleway</option><option value="Montserrat">Montserrat</option><option value="Poppins">Poppins</option><option value="Josefin Sans">Josefin Sans</option><option value="Cormorant">Cormorant</option><option value="Cormorant Garamond">Cormorant Garamond</option><option value="EB Garamond">EB Garamond</option><option value="Prata">Prata</option></select><input class="fmt-size-input" id="fmt-role-size" type="number" value="11" min="8" max="18" title="Size in pt" onchange="fmtSetSize('roleSize',this.value)"><select class="fmt-select" id="fmt-title-weight" style="width:80px;" onchange="fmtSetTypo('titleFontWeight',parseInt(this.value))"><option value="300">Light</option><option value="400" selected="">Regular</option><option value="500">Medium</option><option value="600">SemiBold</option><option value="700">Bold</option></select><select class="fmt-select" id="fmt-title-style" style="width:70px;" onchange="fmtSetTypo('titleFontStyle',this.value)"><option value="normal" selected="">Normal</option><option value="italic">Italic</option></select><select class="fmt-select" id="fmt-title-letter-spacing" style="width:90px;" onchange="fmtSetTypo('titleLetterSpacing',this.value)"><option value="0em">No spacing</option><option value="0.03em">Tight</option><option value="0.05em" selected="">Normal</option><option value="0.10em">Wide</option><option value="0.15em">Very wide</option><option value="0.20em">Max</option></select></div>
+
+        <!-- 3. SECTION HEADINGS -->
         <select id="fmt-heading-font" style="display:none;" onchange="fmtSetTypo('headingFont',this.value)"></select>
-        <div class="fmt-row">
-          <label>Section headings</label>
-          <span style="font-size:10px;color:var(--muted);margin-right:6px;">(same font as Name)</span>
-          <input class="fmt-size-input" id="fmt-heading-size" type="number" value="11" min="8" max="18" title="Heading size in pt" onchange="fmtSetSize('headingSize',this.value)">
-          <select class="fmt-select" id="fmt-heading-letter-spacing" style="width:90px;" onchange="fmtSetTypo('headingLetterSpacing',this.value)">
-            <option value="0em">No spacing</option>
-            <option value="0.03em">Tight</option>
-            <option value="0.06em" selected="">Normal</option>
-            <option value="0.10em">Wide</option>
-            <option value="0.15em">Very wide</option>
-            <option value="0.20em">Max</option>
-          </select>
-        </div>
-        <div class="fmt-row" style="margin-top:6px;">
-          <label>Section divider lines</label>
+        <div class="fmt-row"><label>Section headings</label><span style="font-size:10px;color:var(--muted);margin-right:6px;">(same font as Name)</span><input class="fmt-size-input" id="fmt-heading-size" type="number" value="11" min="8" max="18" title="Heading size in pt" onchange="fmtSetSize('headingSize',this.value)"><select class="fmt-select" id="fmt-heading-letter-spacing" style="width:90px;" onchange="fmtSetTypo('headingLetterSpacing',this.value)"><option value="0em">No spacing</option><option value="0.03em">Tight</option><option value="0.06em" selected="">Normal</option><option value="0.10em">Wide</option><option value="0.15em">Very wide</option><option value="0.20em">Max</option></select></div>
+
+        <!-- 4. BODY TEXT -->
+        <div class="fmt-row"><label>Body text</label><select class="fmt-select" id="fmt-body-font" onchange="fmtSetTypo('bodyFont',this.value)" style="font-family: Lato, Arial, sans-serif;"><option value="Arial">Arial</option><option value="Helvetica">Helvetica</option><option value="Georgia">Georgia</option><option value="Garamond">Garamond</option><option value="Palatino">Palatino</option><option value="Times New Roman">Times New Roman</option><option value="Lato">Lato</option><option value="DM Sans">DM Sans</option><option value="Source Sans 3">Source Sans 3</option><option value="Nunito">Nunito</option><option value="Merriweather">Merriweather</option><option value="Playfair Display">Playfair Display</option><option value="Libre Baskerville">Libre Baskerville</option><option value="Inter">Inter</option><option value="Roboto">Roboto</option><option value="Open Sans">Open Sans</option><option value="Raleway">Raleway</option><option value="Montserrat">Montserrat</option><option value="Poppins">Poppins</option><option value="Josefin Sans">Josefin Sans</option><option value="Cormorant Garamond">Cormorant Garamond</option><option value="EB Garamond">EB Garamond</option><option value="Prata">Prata</option></select><input class="fmt-size-input" id="fmt-body-size" type="number" value="11" min="8" max="16" title="Size in pt" onchange="fmtSetSize('bodySize',this.value)"></div>
+
+        <!-- 5. COMPANY + EXPERIENCE ROLE TITLE -->
+        <div class="fmt-row"><label>Company</label><select class="fmt-select" id="fmt-exp-font" onchange="fmtSetTypo('expFont',this.value)" style="font-family: Lato, Arial, sans-serif;"><option value="Arial">Arial</option><option value="Helvetica">Helvetica</option><option value="Georgia">Georgia</option><option value="Garamond">Garamond</option><option value="Palatino">Palatino</option><option value="Times New Roman">Times New Roman</option><option value="Lato">Lato</option><option value="DM Sans">DM Sans</option><option value="Source Sans 3">Source Sans 3</option><option value="Nunito">Nunito</option><option value="Merriweather">Merriweather</option><option value="Playfair Display">Playfair Display</option><option value="Libre Baskerville">Libre Baskerville</option><option value="Inter">Inter</option><option value="Roboto">Roboto</option><option value="Open Sans">Open Sans</option><option value="Raleway">Raleway</option><option value="Montserrat">Montserrat</option><option value="Poppins">Poppins</option><option value="Josefin Sans">Josefin Sans</option><option value="Cormorant Garamond">Cormorant Garamond</option><option value="EB Garamond">EB Garamond</option><option value="Prata">Prata</option></select><input class="fmt-size-input" id="fmt-exp-size" type="number" value="12" min="8" max="18" title="Size in pt" onchange="fmtSetSize('expSize',this.value)"></div>
+        <div class="fmt-row"><label style="color:var(--muted);font-size:11px;padding-left:4px;">Experience role title</label><span style="flex:1;"></span><input class="fmt-size-input" id="fmt-exp-role-size" type="number" value="11" min="8" max="18" title="Experience role title size" onchange="fmtSetSize('expRoleSize',this.value)"><span style="font-size:10px;color:var(--muted);margin-left:4px;white-space:nowrap;">bold auto</span></div>
+
+        <!-- 6. SKILLS -->
+        <div class="fmt-row"><label>Skills</label><span style="flex:1;"></span><input class="fmt-size-input" id="fmt-skills-size" type="number" value="11" min="7" max="16" title="Skill chip size" onchange="fmtSetSize('skillsSize',this.value)"></div>
+
+        <!-- 7. DIVIDER LINES -->
+        <div class="fmt-row" style="margin-top:8px;">
+          <label>Section lines</label>
           <span style="flex:1;"></span>
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;">
             <span style="font-size:11px;color:var(--muted);" id="divider-lines-label">On</span>
@@ -1922,9 +1926,16 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
             </div>
           </label>
         </div>
-        <div class="fmt-row"><label>Company</label><select class="fmt-select" id="fmt-exp-font" onchange="fmtSetTypo(&#39;expFont&#39;,this.value)" style="font-family: Lato, Arial, sans-serif;"><option value="Arial">Arial</option><option value="Helvetica">Helvetica</option><option value="Georgia">Georgia</option><option value="Garamond">Garamond</option><option value="Palatino">Palatino</option><option value="Times New Roman">Times New Roman</option><option value="Lato" selected="">Lato</option><option value="DM Sans">DM Sans</option><option value="Source Sans 3">Source Sans 3</option><option value="Nunito">Nunito</option><option value="Merriweather">Merriweather</option><option value="Playfair Display">Playfair Display</option><option value="Libre Baskerville">Libre Baskerville</option><option value="Inter">Inter</option><option value="Roboto">Roboto</option><option value="Open Sans">Open Sans</option><option value="Raleway">Raleway</option><option value="Montserrat">Montserrat</option><option value="Poppins">Poppins</option><option value="Josefin Sans">Josefin Sans</option><option value="Cormorant Garamond">Cormorant Garamond</option><option value="EB Garamond">EB Garamond</option></select><input class="fmt-size-input" id="fmt-exp-size" type="number" value="12" min="8" max="18" title="Size in px" onchange="fmtSetSize(&#39;expSize&#39;,this.value)"></div>
-        <div class="fmt-row"><label>Role / Title</label><select class="fmt-select" id="fmt-role-font" onchange="fmtSetTypo('roleFont',this.value)" style="font-family: Lato, Arial, sans-serif;"><option value="Arial">Arial</option><option value="Helvetica">Helvetica</option><option value="Georgia">Georgia</option><option value="Garamond">Garamond</option><option value="Palatino">Palatino</option><option value="Times New Roman">Times New Roman</option><option value="Lato" selected="">Lato</option><option value="DM Sans">DM Sans</option><option value="Source Sans 3">Source Sans 3</option><option value="Nunito">Nunito</option><option value="Merriweather">Merriweather</option><option value="Playfair Display">Playfair Display</option><option value="Libre Baskerville">Libre Baskerville</option><option value="Inter">Inter</option><option value="Roboto">Roboto</option><option value="Open Sans">Open Sans</option><option value="Raleway">Raleway</option><option value="Montserrat">Montserrat</option><option value="Poppins">Poppins</option><option value="Josefin Sans">Josefin Sans</option><option value="Cormorant">Cormorant</option><option value="Cormorant Garamond">Cormorant Garamond</option><option value="EB Garamond">EB Garamond</option><option value="Prata">Prata</option></select><input class="fmt-size-input" id="fmt-role-size" type="number" value="11" min="8" max="18" title="Size in px" onchange="fmtSetSize('roleSize',this.value)"><select class="fmt-select" id="fmt-title-weight" style="width:80px;" onchange="fmtSetTypo('titleFontWeight',parseInt(this.value))"><option value="300">Light</option><option value="400" selected="">Regular</option><option value="500">Medium</option><option value="600">SemiBold</option><option value="700">Bold</option></select><select class="fmt-select" id="fmt-title-style" style="width:70px;" onchange="fmtSetTypo('titleFontStyle',this.value)"><option value="normal" selected="">Normal</option><option value="italic">Italic</option></select><select class="fmt-select" id="fmt-title-letter-spacing" style="width:90px;" onchange="fmtSetTypo('titleLetterSpacing',this.value)"><option value="0em">No spacing</option><option value="0.03em">Tight</option><option value="0.05em" selected="">Normal</option><option value="0.10em">Wide</option><option value="0.15em">Very wide</option><option value="0.20em">Max</option></select></div>
-        <div class="fmt-row"><label>Skills</label><span style="flex:1;"></span><input class="fmt-size-input" id="fmt-skills-size" type="number" value="11" min="7" max="16" title="Skill chip size in px" onchange="fmtSetSize(&#39;skillsSize&#39;,this.value)"></div>
+        <div class="fmt-row" style="padding-left:4px;gap:8px;">
+          <label style="color:var(--muted);font-size:11px;white-space:nowrap;">Thickness</label>
+          <select class="fmt-select" id="fmt-divider-width" style="width:90px;" onchange="fmtSetTypo('dividerLineWidth',this.value)">
+            <option value="0.5">Hairline</option><option value="0.75">Thin</option><option value="1" selected="">Normal</option><option value="1.5">Medium</option><option value="2">Thick</option>
+          </select>
+          <label style="color:var(--muted);font-size:11px;white-space:nowrap;margin-left:8px;">Opacity</label>
+          <select class="fmt-select" id="fmt-divider-opacity" style="width:80px;" onchange="fmtSetTypo('dividerLineOpacity',parseFloat(this.value))">
+            <option value="0.2">20%</option><option value="0.4">40%</option><option value="0.6">60%</option><option value="0.8">80%</option><option value="1" selected="">100%</option>
+          </select>
+        </div>
 
         <span class="fmt-section-label" style="margin-top:14px;">Colors</span>
 
@@ -7573,7 +7584,7 @@ function savePdf(){
 // ─────────────────────────────────────────────────────────
 //  FORMAT SYSTEM
 // ─────────────────────────────────────────────────────────
-const _fmt = { template:'standard', font:'Arial', nameFont:'Arial', bodyFont:'Arial', headingFont:'Arial', expFont:'Arial', roleFont:'Arial', nameSize:21, bodySize:10, headingSize:11, expSize:11, roleSize:12, skillsSize:10, accent:'#111111', size:'10pt', margin:'0.65in', bgColor:'#ffffff', textColor:'#111111', nameFontWeight:700, nameFontStyle:'normal', titleFontWeight:400, titleFontStyle:'normal', titleLetterSpacing:'0.05em', showDividerLines:true, headingLetterSpacing:'0.06em', summaryHeadingSize:11, skillsHeadingSize:11, experienceHeadingSize:11, expertiseHeadingSize:11 };
+const _fmt = { template:'standard', font:'Arial', nameFont:'Arial', bodyFont:'Arial', headingFont:'Arial', expFont:'Arial', roleFont:'Arial', nameSize:21, bodySize:10, headingSize:11, expSize:11, roleSize:12, expRoleSize:11, skillsSize:10, accent:'#111111', size:'10pt', margin:'0.65in', bgColor:'#ffffff', textColor:'#111111', nameFontWeight:700, nameFontStyle:'normal', titleFontWeight:400, titleFontStyle:'normal', titleLetterSpacing:'0.05em', showDividerLines:true, headingLetterSpacing:'0.06em', dividerLineWidth:'1', dividerLineOpacity:1, summaryHeadingSize:11, skillsHeadingSize:11, experienceHeadingSize:11, expertiseHeadingSize:11 };
 
 // Template definitions — each has a render function
 const TEMPLATES = [
@@ -8213,6 +8224,7 @@ function restoreFmt(saved) {
     'fmt-body-size': 'bodySize',
     'fmt-heading-size': 'headingSize',
     'fmt-exp-size': 'expSize',
+    'fmt-exp-role-size': 'expRoleSize',
     'fmt-role-size': 'roleSize',
     'fmt-skills-size': 'skillsSize',
     'fmt-summary-heading-size': 'summaryHeadingSize',
@@ -8261,6 +8273,8 @@ function restoreFmt(saved) {
     'fmt-title-style': 'titleFontStyle',
     'fmt-title-letter-spacing': 'titleLetterSpacing',
     'fmt-heading-letter-spacing': 'headingLetterSpacing',
+    'fmt-divider-width': 'dividerLineWidth',
+    'fmt-divider-opacity': 'dividerLineOpacity',
   };
   Object.entries(selectSyncMap).forEach(([elId, key]) => {
     const el = document.getElementById(elId);
@@ -8659,7 +8673,10 @@ function fmtLinkify(raw) {
       const titleLS = _fmt.titleLetterSpacing || '0.05em';
       const titleHtml=title?`<div style="font-size:${rolePx};font-weight:${titleWeight};font-style:${titleStyle};color:#666;letter-spacing:${titleLS};margin-top:.06in;font-family:${roleFont},Arial,sans-serif;line-height:1.2;">${e(title)}</div>`:'';
       const showLines = _fmt.showDividerLines !== false;
-      return`<div style="display:flex;justify-content:space-between;align-items:center;gap:.4in;margin-top:.22in;${showLines ? 'border-bottom:1px solid #777;padding-bottom:.14in;margin-bottom:.12in;' : 'margin-bottom:.2in;'}">
+      const lineW2 = (_fmt.dividerLineWidth || '1') + 'px';
+      const lineOp2 = _fmt.dividerLineOpacity !== undefined ? _fmt.dividerLineOpacity : 1;
+      const lineColor2 = `rgba(80,80,80,${lineOp2})`;
+      return`<div style="display:flex;justify-content:space-between;align-items:center;gap:.4in;margin-top:.22in;${showLines ? `border-bottom:${lineW2} solid ${lineColor2};padding-bottom:.14in;margin-bottom:.12in;` : 'margin-bottom:.2in;'}">
         <div style="flex:1;min-width:0;">
           <div style="font-size:${namePx};font-weight:${nameWeight};font-style:${nameStyle};letter-spacing:-.01em;font-family:${nameFont},Arial,sans-serif;color:#111;line-height:1.0;">${e(name)}</div>
           ${titleHtml}
@@ -8938,7 +8955,7 @@ function fmtLinkify(raw) {
         if(t.startsWith('•')||t.startsWith('-'))
           return`<div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:2px;">${fmtLinkify(t)}</div>`;
         if(/\d{2}\/\d{2}/.test(t)&&t.length<120)
-          return`<div style="font-weight:600;margin-top:6px;margin-bottom:1px;">${fmtLinkify(t)}</div>`;
+          return`<div style="font-size:${(_fmt.expRoleSize||11)+'pt'};font-weight:700;margin-top:6px;margin-bottom:1px;">${fmtLinkify(t)}</div>`;
         const labelMatch=t.match(/^([A-Z][a-zA-Z\s&]+):\s(.+)$/);
         if(labelMatch&&labelMatch[1].length<30) {
           if (isSkillsSection) return renderSkillLine(labelMatch[1], labelMatch[2]);
@@ -8953,7 +8970,9 @@ function fmtLinkify(raw) {
   let headingHtml;
   const showLines = _fmt.showDividerLines !== false;
   const headingLS = _fmt.headingLetterSpacing || '0.06em';
-  const lineColor = '#777'; // darker than before (#bbb)
+  const lineW = (_fmt.dividerLineWidth || '1') + 'px';
+  const lineOp = _fmt.dividerLineOpacity !== undefined ? _fmt.dividerLineOpacity : 1;
+  const lineColor = `rgba(80,80,80,${lineOp})`;
   // Display-name substitutions — shown to reader but source text is unchanged
   const headingAliases = { 'SUMMARY': 'PROFESSIONAL SUMMARY', 'EXPERIENCE': 'WORK EXPERIENCE' };
   const displayHeading = headingAliases[(sec.heading||'').trim().toUpperCase()] || sec.heading;
@@ -8965,7 +8984,7 @@ function fmtLinkify(raw) {
   else if(layout==='ruled') headingHtml=`<div style="font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#333;border-bottom:2px solid ${accent};padding-bottom:2px;margin-bottom:5px;">${e(displayHeading)}</div>`;
   else if(layout==='boldline') headingHtml=`<div style="font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:${accent};margin-bottom:4px;padding-left:4px;border-left:3px solid ${accent};">${e(displayHeading)}</div>`;
   else if(layout==='professional') headingHtml=`<div style="font-size:${headingPx};font-weight:600;text-transform:uppercase;letter-spacing:${headingLS};color:#888;font-family:${headingFont},Arial,sans-serif;margin-bottom:2px;margin-top:0;">${e(displayHeading)}</div>`;
-  else if(layout==='standard') headingHtml=`<div style="${hasTopLine ? `border-top:1px solid ${lineColor};padding-top:.1in;margin-top:.04in;` : ''}font-size:${headingPx};font-weight:700;text-transform:uppercase;letter-spacing:${headingLS};color:#111;font-family:${headingFont},Arial,sans-serif;margin-bottom:2px;">${e(displayHeading)}</div>`;
+  else if(layout==='standard') headingHtml=`<div style="${hasTopLine ? `border-top:${lineW} solid ${lineColor};padding-top:.1in;margin-top:.04in;` : ''}font-size:${headingPx};font-weight:700;text-transform:uppercase;letter-spacing:${headingLS};color:#111;font-family:${headingFont},Arial,sans-serif;margin-bottom:2px;">${e(displayHeading)}</div>`;
   else headingHtml=`<div style="font-size:.7em;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:${accent};border-bottom:1px solid ${accent}44;padding-bottom:2px;margin-bottom:5px;">${e(displayHeading)}</div>`;
   return`<div style="margin-bottom:${layout==='standard'?'.12in':layout==='professional'?'.10in':'.12in'}">${headingHtml}<div style="font-size:${size};font-family:${font},Arial,sans-serif;line-height:${layout==='compact'?'1.25':'1.35'};">${body}</div></div>`;}
   // Two-column layouts
