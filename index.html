@@ -650,7 +650,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.2.1</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.2.2</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -4602,24 +4602,13 @@ async function fetchJobFromUrl() {
       }
     }
 
-    // Last resort: use Claude to fetch via web search context
+    // No AI fallback here — Claude has no real web access via the API, so asking it to "fetch"
+    // a URL just produces hallucinated content (made-up JDs that look plausible but are wrong).
+    // We'd rather fail loudly and let the user paste the JD text manually.
     if (!html) {
-      if (msgEl) msgEl.textContent = 'Fetching via AI...';
-      try {
-        const aiRaw = await claudeFetch(`I need the full job description from this URL: ${url}
-Please provide the complete job posting text including title, company, responsibilities, qualifications, and requirements. Return ONLY valid JSON:
-{"title":"job title","company":"company name","description":"full job description"}`, 3000);
-        const aiParsed = parseJson(aiRaw);
-        if (aiParsed.title) { s('jd-title', aiParsed.title); if (proj) proj.jdTitle = aiParsed.title; }
-        if (aiParsed.company) { s('jd-company', aiParsed.company); if (proj) proj.jdCompany = aiParsed.company; }
-        if (aiParsed.description) { s('jd-text', aiParsed.description); if (proj) proj.jdText = aiParsed.description; }
-        loading?.classList.remove('show');
-        toast('Job details extracted via AI — review and click Analyze');
-        return;
-      } catch(aiErr) {}
+      loading?.classList.remove('show');
+      throw new Error('Could not fetch this page automatically. Please copy the job description and paste it into the description field below.');
     }
-
-    if (!html) throw new Error('Could not retrieve the page. Try pasting the description manually.');
 
     // Extract text content from HTML
     const parser = new DOMParser();
