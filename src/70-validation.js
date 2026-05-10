@@ -172,27 +172,101 @@ function measureRenderedPages(text) {
   }
 }
 
-// Removes the AWARDS section if it has 1-2 entries — common cause of orphan pages
-// where AWARDS sits alone on the last page. Returns trimmed text only if AWARDS
-// was actually removed; otherwise returns original.
-function removeOrphanAwardsIfShort(text) {
-  // Find AWARDS section at the end of resume
+// AWARDS handling — rule-based assessment per industry guidelines:
+// 
+// REMOVE awards when:
+//   - Older than 5-10 years (unless highly prestigious)
+//   - Irrelevant to the industry applying to (handled by AI in main prompt)
+//
+// KEEP awards when:
+//   - Less than 5 years old (recent → strong signal)
+//   - Highly prestigious (Pulitzer, Cannes Lions, AIGA Medal, etc.)
+//   - Relevant to the job
+//
+// In both cases: keep the resume to the recommended page length.
+// When AWARDS should be kept but resume is too long → trim other content harder.
+// When AWARDS can be removed → strip the section entirely.
+
+const PRESTIGIOUS_AWARDS_KEYWORDS = [
+  'pulitzer', 'nobel', 'emmy', 'grammy', 'oscar', 'academy award',
+  'tony', 'cannes lion', 'james beard', 'pritzker', 'booker',
+  'macarthur', 'guggenheim', 'rhodes scholar', 'fulbright',
+  'aiga medal', 'webby', 'cooper hewitt', 'core77',
+  'red dot best of', 'if design gold', 'fast company innovation',
+  'inc 5000', 'forbes 30 under 30', 'time 100', 'wired'
+];
+
+function parseAwardYear(awardLine) {
+  const years = awardLine.match(/\b(19|20)\d{2}\b/g);
+  if (!years || !years.length) return null;
+  return Math.max(...years.map(y => parseInt(y, 10)));
+}
+
+function isAwardPrestigious(awardLine) {
+  const lower = awardLine.toLowerCase();
+  return PRESTIGIOUS_AWARDS_KEYWORDS.some(kw => lower.includes(kw));
+}
+
+// Returns true if at least ONE award entry should be kept (recent OR prestigious).
+// Returns false if ALL awards are old AND non-prestigious (safe to remove section).
+function shouldKeepAwards(awardBodyLines) {
+  const currentYear = new Date().getFullYear();
+  for (const line of awardBodyLines) {
+    if (!line.trim()) continue;
+    const year = parseAwardYear(line);
+    const age = year ? (currentYear - year) : null;
+    
+    // Recent (< 5 years): definitely keep
+    if (age !== null && age < 5) return true;
+    
+    // Prestigious within a reasonable window (≤15 years): keep
+    if (isAwardPrestigious(line) && (age === null || age <= 15)) return true;
+    
+    // No year detected on a non-prestigious line: assume kept (don't auto-strip)
+    if (age === null && !isAwardPrestigious(line)) {
+      // Without a year we can't apply the rule — leave it alone to be safe
+      return true;
+    }
+  }
+  return false;
+}
+
+// Find AWARDS section in resume text. Returns {start, end, bodyLines} or null.
+function findAwardsSection(text) {
   const lines = text.split('\n');
-  let awardsStart = -1;
+  let start = -1;
   for (let i = lines.length - 1; i >= 0; i--) {
     if (/^AWARDS\s*$/i.test(lines[i].trim())) {
-      awardsStart = i;
+      start = i;
       break;
     }
   }
-  if (awardsStart === -1) return text;
+  if (start === -1) return null;
   
-  // Count non-empty content lines after AWARDS header
-  const contentLines = lines.slice(awardsStart + 1).filter(l => l.trim());
+  // End is either next ALL-CAPS section header, or end of file
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i++) {
+    const t = lines[i].trim();
+    if (t.length > 2 && t === t.toUpperCase() && /^[A-Z][A-Z\s&\/]+$/.test(t)) {
+      end = i;
+      break;
+    }
+  }
   
-  // Only remove if AWARDS has 1-2 entries (orphan-prone case)
-  if (contentLines.length <= 2) {
-    return lines.slice(0, awardsStart).join('\n').trimEnd();
+  const bodyLines = lines.slice(start + 1, end).filter(l => l.trim());
+  return { start, end, bodyLines, allLines: lines };
+}
+
+// Remove AWARDS section if its contents are old/non-prestigious per the rule above.
+// Returns trimmed text only if removal applied; otherwise returns original.
+function removeAwardsIfStale(text) {
+  const section = findAwardsSection(text);
+  if (!section || section.bodyLines.length === 0) return text;
+  
+  if (!shouldKeepAwards(section.bodyLines)) {
+    // Remove from start through end (inclusive of trailing blank if any)
+    const remaining = section.allLines.slice(0, section.start).join('\n').trimEnd();
+    return remaining;
   }
   return text;
 }
@@ -209,12 +283,40 @@ async function trimToTargetLength(text) {
     return text;
   }
   
+  // Assess AWARDS section per industry rule (recent < 5y, or prestigious = keep)
+  const awardsSection = findAwardsSection(text);
+  const awardsExist = awardsSection !== null && awardsSection.bodyLines.length > 0;
+  const keepAwards = awardsExist ? shouldKeepAwards(awardsSection.bodyLines) : true;
+  
+  // If awards are old/non-prestigious AND resume is over → remove them upfront
+  // This gives the AI a cleaner starting point to trim within the page limit.
+  let workingText = text;
+  if (awardsExist && !keepAwards) {
+    workingText = removeAwardsIfStale(text);
+    if (workingText !== text) {
+      console.log('AWARDS removed upfront — old/non-prestigious per rule');
+      // Re-check if we now fit
+      const newPages = measureRenderedPages(workingText);
+      if (newPages !== null && newPages <= analysis.targetPages + 0.02) {
+        return workingText;
+      }
+    }
+  }
+  
   // Use 85% of target as inner goal — leaves a real buffer for rendering variance
   const safetyFactor = 0.85;
-  let current = text;
+  let current = workingText;
   let currentChars = current.replace(/\s+/g, ' ').length;
   let iteration = 0;
   const MAX_ITERATIONS = 4;
+  
+  // Recompute keepAwards for the working text (may have removed already)
+  const stillHasAwards = findAwardsSection(current) !== null;
+  const awardsGuidance = !stillHasAwards
+    ? 'No AWARDS section present.'
+    : keepAwards
+      ? 'AWARDS are recent or prestigious — KEEP them. Trim OTHER content (bullets, descriptions, older roles) harder to make room.'
+      : 'AWARDS section is old/non-prestigious — you may REMOVE the entire AWARDS section if it helps fit the page limit.';
   
   while (iteration < MAX_ITERATIONS) {
     // Verify with rendering — if we already fit visually, stop iterating
@@ -225,7 +327,6 @@ async function trimToTargetLength(text) {
     }
     
     iteration++;
-    // Each iteration tightens the target by 5% to push harder when overflow persists
     const iterationFactor = safetyFactor - (iteration - 1) * 0.05;
     const targetChars = Math.floor(analysis.targetChars * iterationFactor);
     const reductionPct = Math.round(((currentChars - targetChars) / currentChars) * 100);
@@ -238,22 +339,21 @@ CURRENT: ${currentChars} characters, visually rendering at ${visualOverflow} pag
 TARGET: ${targetChars} characters maximum, MUST fit on ${analysis.targetPages} page(s)
 REDUCTION NEEDED: approximately ${reductionPct}% — be aggressive
 
-CRITICAL CONSTRAINT: Output MUST fit on exactly ${analysis.targetPages} page(s). If it spills 1 line over, that fails.
+CRITICAL CONSTRAINT: Output MUST fit on exactly ${analysis.targetPages} page(s).
 
-COMMON ORPHAN PROBLEM: If the AWARDS section has only 1-2 entries and the resume is barely over the page limit, REMOVE THE ENTIRE AWARDS SECTION — it commonly orphans to a 3rd page with just 1 line on it. The resume reads stronger without an isolated awards line.
+AWARDS GUIDANCE: ${awardsGuidance}
 
 TRIMMING RULES (in priority order):
-1. If AWARDS has ≤2 entries and resume is near/over page limit, REMOVE the entire AWARDS section
-2. Drop weakest bullets first — those without specific metrics, outcomes, or differentiated value
-3. If two bullets cover similar ground, keep the one with stronger metric/specificity
-4. Tighten verbose bullets to ~120 characters each (drop filler words, redundant phrases)
-5. Remove role context/description lines (the 1-line text between role header and bullets) for older roles
-6. Trim role context lines to ~80 chars if kept
-7. Older roles (5+ years ago) should have 1-2 bullets max, not 3
-8. NEVER drop role headers, dates, or company names
-9. NEVER drop the entire SUMMARY, SKILLS, or EDUCATION sections (just trim within them)
-10. Keep at least 1 bullet per role (preserves work history)
-11. PRESERVE EXACT FORMATTING: section structure, line breaks, bullet character (•), date format
+1. Drop weakest bullets first — those without specific metrics, outcomes, or differentiated value
+2. If two bullets cover similar ground, keep the one with stronger metric/specificity
+3. Tighten verbose bullets to ~120 characters each (drop filler words, redundant phrases)
+4. Remove role context/description lines (the 1-line text between role header and bullets) for older roles
+5. Trim role context lines to ~80 chars if kept
+6. Older roles (5+ years ago) should have 1-2 bullets max, not 3
+7. NEVER drop role headers, dates, or company names
+8. NEVER drop the entire SUMMARY, SKILLS, or EDUCATION sections (just trim within them)
+9. Keep at least 1 bullet per role (preserves work history)
+10. PRESERVE EXACT FORMATTING: section structure, line breaks, bullet character (•), date format
 
 CRITICAL:
 - Use FIRST PERSON (I/me/my) — never third person
@@ -268,8 +368,6 @@ ${current}`;
       const result = await claudeFetch(prompt, 4000);
       const trimmed = result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim();
       
-      // Safety check: if trim made it WORSE (longer) or removed too much (<50% target),
-      // stop iterating with the previous version
       const trimmedChars = trimmed.replace(/\s+/g, ' ').length;
       if (trimmedChars > currentChars || trimmedChars < targetChars * 0.5) {
         console.warn(`Trim iteration ${iteration} safety check failed (chars: ${trimmedChars}), keeping previous`);
@@ -281,7 +379,6 @@ ${current}`;
       currentChars = trimmedChars;
       console.log(`Trim iteration ${iteration}: ${currentChars} chars (target: ${targetChars}, reduction: ${(reduction*100).toFixed(1)}%)`);
       
-      // Early exit: AI plateaued
       if (reduction < 0.03) {
         const checkPages = measureRenderedPages(current);
         if (checkPages !== null && checkPages > analysis.targetPages + 0.02) {
@@ -295,24 +392,19 @@ ${current}`;
     }
   }
   
-  // FINAL BACKSTOP: Detect orphan-prone AWARDS section and remove it proactively.
-  // CSS page-break-inside:avoid keeps sections together. If AWARDS has ≤2 entries AND total
-  // content is close to (or over) page limit, AWARDS will orphan to next page. Detect this
-  // BEFORE it happens by removing AWARDS whenever resume is near/over the limit.
+  // FINAL BACKSTOP — only triggers if AWARDS still exists and is removable
   const postTrimPages = measureRenderedPages(current);
-  if (postTrimPages !== null && postTrimPages > analysis.targetPages - 0.25) {
-    // Content is within 0.25 pages of the limit → AWARDS might orphan. Try removing it.
-    const withoutAwards = removeOrphanAwardsIfShort(current);
-    if (withoutAwards !== current) {
-      const newPages = measureRenderedPages(withoutAwards);
-      if (newPages !== null && newPages <= postTrimPages) {
-        console.log(`Removed orphan-prone AWARDS: ${postTrimPages.toFixed(2)} → ${newPages.toFixed(2)} pages`);
-        return withoutAwards;
+  if (postTrimPages !== null && postTrimPages > analysis.targetPages + 0.02) {
+    const stale = removeAwardsIfStale(current);
+    if (stale !== current) {
+      const newPages = measureRenderedPages(stale);
+      if (newPages !== null && newPages < postTrimPages) {
+        console.log(`Final backstop removed stale AWARDS: ${postTrimPages.toFixed(2)} → ${newPages.toFixed(2)} pages`);
+        return stale;
       }
     }
   }
   
-  // Final verification log
   const finalPages = measureRenderedPages(current);
   if (finalPages !== null) {
     console.log(`Final trim result: ${finalPages.toFixed(2)} pages (target ${analysis.targetPages})`);
