@@ -1,4 +1,4 @@
-const _fmt = { template:'standard', font:'Lato', nameFont:'Prata', bodyFont:'Lato', headingFont:'Prata', expFont:'Lato', roleFont:'Lato', nameSize:26, bodySize:10, headingSize:14, expSize:10, roleSize:11, expRoleSize:11, skillsSize:10, accent:'#111111', size:'10pt', margin:'0.5in', bgColor:'#ffffff', textColor:'#111111', nameFontWeight:500, nameFontStyle:'normal', titleFontWeight:400, titleFontStyle:'normal', titleLetterSpacing:'0.05em', showDividerLines:true, headingLetterSpacing:'0.06em', headingFontWeight:400, dividerLineWidth:'2', dividerLineOpacity:0.6, summaryHeadingSize:14, skillsHeadingSize:14, experienceHeadingSize:14, expertiseHeadingSize:14 };
+const _fmt = { template:'standard', font:'Lato', nameFont:'Prata', bodyFont:'Lato', headingFont:'Prata', expFont:'Lato', roleFont:'Lato', nameSize:26, bodySize:10, headingSize:14, expSize:10, roleSize:14, expRoleSize:11, skillsSize:10, accent:'#111111', size:'10pt', margin:'0.5in', bgColor:'#ffffff', textColor:'#111111', nameFontWeight:500, nameFontStyle:'normal', titleFontWeight:400, titleFontStyle:'normal', titleLetterSpacing:'0', showDividerLines:true, headingLetterSpacing:'0.06em', headingFontWeight:400, dividerLineWidth:'2', dividerLineOpacity:0.6, summaryHeadingSize:14, skillsHeadingSize:14, experienceHeadingSize:14, expertiseHeadingSize:14 };
 
 // Template definitions — each has a render function
 const TEMPLATES = [
@@ -126,8 +126,10 @@ const TEMPLATE_PRESETS = {
     bodyFont: 'Lato', bodySize: 10,
     headingFont: 'Prata', headingSize: 14,
     expFont: 'Lato', expSize: 10,
-    roleFont: 'Lato', roleSize: 11,
+    roleFont: 'Lato', roleSize: 14,
+    expRoleSize: 11,
     skillsSize: 10,
+    titleLetterSpacing: '0',
   },
   professional: {
     bodySize: 10,
@@ -1106,7 +1108,7 @@ function fmtLinkify(raw) {
         return `<div style="font-size:${size};font-family:${font},Arial,sans-serif;color:${contactTextColor};line-height:1.55;">${fmtLinkify(item)}</div>`;
       }).join('');
       const titleLS = _fmt.titleLetterSpacing || '0.05em';
-      const titleHtml=title?`<div style="font-size:${rolePx};font-weight:${titleWeight};font-style:${titleStyle};color:#666;letter-spacing:${titleLS};margin-top:.06in;font-family:${roleFont},Arial,sans-serif;line-height:1.2;">${e(title)}</div>`:'';
+      const titleHtml=title?`<div style="font-size:${rolePx};font-weight:${titleWeight};font-style:${titleStyle};color:#666;letter-spacing:${titleLS};margin-top:.06in;font-family:${roleFont},Arial,sans-serif;line-height:1.0;">${e(title)}</div>`:'';
       const showLines = _fmt.showDividerLines !== false;
       const lineW2 = (_fmt.dividerLineWidth || '1') + 'px';
       const lineOp2 = _fmt.dividerLineOpacity !== undefined ? _fmt.dividerLineOpacity : 1;

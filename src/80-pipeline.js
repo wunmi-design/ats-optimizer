@@ -92,12 +92,12 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
 
     // Phase 4c: Auto-trim to recommended length based on YOE.
     // Standard guideline: <5y=1pg, 5-10y=1-2pg, 10-15y=2pg, 15-20y=2pg, 20+y=2-3pg
+    // ALWAYS call trim — it does its own internal gating (returns input unchanged if
+    // both char count AND visual rendering say we fit). This catches edge cases where
+    // char count is fine but visually we orphan to next page.
     const lengthAnalysis = RESUME_LENGTH.analyze(bulletsCapped);
-    let lengthAdjusted = bulletsCapped;
-    if (lengthAnalysis.status === 'too_long') {
-      overlaySub.textContent = `Trimming to ${lengthAnalysis.recommended.label} (${lengthAnalysis.yoe}y experience)`;
-      lengthAdjusted = await trimToTargetLength(bulletsCapped);
-    }
+    overlaySub.textContent = `Verifying length fits ${lengthAnalysis.recommended.label}`;
+    const lengthAdjusted = await trimToTargetLength(bulletsCapped);
 
     // Phase 5: Cap skills at 24, prioritizing JD-relevant ones.
     overlaySub.textContent = 'Prioritizing skills for this role';
@@ -368,13 +368,10 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     overlaySub.textContent = 'Limiting bullets to 3 per role';
     const bulletsCapped = capBulletsPerRole(boilerplateCleaned);
 
-    // Auto-trim to recommended length based on YOE
+    // Auto-trim to recommended length based on YOE — always call (has internal gating)
     const lengthAnalysis = RESUME_LENGTH.analyze(bulletsCapped);
-    let lengthAdjusted = bulletsCapped;
-    if (lengthAnalysis.status === 'too_long') {
-      overlaySub.textContent = `Trimming to ${lengthAnalysis.recommended.label} (${lengthAnalysis.yoe}y experience)`;
-      lengthAdjusted = await trimToTargetLength(bulletsCapped);
-    }
+    overlaySub.textContent = `Verifying length fits ${lengthAnalysis.recommended.label}`;
+    const lengthAdjusted = await trimToTargetLength(bulletsCapped);
 
     overlaySub.textContent = 'Prioritizing skills for this role';
     const skillsCapped = await capSkillsTo30(lengthAdjusted);

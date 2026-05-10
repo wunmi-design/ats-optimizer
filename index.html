@@ -650,7 +650,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.9.6</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.9.7</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -7624,12 +7624,12 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
 
     // Phase 4c: Auto-trim to recommended length based on YOE.
     // Standard guideline: <5y=1pg, 5-10y=1-2pg, 10-15y=2pg, 15-20y=2pg, 20+y=2-3pg
+    // ALWAYS call trim — it does its own internal gating (returns input unchanged if
+    // both char count AND visual rendering say we fit). This catches edge cases where
+    // char count is fine but visually we orphan to next page.
     const lengthAnalysis = RESUME_LENGTH.analyze(bulletsCapped);
-    let lengthAdjusted = bulletsCapped;
-    if (lengthAnalysis.status === 'too_long') {
-      overlaySub.textContent = `Trimming to ${lengthAnalysis.recommended.label} (${lengthAnalysis.yoe}y experience)`;
-      lengthAdjusted = await trimToTargetLength(bulletsCapped);
-    }
+    overlaySub.textContent = `Verifying length fits ${lengthAnalysis.recommended.label}`;
+    const lengthAdjusted = await trimToTargetLength(bulletsCapped);
 
     // Phase 5: Cap skills at 24, prioritizing JD-relevant ones.
     overlaySub.textContent = 'Prioritizing skills for this role';
@@ -7900,13 +7900,10 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     overlaySub.textContent = 'Limiting bullets to 3 per role';
     const bulletsCapped = capBulletsPerRole(boilerplateCleaned);
 
-    // Auto-trim to recommended length based on YOE
+    // Auto-trim to recommended length based on YOE — always call (has internal gating)
     const lengthAnalysis = RESUME_LENGTH.analyze(bulletsCapped);
-    let lengthAdjusted = bulletsCapped;
-    if (lengthAnalysis.status === 'too_long') {
-      overlaySub.textContent = `Trimming to ${lengthAnalysis.recommended.label} (${lengthAnalysis.yoe}y experience)`;
-      lengthAdjusted = await trimToTargetLength(bulletsCapped);
-    }
+    overlaySub.textContent = `Verifying length fits ${lengthAnalysis.recommended.label}`;
+    const lengthAdjusted = await trimToTargetLength(bulletsCapped);
 
     overlaySub.textContent = 'Prioritizing skills for this role';
     const skillsCapped = await capSkillsTo30(lengthAdjusted);
@@ -8237,7 +8234,7 @@ function savePdf(){
 // ─────────────────────────────────────────────────────────
 //  FORMAT SYSTEM
 // ─────────────────────────────────────────────────────────
-const _fmt = { template:'standard', font:'Lato', nameFont:'Prata', bodyFont:'Lato', headingFont:'Prata', expFont:'Lato', roleFont:'Lato', nameSize:26, bodySize:10, headingSize:14, expSize:10, roleSize:11, expRoleSize:11, skillsSize:10, accent:'#111111', size:'10pt', margin:'0.5in', bgColor:'#ffffff', textColor:'#111111', nameFontWeight:500, nameFontStyle:'normal', titleFontWeight:400, titleFontStyle:'normal', titleLetterSpacing:'0.05em', showDividerLines:true, headingLetterSpacing:'0.06em', headingFontWeight:400, dividerLineWidth:'2', dividerLineOpacity:0.6, summaryHeadingSize:14, skillsHeadingSize:14, experienceHeadingSize:14, expertiseHeadingSize:14 };
+const _fmt = { template:'standard', font:'Lato', nameFont:'Prata', bodyFont:'Lato', headingFont:'Prata', expFont:'Lato', roleFont:'Lato', nameSize:26, bodySize:10, headingSize:14, expSize:10, roleSize:14, expRoleSize:11, skillsSize:10, accent:'#111111', size:'10pt', margin:'0.5in', bgColor:'#ffffff', textColor:'#111111', nameFontWeight:500, nameFontStyle:'normal', titleFontWeight:400, titleFontStyle:'normal', titleLetterSpacing:'0', showDividerLines:true, headingLetterSpacing:'0.06em', headingFontWeight:400, dividerLineWidth:'2', dividerLineOpacity:0.6, summaryHeadingSize:14, skillsHeadingSize:14, experienceHeadingSize:14, expertiseHeadingSize:14 };
 
 // Template definitions — each has a render function
 const TEMPLATES = [
@@ -8365,8 +8362,10 @@ const TEMPLATE_PRESETS = {
     bodyFont: 'Lato', bodySize: 10,
     headingFont: 'Prata', headingSize: 14,
     expFont: 'Lato', expSize: 10,
-    roleFont: 'Lato', roleSize: 11,
+    roleFont: 'Lato', roleSize: 14,
+    expRoleSize: 11,
     skillsSize: 10,
+    titleLetterSpacing: '0',
   },
   professional: {
     bodySize: 10,
@@ -9345,7 +9344,7 @@ function fmtLinkify(raw) {
         return `<div style="font-size:${size};font-family:${font},Arial,sans-serif;color:${contactTextColor};line-height:1.55;">${fmtLinkify(item)}</div>`;
       }).join('');
       const titleLS = _fmt.titleLetterSpacing || '0.05em';
-      const titleHtml=title?`<div style="font-size:${rolePx};font-weight:${titleWeight};font-style:${titleStyle};color:#666;letter-spacing:${titleLS};margin-top:.06in;font-family:${roleFont},Arial,sans-serif;line-height:1.2;">${e(title)}</div>`:'';
+      const titleHtml=title?`<div style="font-size:${rolePx};font-weight:${titleWeight};font-style:${titleStyle};color:#666;letter-spacing:${titleLS};margin-top:.06in;font-family:${roleFont},Arial,sans-serif;line-height:1.0;">${e(title)}</div>`:'';
       const showLines = _fmt.showDividerLines !== false;
       const lineW2 = (_fmt.dividerLineWidth || '1') + 'px';
       const lineOp2 = _fmt.dividerLineOpacity !== undefined ? _fmt.dividerLineOpacity : 1;
@@ -11337,4 +11336,4 @@ async function autoLoadSystemFonts() {
 </script>
 
 
-</body></html><!-- Force rebuild 1778453571 -->
+</body></html><!-- Force rebuild 1778454358 -->
