@@ -650,7 +650,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.4.6</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.4.7</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -1902,7 +1902,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
 
         <!-- 3. SECTION HEADINGS -->
         <select id="fmt-heading-font" style="display:none;" onchange="fmtSetTypo('headingFont',this.value)"></select>
-        <div class="fmt-row"><label>Section headings</label><span style="font-size:10px;color:var(--muted);margin-right:6px;">(same font as Name)</span><input class="fmt-size-input" id="fmt-heading-size" type="number" value="11" min="8" max="18" title="Heading size in pt" onchange="fmtSetSize('headingSize',this.value)"><select class="fmt-select" id="fmt-heading-letter-spacing" style="width:90px;" onchange="fmtSetTypo('headingLetterSpacing',this.value)"><option value="0em">No spacing</option><option value="0.03em">Tight</option><option value="0.06em" selected="">Normal</option><option value="0.10em">Wide</option><option value="0.15em">Very wide</option><option value="0.20em">Max</option></select></div>
+        <div class="fmt-row"><label>Section headings</label><span style="font-size:10px;color:var(--muted);margin-right:6px;">(same font as Name)</span><input class="fmt-size-input" id="fmt-heading-size" type="number" value="11" min="8" max="18" title="Heading size in pt" onchange="fmtSetSize('headingSize',this.value)"><select class="fmt-select" id="fmt-heading-weight" style="width:80px;" onchange="fmtSetTypo('headingFontWeight',parseInt(this.value))"><option value="300">Light</option><option value="400" selected="">Regular</option><option value="500">Medium</option><option value="600">SemiBold</option><option value="700">Bold</option></select><select class="fmt-select" id="fmt-heading-letter-spacing" style="width:90px;" onchange="fmtSetTypo('headingLetterSpacing',this.value)"><option value="0em">No spacing</option><option value="0.03em">Tight</option><option value="0.06em" selected="">Normal</option><option value="0.10em">Wide</option><option value="0.15em">Very wide</option><option value="0.20em">Max</option></select></div>
 
         <!-- 4. BODY TEXT -->
         <div class="fmt-row"><label>Body text</label><select class="fmt-select" id="fmt-body-font" onchange="fmtSetTypo('bodyFont',this.value)" style="font-family: Lato, Arial, sans-serif;"><option value="Arial">Arial</option><option value="Helvetica">Helvetica</option><option value="Georgia">Georgia</option><option value="Garamond">Garamond</option><option value="Times New Roman">Times New Roman</option><option value="Lato">Lato</option><option value="DM Sans">DM Sans</option><option value="Source Sans 3">Source Sans 3</option><option value="Nunito">Nunito</option><option value="Playfair Display">Playfair Display</option><option value="Inter">Inter</option><option value="Roboto">Roboto</option><option value="Open Sans">Open Sans</option><option value="Montserrat">Montserrat</option><option value="Poppins">Poppins</option><option value="Josefin Sans">Josefin Sans</option><option value="Cormorant Garamond">Cormorant Garamond</option><option value="Prata">Prata</option></select><input class="fmt-size-input" id="fmt-body-size" type="number" value="11" min="8" max="16" title="Size in pt" onchange="fmtSetSize('bodySize',this.value)"></div>
@@ -7592,7 +7592,7 @@ function savePdf(){
 // ─────────────────────────────────────────────────────────
 //  FORMAT SYSTEM
 // ─────────────────────────────────────────────────────────
-const _fmt = { template:'standard', font:'Arial', nameFont:'Arial', bodyFont:'Arial', headingFont:'Arial', expFont:'Arial', roleFont:'Arial', nameSize:21, bodySize:10, headingSize:11, expSize:11, roleSize:12, expRoleSize:11, skillsSize:10, accent:'#111111', size:'10pt', margin:'0.65in', bgColor:'#ffffff', textColor:'#111111', nameFontWeight:700, nameFontStyle:'normal', titleFontWeight:400, titleFontStyle:'normal', titleLetterSpacing:'0.05em', showDividerLines:true, headingLetterSpacing:'0.06em', dividerLineWidth:'1', dividerLineOpacity:1, summaryHeadingSize:11, skillsHeadingSize:11, experienceHeadingSize:11, expertiseHeadingSize:11 };
+const _fmt = { template:'standard', font:'Arial', nameFont:'Arial', bodyFont:'Arial', headingFont:'Arial', expFont:'Arial', roleFont:'Arial', nameSize:21, bodySize:10, headingSize:11, expSize:11, roleSize:12, expRoleSize:11, skillsSize:10, accent:'#111111', size:'10pt', margin:'0.65in', bgColor:'#ffffff', textColor:'#111111', nameFontWeight:700, nameFontStyle:'normal', titleFontWeight:400, titleFontStyle:'normal', titleLetterSpacing:'0.05em', showDividerLines:true, headingLetterSpacing:'0.06em', headingFontWeight:400, dividerLineWidth:'1', dividerLineOpacity:1, summaryHeadingSize:11, skillsHeadingSize:11, experienceHeadingSize:11, expertiseHeadingSize:11 };
 
 // Template definitions — each has a render function
 const TEMPLATES = [
@@ -8280,6 +8280,7 @@ function restoreFmt(saved) {
     'fmt-title-weight':'titleFontWeight',
     'fmt-title-style': 'titleFontStyle',
     'fmt-title-letter-spacing': 'titleLetterSpacing',
+    'fmt-heading-weight': 'headingFontWeight',
     'fmt-heading-letter-spacing': 'headingLetterSpacing',
     'fmt-divider-width': 'dividerLineWidth',
     'fmt-divider-opacity': 'dividerLineOpacity',
@@ -8845,7 +8846,7 @@ function fmtLinkify(raw) {
           if (layout === 'standard') {
             // Standard layout: role + date on top line (uses Role/Title size), company + location underneath (uses Company size)
             const topLine = jh.role
-              ? `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:3px;">
+              ? `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:1px;">
                   <div style="font-size:${expRolePx};font-weight:700;font-family:${expFont},Arial,sans-serif;color:#111;">${ESC(jh.role)}</div>
                   <div style="font-size:${size};font-weight:400;color:#666;white-space:nowrap;flex-shrink:0;">${ESC(jh.dates)}</div>
                  </div>`
@@ -8855,7 +8856,7 @@ function fmtLinkify(raw) {
                   ${jh.company ? `<span style="font-weight:600;font-style:italic;">${ESC(jh.company)}</span>` : ''}${jh.location ? `${jh.company ? ' · ' : ''}<span style="font-weight:400;">${ESC(jh.location)}</span>` : ''}
                  </div>`
               : '';
-            html += `<div style="margin-top:10px;margin-bottom:6px;">${topLine}${subLine}</div>`;
+            html += `<div style="margin-top:14px;margin-bottom:6px;">${topLine}${subLine}</div>`;
           } else {
             // Original layout (Professional + fallback): company on top, role+date underneath
             const companyLine = (jh.company || jh.location)
@@ -8997,7 +8998,7 @@ function fmtLinkify(raw) {
   else if(layout==='ruled') headingHtml=`<div style="font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#333;border-bottom:2px solid ${accent};padding-bottom:2px;margin-bottom:5px;">${e(displayHeading)}</div>`;
   else if(layout==='boldline') headingHtml=`<div style="font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:${accent};margin-bottom:4px;padding-left:4px;border-left:3px solid ${accent};">${e(displayHeading)}</div>`;
   else if(layout==='professional') headingHtml=`<div style="font-size:${headingPx};font-weight:600;font-variant:small-caps;letter-spacing:${headingLS};color:#888;font-family:${headingFont},Arial,sans-serif;margin-bottom:2px;margin-top:0;">${e(displayHeading)}</div>`;
-  else if(layout==='standard') headingHtml=`<div style="${hasTopLine ? `border-top:${lineW} solid ${lineColor};padding-top:.05in;margin-top:.04in;` : ''}font-size:${headingPx};font-weight:400;font-variant:small-caps;letter-spacing:${headingLS};color:#111;font-family:${headingFont},Arial,sans-serif;margin-bottom:.12in;">${e(displayHeading)}</div>`;
+  else if(layout==='standard') headingHtml=`<div style="${hasTopLine ? `border-top:${lineW} solid ${lineColor};padding-top:.05in;margin-top:.04in;` : ''}font-size:${headingPx};font-weight:${_fmt.headingFontWeight||400};font-variant:small-caps;letter-spacing:${headingLS};color:#111;font-family:${headingFont},Arial,sans-serif;margin-bottom:.12in;">${e(displayHeading)}</div>`;
   else headingHtml=`<div style="font-size:.7em;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:${accent};border-bottom:1px solid ${accent}44;padding-bottom:2px;margin-bottom:5px;">${e(displayHeading)}</div>`;
   return`<div style="margin-bottom:${layout==='standard'?'.12in':layout==='professional'?'.10in':'.12in'}">${headingHtml}<div style="font-size:${size};font-family:${font},Arial,sans-serif;line-height:${layout==='compact'?'1.25':'1.35'};">${body}</div></div>`;}
   // Two-column layouts
