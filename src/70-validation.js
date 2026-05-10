@@ -295,14 +295,18 @@ ${current}`;
     }
   }
   
-  // FINAL BACKSTOP: if still over target and AWARDS is short (likely orphaning), remove it
+  // FINAL BACKSTOP: Detect orphan-prone AWARDS section and remove it proactively.
+  // CSS page-break-inside:avoid keeps sections together. If AWARDS has ≤2 entries AND total
+  // content is close to (or over) page limit, AWARDS will orphan to next page. Detect this
+  // BEFORE it happens by removing AWARDS whenever resume is near/over the limit.
   const postTrimPages = measureRenderedPages(current);
-  if (postTrimPages !== null && postTrimPages > analysis.targetPages + 0.02) {
+  if (postTrimPages !== null && postTrimPages > analysis.targetPages - 0.25) {
+    // Content is within 0.25 pages of the limit → AWARDS might orphan. Try removing it.
     const withoutAwards = removeOrphanAwardsIfShort(current);
     if (withoutAwards !== current) {
       const newPages = measureRenderedPages(withoutAwards);
       if (newPages !== null && newPages <= postTrimPages) {
-        console.log(`Removed orphan AWARDS: ${postTrimPages.toFixed(2)} → ${newPages.toFixed(2)} pages`);
+        console.log(`Removed orphan-prone AWARDS: ${postTrimPages.toFixed(2)} → ${newPages.toFixed(2)} pages`);
         return withoutAwards;
       }
     }
