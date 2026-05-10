@@ -2,13 +2,13 @@
 <div class="app-shell">
 
   <!-- ═══ TOP BAR ═══ -->
-  <div class="topbar" style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px;gap:16px;">
+  <div class="topbar" style="height:auto;min-height:64px;padding:10px 20px;gap:16px;justify-content:space-between;">
     <div style="display:flex;align-items:center;gap:6px;flex:0 1 auto;white-space:nowrap;min-width:0;overflow:hidden;">
       <div class="topbar-brand" style="gap:4px;font-size:13px;flex-shrink:0;">
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.8.1</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.8.2</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -16,16 +16,16 @@
       </div>
     </div>
     
-    <!-- Center: Save button (outlined) -->
-    <div style="display:flex;align-items:center;gap:14px;flex:0 1 auto;">
+    <!-- Center: Save button + Download Resume button -->
+    <div style="display:flex;align-items:center;gap:14px;flex:0 0 auto;">
       <button id="save-btn" onclick="if(!window._atsUser){handleAuthClick();return;}if(!proj){toast('No project open');return;}saveProject();toast('Saved to cloud')" title="Save to cloud" style="display:flex;align-items:center;gap:8px;padding:10px 28px;font-size:14px;font-weight:500;color:var(--ink);background:var(--white);border:1.5px solid var(--border);border-radius:999px;cursor:pointer;transition:all 0.2s;white-space:nowrap;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='var(--white)'">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4"></path></svg>
         Save
       </button>
       
-      <!-- Download Resume (filled prominent) -->
+      <!-- Download Resume (filled teal) -->
       <div style="position:relative;display:inline-block;" id="download-menu-wrap">
-        <button onclick="toggleDownloadMenu(event)" style="display:flex;align-items:center;gap:8px;padding:10px 28px;font-size:14px;font-weight:500;color:white;background:var(--brand);border:none;border-radius:999px;cursor:pointer;transition:all 0.2s;white-space:nowrap;box-shadow:var(--shadow);" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+        <button onclick="toggleDownloadMenu(event)" style="display:flex;align-items:center;gap:8px;padding:10px 28px;font-size:14px;font-weight:500;color:#fff;background:#0d9488;border:none;border-radius:999px;cursor:pointer;transition:all 0.2s;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,0.1);" onmouseover="this.style.background='#0f766e'" onmouseout="this.style.background='#0d9488'">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
           Download Resume
         </button>
@@ -59,35 +59,35 @@
     <div style="flex:1;"></div>
     
     <!-- API Key with key icon (rounded pill) -->
-    <div style="display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--white);border:1px solid var(--border);border-radius:999px;height:36px;margin-right:10px;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;color:var(--muted);"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
-      <input type="password" id="api-in" placeholder="Api Key" oninput="onApiKey(this.value)" style="border:none;outline:none;background:transparent;width:140px;font-size:13px;color:var(--ink);">
-      <span id="api-saved" style="display:inline;flex-shrink:0;font-size:11px;color:var(--brand);">✓</span>
+    <div style="display:flex;align-items:center;gap:8px;padding:0 16px;background:var(--white);border:1px solid var(--border);border-radius:999px;height:36px;margin-right:10px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;color:var(--muted);flex-shrink:0;"><circle cx="9" cy="15" r="4"></circle><path d="M21 4l-9.5 9.5M17 8l3 3"></path></svg>
+      <input type="password" id="api-in" placeholder="Api Key" oninput="onApiKey(this.value)" style="border:none;outline:none;background:transparent;width:140px;font-size:13px;color:var(--ink);height:34px;line-height:34px;padding:0;">
+      <span id="api-saved" style="display:inline;flex-shrink:0;font-size:14px;color:var(--teal);">✓</span>
     </div>
     
     <!-- Daily / Monthly counter pills -->
     <div style="display:flex;align-items:center;gap:8px;margin-right:10px;">
-      <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--surface);border-radius:999px;font-size:12px;font-weight:500;height:36px;">
+      <div style="display:flex;align-items:center;gap:8px;padding:0 14px;background:var(--surface);border-radius:999px;font-size:12px;font-weight:500;height:36px;">
         <span style="color:var(--ink);">Daily:</span>
         <span id="daily-usage" style="color:var(--ink);font-weight:600;">0/50,000</span>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--surface);border-radius:999px;font-size:12px;font-weight:500;height:36px;">
+      <div style="display:flex;align-items:center;gap:8px;padding:0 14px;background:var(--surface);border-radius:999px;font-size:12px;font-weight:500;height:36px;">
         <span style="color:var(--ink);">Monthly:</span>
         <span id="monthly-usage" style="color:var(--ink);font-weight:600;">0/200,000</span>
       </div>
     </div>
     
     <!-- Undo / Redo (circular icon buttons) -->
-    <button id="undo-btn" onclick="undoVersion()" title="Undo" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;background:var(--white);border:1px solid var(--border);border-radius:50%;cursor:pointer;margin-right:6px;transition:all 0.2s;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='var(--white)'">
+    <button id="undo-btn" onclick="undoVersion()" title="Undo" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;background:var(--white);border:1px solid var(--border);border-radius:50%;cursor:pointer;margin-right:6px;transition:all 0.2s;padding:0;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='var(--white)'">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;color:var(--ink);"><path d="M3 7v6h6M21 17a9 9 0 0 0-15-6.7L3 13"></path></svg>
     </button>
-    <button id="redo-btn" onclick="redoVersion()" title="Redo" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;background:var(--white);border:1px solid var(--border);border-radius:50%;cursor:pointer;margin-right:10px;transition:all 0.2s;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='var(--white)'">
+    <button id="redo-btn" onclick="redoVersion()" title="Redo" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;background:var(--white);border:1px solid var(--border);border-radius:50%;cursor:pointer;margin-right:10px;transition:all 0.2s;padding:0;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='var(--white)'">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;color:var(--ink);"><path d="M21 7v6h-6M3 17a9 9 0 0 1 15-6.7L21 13"></path></svg>
     </button>
     
     <!-- Project / Export menu (with share icon) -->
     <div style="position:relative;display:inline-block;" id="file-menu-wrap">
-      <button onclick="document.getElementById('file-dropdown').style.display=document.getElementById('file-dropdown').style.display==='block'?'none':'block'" style="display:flex;align-items:center;gap:8px;padding:8px 16px;font-size:13px;font-weight:500;color:var(--ink);background:var(--white);border:1px solid var(--border);border-radius:999px;cursor:pointer;transition:all 0.2s;height:36px;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='var(--white)'">
+      <button onclick="document.getElementById('file-dropdown').style.display=document.getElementById('file-dropdown').style.display==='block'?'none':'block'" style="display:flex;align-items:center;gap:8px;padding:0 16px;font-size:13px;font-weight:500;color:var(--ink);background:var(--white);border:1px solid var(--border);border-radius:999px;cursor:pointer;transition:all 0.2s;height:36px;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='var(--white)'">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
         Project
       </button>
