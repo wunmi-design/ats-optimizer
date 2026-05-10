@@ -650,7 +650,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.6.9</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.7.0</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -6851,6 +6851,63 @@ function stripPlaceholders(text) {
 //
 // We deliberately LEAVE en dashes (–) alone because they're used legitimately in date ranges
 // like "01/16 – 06/17". Touching them would break formatting in the EXPERIENCE section.
+// Detect third-person pronouns in text. Returns array of matches with context.
+// Third-person: he, she, they, it, name + pronouns
+// First-person OK: I, me, my, we, us, our
+function detectThirdPersonPronouns(text) {
+  const matches = [];
+  const lines = text.split('\n');
+  
+  // Pattern: standalone he/she/they/it at word boundary, or Name + pronoun
+  // Also catch "they" when used as singular third-person
+  const thirdPersonPatterns = [
+    /\b(he|she|it)\s+(is|are|was|were|has|have|brings|builds|led|drives|creates|manages|improved|achieved|designed|developed)/gi,
+    /\b(he|she|it)\b(?!\s+and)/gi,  // he/she/it not followed by "and"
+    /\b(his|her|its)\b/gi,          // possessive forms
+  ];
+  
+  lines.forEach((line, idx) => {
+    thirdPersonPatterns.forEach(pattern => {
+      let match;
+      while ((match = pattern.exec(line)) !== null) {
+        matches.push({
+          line: idx,
+          text: line.trim(),
+          pronoun: match[1] || match[0],
+          context: line.substring(Math.max(0, match.index - 20), Math.min(line.length, match.index + 50))
+        });
+      }
+    });
+  });
+  
+  return matches;
+}
+
+// Validate that resume content uses first person or has no pronouns.
+// Returns { valid: bool, issues: string[], suggestions: string[] }
+function validatePronounConsistency(text) {
+  const issues = [];
+  const suggestions = [];
+  const thirdPersonMatches = detectThirdPersonPronouns(text);
+  
+  if (thirdPersonMatches.length === 0) {
+    return { valid: true, issues: [], suggestions: [] };
+  }
+  
+  // Found third-person pronouns
+  issues.push(`Found ${thirdPersonMatches.length} third-person pronoun(s). Resume must use first person ("I", "me", "my") or no pronouns.`);
+  
+  thirdPersonMatches.slice(0, 3).forEach(match => {
+    suggestions.push(`Line ${match.line + 1}: "${match.context.trim()}" → Use first person or rewrite without pronouns`);
+  });
+  
+  return { 
+    valid: false, 
+    issues, 
+    suggestions: suggestions.slice(0, 3)
+  };
+}
+
 function stripEmDashes(text) {
   let out = text;
   
@@ -7035,7 +7092,8 @@ ${TRUTH_GROUNDING_RULES}
 Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT same section structure and order as the original resume${titleRule}\n- SKILLS must stay organized in labeled categories (e.g. Leadership:, Design:, Product:, Engineering:). If the original has categories, keep them. If not, organize skills into logical categories.\n- When adding keywords to skills, place them in the correct category\n- Do NOT merge all skills into one flat list\n- FORMATTING IS SACRED: Output must use IDENTICAL format as input — same line breaks, spacing, bullet characters, section header style.\n- Do NOT reformat, restructure, merge lines, split lines, add/remove blank lines, or change bullet style.\n- Do NOT change the number of roles, reorder roles, or alter dates/companies.\n- ONLY change the specific text content requested. Everything else stays EXACTLY as-is.\n- WHEN A FIX MODIFIES A BULLET: REPLACE the original bullet with the rewritten version. Never keep both the old bullet AND a rewritten variant of it. The output must contain exactly one bullet for each accomplishment, not the original plus a near-duplicate.\n- NEVER ADD NEW BULLETS that describe the same team, product area, or accomplishment as an existing bullet. If a fix would generate a new bullet, check whether an existing bullet already covers that team/scope/metric. If yes, modify the existing bullet instead of appending a new one.
 - CRITICAL: Before returning, check for duplicate job entries. If any company + title + date combination appears more than once, remove the duplicate. Each role must appear exactly once.
 - CRITICAL: NEVER output placeholder metric tokens. Forbidden: "X%", "XX%", "Y%", "Z%", "[number]%", "[percent]%", "[metric]%", "___%", "TBD%", or any bracketed/blank stand-in for a number. If you don't have a real value from the original resume, write the bullet WITHOUT a percentage — a bullet with no metric is acceptable, a bullet with a placeholder metric is NOT.
-- CRITICAL: Within each role, check for repeated metrics or phrases across bullets. If the same metric (e.g. '26% MAU growth') appears in more than one bullet, remove it from the less specific bullet and keep it only in the bullet that explains it most clearly.\n- NEVER FABRICATE metrics, percentages, revenue figures, outcomes, team members, products, domains, or accomplishments not present in VERIFIED FACTS. If the original says '26% MAU growth', keep that exact number. Never invent '40% user growth' or '$2M revenue' unless those exact figures exist in VERIFIED FACTS.\n- NEVER USE competitor brand names anywhere in the resume. 'Commercial Card', 'Capital One brand', 'Chase', 'Amex', etc. are competitor product names. Replace with generic terms.\n- BEFORE returning the resume, scan every bullet, summary line, and skill for: (1) any metric not in VERIFIED FACTS, (2) any competitor brand name, (3) any domain/product/team-member that does not appear in VERIFIED FACTS, (4) any verbatim JD phrase grafted onto unrelated work. Remove or rewrite all four.\n- SKILLS must stay in labeled categories. NEVER merge into one block.\n- Remove non-skills from the skills section: phrases like 'Business Goals', 'portfolio strategy', 'Experience Design organization' are NOT skills.\n- SUMMARY must be 50-75 words. If the current summary exceeds 75 words, trim it. NEVER let it grow beyond 75 words.\n- NEVER repeat the same phrase twice in the summary. Check for duplicates before returning.\n- The job title directly under the candidate's name MUST exactly match the JD title. Do not revert it.\n- Bullets target: ~150 characters each (180 hard ceiling). Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n${verifiedFactsBlock}${bulletContextBlock}\n\n${promptBody}RESUME:\n${resume}`,
+- CRITICAL: Within each role, check for repeated metrics or phrases across bullets. If the same metric (e.g. '26% MAU growth') appears in more than one bullet, remove it from the less specific bullet and keep it only in the bullet that explains it most clearly.\n- NEVER FABRICATE metrics, percentages, revenue figures, outcomes, team members, products, domains, or accomplishments not present in VERIFIED FACTS. If the original says '26% MAU growth', keep that exact number. Never invent '40% user growth' or '$2M revenue' unless those exact figures exist in VERIFIED FACTS.\n- NEVER USE competitor brand names anywhere in the resume. 'Commercial Card', 'Capital One brand', 'Chase', 'Amex', etc. are competitor product names. Replace with generic terms.\n- CRITICAL: Use FIRST PERSON (I/me/my) throughout. NEVER write in third person (he/she/they/name). Remove all third-person pronouns.
+- BEFORE returning the resume, scan every bullet, summary line, and skill for: (1) any metric not in VERIFIED FACTS, (2) any competitor brand name, (3) any domain/product/team-member that does not appear in VERIFIED FACTS, (4) any verbatim JD phrase grafted onto unrelated work, (5) ANY THIRD-PERSON PRONOUNS. Remove or rewrite all five.\n- SKILLS must stay in labeled categories. NEVER merge into one block.\n- Remove non-skills from the skills section: phrases like 'Business Goals', 'portfolio strategy', 'Experience Design organization' are NOT skills.\n- SUMMARY must be 50-75 words. If the current summary exceeds 75 words, trim it. NEVER let it grow beyond 75 words.\n- NEVER repeat the same phrase twice in the summary. Check for duplicates before returning.\n- The job title directly under the candidate's name MUST exactly match the JD title. Do not revert it.\n- Bullets target: ~150 characters each (180 hard ceiling). Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n${verifiedFactsBlock}${bulletContextBlock}\n\n${promptBody}RESUME:\n${resume}`,
       4000
     );
     const firstPass = deduplicateResume(result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim());
@@ -7076,6 +7134,25 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     
     // Phase 7: Replace em dashes with commas — em dashes don't sound human.
     const finalText = stripEmDashes(cleaned);
+
+    // Phase 8: CRITICAL VALIDATION — check for third-person pronouns (he/she/they in resume content).
+    // Resumes must use first person (I/me/my) or no pronouns. Third-person is unprofessional.
+    const pronounCheck = validatePronounConsistency(finalText);
+    if (!pronounCheck.valid) {
+      // If third-person pronouns found, flag this to the user but don't block
+      // (in case they intentionally want to review before auto-rewriting)
+      const issueMsg = pronounCheck.issues[0];
+      const suggestions = pronounCheck.suggestions.join('\n');
+      const confirmRewrite = confirm(
+        `⚠️ PRONOUN CHECK FAILED\n\n${issueMsg}\n\nSuggested fixes:\n${suggestions}\n\n` +
+        `Resume must use FIRST PERSON (I/me/my) not third person.\n\n` +
+        `OK = Continue anyway (review manually)\nCancel = Go back and edit`
+      );
+      if (!confirmRewrite) {
+        overlayClose();
+        return;
+      }
+    }
 
     // Push as a new draft so each Apply Selected click increments the version (v1 → v2 → v3...)
     proj.drafts.push(finalText);
@@ -7295,7 +7372,8 @@ ${TRUTH_GROUNDING_RULES}
 Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT same section structure and order as the original resume${titleRule}\n- SKILLS must stay organized in labeled categories (e.g. Leadership:, Design:, Product:, Engineering:). If the original has categories, keep them. If not, organize skills into logical categories.\n- When adding keywords to skills, place them in the correct category\n- Do NOT merge all skills into one flat list\n- FORMATTING IS SACRED: Output must use IDENTICAL format as input — same line breaks, spacing, bullet characters, section header style.\n- Do NOT reformat, restructure, merge lines, split lines, add/remove blank lines, or change bullet style.\n- Do NOT change the number of roles, reorder roles, or alter dates/companies.\n- ONLY change the specific text content requested. Everything else stays EXACTLY as-is.\n- WHEN A FIX MODIFIES A BULLET: REPLACE the original bullet with the rewritten version. Never keep both the old bullet AND a rewritten variant of it. The output must contain exactly one bullet for each accomplishment, not the original plus a near-duplicate.\n- NEVER ADD NEW BULLETS that describe the same team, product area, or accomplishment as an existing bullet. If a fix would generate a new bullet, check whether an existing bullet already covers that team/scope/metric. If yes, modify the existing bullet instead of appending a new one.
 - CRITICAL: Before returning, check for duplicate job entries. If any company + title + date combination appears more than once, remove the duplicate. Each role must appear exactly once.
 - CRITICAL: NEVER output placeholder metric tokens. Forbidden: "X%", "XX%", "Y%", "Z%", "[number]%", "[percent]%", "[metric]%", "___%", "TBD%", or any bracketed/blank stand-in for a number. If you don't have a real value from the original resume, write the bullet WITHOUT a percentage — a bullet with no metric is acceptable, a bullet with a placeholder metric is NOT.
-- CRITICAL: Within each role, check for repeated metrics or phrases across bullets. If the same metric (e.g. '26% MAU growth') appears in more than one bullet, remove it from the less specific bullet and keep it only in the bullet that explains it most clearly.\n- NEVER FABRICATE metrics, percentages, revenue figures, outcomes, team members, products, domains, or accomplishments not present in VERIFIED FACTS. If the original says '26% MAU growth', keep that exact number. Never invent '40% user growth' or '$2M revenue' unless those exact figures exist in VERIFIED FACTS.\n- NEVER USE competitor brand names anywhere in the resume. 'Commercial Card', 'Capital One brand', 'Chase', 'Amex', etc. are competitor product names. Replace with generic terms.\n- BEFORE returning the resume, scan every bullet, summary line, and skill for: (1) any metric not in VERIFIED FACTS, (2) any competitor brand name, (3) any domain/product/team-member that does not appear in VERIFIED FACTS, (4) any verbatim JD phrase grafted onto unrelated work. Remove or rewrite all four.\n- SKILLS must stay in labeled categories. NEVER merge into one block.\n- Remove non-skills from the skills section: phrases like 'Business Goals', 'portfolio strategy', 'Experience Design organization' are NOT skills.\n- SUMMARY must be 50-75 words. If the current summary exceeds 75 words, trim it. NEVER let it grow beyond 75 words.\n- NEVER repeat the same phrase twice in the summary. Check for duplicates before returning.\n- The job title directly under the candidate's name MUST exactly match the JD title. Do not revert it.\n- Bullets target: ~150 characters each (180 hard ceiling). Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n${verifiedFactsBlock}${bulletContextBlock}\n\n${promptBody}RESUME:\n${currentResume}`,
+- CRITICAL: Within each role, check for repeated metrics or phrases across bullets. If the same metric (e.g. '26% MAU growth') appears in more than one bullet, remove it from the less specific bullet and keep it only in the bullet that explains it most clearly.\n- NEVER FABRICATE metrics, percentages, revenue figures, outcomes, team members, products, domains, or accomplishments not present in VERIFIED FACTS. If the original says '26% MAU growth', keep that exact number. Never invent '40% user growth' or '$2M revenue' unless those exact figures exist in VERIFIED FACTS.\n- NEVER USE competitor brand names anywhere in the resume. 'Commercial Card', 'Capital One brand', 'Chase', 'Amex', etc. are competitor product names. Replace with generic terms.\n- CRITICAL: Use FIRST PERSON (I/me/my) throughout. NEVER write in third person (he/she/they/name). Remove all third-person pronouns.
+- BEFORE returning the resume, scan every bullet, summary line, and skill for: (1) any metric not in VERIFIED FACTS, (2) any competitor brand name, (3) any domain/product/team-member that does not appear in VERIFIED FACTS, (4) any verbatim JD phrase grafted onto unrelated work, (5) ANY THIRD-PERSON PRONOUNS. Remove or rewrite all five.\n- SKILLS must stay in labeled categories. NEVER merge into one block.\n- Remove non-skills from the skills section: phrases like 'Business Goals', 'portfolio strategy', 'Experience Design organization' are NOT skills.\n- SUMMARY must be 50-75 words. If the current summary exceeds 75 words, trim it. NEVER let it grow beyond 75 words.\n- NEVER repeat the same phrase twice in the summary. Check for duplicates before returning.\n- The job title directly under the candidate's name MUST exactly match the JD title. Do not revert it.\n- Bullets target: ~150 characters each (180 hard ceiling). Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n${verifiedFactsBlock}${bulletContextBlock}\n\n${promptBody}RESUME:\n${currentResume}`,
       4000
     );
     const firstPass = deduplicateResume(result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim());
@@ -7323,6 +7401,16 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     
     // Phase 7: Replace em dashes with commas — em dashes don't sound human.
     const finalText = stripEmDashes(cleaned);
+
+    // Phase 8: CRITICAL VALIDATION — check for third-person pronouns.
+    const pronounCheck = validatePronounConsistency(finalText);
+    if (!pronounCheck.valid) {
+      const issueMsg = pronounCheck.issues[0];
+      const suggestions = pronounCheck.suggestions.join('\n');
+      console.warn(`⚠️ PRONOUN CHECK: ${issueMsg}\n${suggestions}`);
+      // In auto-optimize, warn but don't block — user can review and edit
+      toast(`⚠️ Warning: Found third-person pronouns. Review and use first person.`);
+    }
 
     // Push as a new draft so the version increments by exactly one
     proj.drafts.push(finalText);
