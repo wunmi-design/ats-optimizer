@@ -897,8 +897,16 @@ function computeYearsOfExperience() {
 }
 
 // Returns the number of pages a resume of this experience level should target.
-// <10 years → 1 page; 10+ years → 2 pages.
+// Uses RESUME_LENGTH module for consistency with auto-trim pipeline.
+// <5y=1pg, 5-10y=2pg, 10-15y=2pg, 15-20y=2pg, 20+y=3pg
 function recommendedMaxPages() {
+  try {
+    const resume = getResumeText();
+    if (resume && typeof RESUME_LENGTH !== 'undefined') {
+      const analysis = RESUME_LENGTH.analyze(resume);
+      return analysis.recommended.max;
+    }
+  } catch(e) { /* fall through to legacy logic */ }
   const yoe = computeYearsOfExperience();
   return yoe >= 10 ? 2 : 1;
 }
@@ -908,7 +916,15 @@ function drawPageBreakLinesOnPage(pageEl) {
   pageEl.querySelectorAll('.page-break-line, .max-length-line').forEach(el => el.remove());
   const PAGE_HEIGHT_PX = PAGE_HEIGHT_IN * 96;
   const totalHeight = pageEl.scrollHeight;
-  let y = PAGE_HEIGHT_PX - 50;  // Adjusted to account for actual margin + gap (112px - 62px)
+  
+  // Parse margin (e.g., "0.5in" → 48px at 96 DPI)
+  const marginStr = _fmt.margin || '0.5in';
+  const marginPx = parseFloat(marginStr) * 96;
+  // Each page's content area = PAGE_HEIGHT - top margin - bottom margin
+  const contentAreaPx = PAGE_HEIGHT_PX - (2 * marginPx);
+  
+  // First page break appears at content boundary (end of page 1 content)
+  let y = contentAreaPx;
   let pageNum = 2;
   while (y < totalHeight) {
     const line = document.createElement('div');
@@ -919,22 +935,15 @@ function drawPageBreakLinesOnPage(pageEl) {
     label.textContent = `Page ${pageNum}`;
     line.appendChild(label);
     pageEl.appendChild(line);
-    y += PAGE_HEIGHT_PX;
+    // Each subsequent break is content-area apart (continuous flow, no margins between)
+    y += contentAreaPx;
     pageNum++;
   }
 
-  // Max-length indicator: red dashed line accounting for page margins. The line is positioned at
-  // the actual content limit, not the raw page boundary. Each page loses height to top margin
-  // (margin/4) and bottom margin (margin). Drawn even if resume is short (shows available room)
-  // and even if it exceeds (shows overage). Skipped only if maxPages is 0 (no roles → no signal).
+  // Max-length indicator: red dashed line at the recommended page limit.
   const maxPages = recommendedMaxPages();
   if (maxPages > 0) {
-    // Parse margin value (e.g., "0.65in" → 62.4px at 96 DPI)
-    const marginStr = _fmt.margin || '0.65in';
-    const marginVal = parseFloat(marginStr);
-    const marginPx = marginVal * 96;  // Convert inches to pixels at 96 DPI
-    const usableHeightPerPagePx = PAGE_HEIGHT_PX - (marginPx * 1.25);  // margin/4 + margin = 1.25×margin
-    const maxY = (maxPages - 1) * PAGE_HEIGHT_PX + usableHeightPerPagePx;
+    const maxY = maxPages * contentAreaPx;
     const line = document.createElement('div');
     line.className = 'max-length-line';
     line.style.cssText = `position:absolute;left:0;right:0;top:${maxY}px;height:0;border-top:2px dashed #dc2626;pointer-events:none;z-index:6;`;

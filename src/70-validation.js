@@ -12,8 +12,10 @@
 // Page capacity at typical font settings (Lato 10pt, 0.5in margins): ~3500 chars/page
 
 const RESUME_LENGTH = {
-  // Estimated character capacity per page at default font settings
-  CHARS_PER_PAGE: 3500,
+  // Estimated character capacity per page at default font settings.
+  // Calibrated from real Lato 10pt resumes with 0.5in margins:
+  // ~50 chars/line × ~55 lines = ~2750 chars/page (accounts for whitespace, headers, gaps).
+  CHARS_PER_PAGE: 2800,
   
   // Calculate years of experience from resume text by parsing date ranges.
   // Looks for MM/YY – MM/YY or MM/YY – Present patterns in work experience.
@@ -134,6 +136,7 @@ function capBulletsPerRole(text, maxBullets) {
 // Uses AI to intelligently trim resume to fit recommended page count based on YOE.
 // Drops weakest bullets first (those without metrics or that duplicate other accomplishments).
 // Preserves: section structure, role headers, dates, summary, skills, education.
+// ITERATIVE: Will trim up to 3 times if the resume still exceeds the target.
 async function trimToTargetLength(text) {
   const analysis = RESUME_LENGTH.analyze(text);
   
@@ -142,51 +145,69 @@ async function trimToTargetLength(text) {
     return text;
   }
   
-  const targetChars = analysis.targetChars;
-  const currentChars = text.replace(/\s+/g, ' ').length;
-  const reductionPct = Math.round(((currentChars - targetChars) / currentChars) * 100);
+  // Use 90% of target as inner goal to ensure we leave buffer for rendering
+  // (line breaks, role headers, section spacing add visual height beyond raw chars)
+  const safetyFactor = 0.90;
+  const targetChars = Math.floor(analysis.targetChars * safetyFactor);
   
-  try {
-    const prompt = `You are a resume editor. Trim this resume to approximately ${analysis.targetPages} page(s) (~${targetChars} characters total). The candidate has ${analysis.yoe} years of experience.
+  let current = text;
+  let currentChars = current.replace(/\s+/g, ' ').length;
+  let iteration = 0;
+  const MAX_ITERATIONS = 3;
+  
+  while (currentChars > targetChars && iteration < MAX_ITERATIONS) {
+    iteration++;
+    const reductionPct = Math.round(((currentChars - targetChars) / currentChars) * 100);
+    
+    try {
+      const prompt = `You are a resume editor. Trim this resume to fit ${analysis.targetPages} page(s) (~${targetChars} characters total). The candidate has ${analysis.yoe} years of experience.
 
-CURRENT LENGTH: ${currentChars} characters (~${analysis.currentPages} pages)
-TARGET LENGTH: ${targetChars} characters (~${analysis.targetPages} pages)
+CURRENT LENGTH: ${currentChars} characters
+TARGET LENGTH: ${targetChars} characters (~${analysis.targetPages} pages with safety buffer)
 REDUCTION NEEDED: approximately ${reductionPct}%
 
 TRIMMING RULES (in priority order):
 1. Drop weakest bullets first — those without specific metrics, outcomes, or differentiated value
 2. If two bullets cover similar ground, keep the one with stronger metric/specificity
-3. Tighten verbose bullets to ~150 characters each (drop filler words, redundant phrases)
-4. NEVER drop role headers, dates, or company names
-5. NEVER drop the entire SUMMARY, SKILLS, or EDUCATION sections (just trim within them)
-6. Keep at least 1 bullet per role (preserves work history)
-7. PRESERVE EXACT FORMATTING: section structure, line breaks, bullet character (•), date format
+3. Tighten verbose bullets to ~130 characters each (drop filler words, redundant phrases)
+4. Trim role context lines (the 1-line description below role title) if non-essential
+5. NEVER drop role headers, dates, or company names
+6. NEVER drop the entire SUMMARY, SKILLS, or EDUCATION sections (just trim within them)
+7. Keep at least 1 bullet per role (preserves work history)
+8. Older roles (5+ years ago) can have fewer bullets than recent ones
+9. PRESERVE EXACT FORMATTING: section structure, line breaks, bullet character (•), date format
 
 CRITICAL:
 - Use FIRST PERSON (I/me/my) — never third person
 - NEVER fabricate metrics or outcomes
 - NEVER add new bullets or content
+- BE AGGRESSIVE — the resume MUST fit in ${targetChars} chars
 - Output the COMPLETE trimmed resume, no commentary
 
 RESUME:
-${text}`;
+${current}`;
 
-    const result = await claudeFetch(prompt, 4000);
-    const trimmed = result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim();
-    
-    // Safety check: if trim made it WORSE (longer) or removed too much (less than 60% target),
-    // return original
-    const trimmedChars = trimmed.replace(/\s+/g, ' ').length;
-    if (trimmedChars > currentChars || trimmedChars < targetChars * 0.6) {
-      console.warn('Trim safety check failed, returning original');
-      return text;
+      const result = await claudeFetch(prompt, 4000);
+      const trimmed = result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim();
+      
+      // Safety check: if trim made it WORSE (longer) or removed too much (<50% target),
+      // stop iterating with the previous version
+      const trimmedChars = trimmed.replace(/\s+/g, ' ').length;
+      if (trimmedChars > currentChars || trimmedChars < targetChars * 0.5) {
+        console.warn(`Trim iteration ${iteration} safety check failed (chars: ${trimmedChars}), keeping previous`);
+        break;
+      }
+      
+      current = trimmed;
+      currentChars = trimmedChars;
+      console.log(`Trim iteration ${iteration}: ${currentChars} chars (target: ${targetChars})`);
+    } catch (e) {
+      console.warn(`trimToTargetLength iteration ${iteration} failed:`, e);
+      break;
     }
-    
-    return trimmed;
-  } catch (e) {
-    console.warn('trimToTargetLength failed, returning original:', e);
-    return text;
   }
+  
+  return current;
 }
 
 async function capSkillsTo30(text) {
