@@ -650,7 +650,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.4.7</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.4.8</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -8983,14 +8983,24 @@ function fmtLinkify(raw) {
   const lineW = (_fmt.dividerLineWidth || '1') + 'px';
   const lineOp = _fmt.dividerLineOpacity !== undefined ? _fmt.dividerLineOpacity : 1;
   const lineColor = `rgba(80,80,80,${lineOp})`;
-  // Convert ALL-CAPS heading text to Title Case so CSS font-variant:small-caps can work.
-  // Without this, all-caps text looks identical with or without small-caps applied.
-  function toTitleCase(s) {
-    return (s||'').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  // Manual small-caps: first letter at full size, rest explicitly uppercase at ~0.78em.
+  // CSS font-variant:small-caps synthesizes small-caps by shrinking glyphs, which makes
+  // strokes physically thinner — so the initial cap always looks heavier by contrast.
+  // Manual split gives identical stroke weight across all letters.
+  function fmtSmallCaps(text) {
+    const es = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return text.split(/(\s+)/).map(seg => {
+      if (!seg || /^\s+$/.test(seg)) return ' ';
+      const first = es(seg[0]);
+      const rest = es(seg.slice(1).toUpperCase());
+      return `<span>${first}</span>${rest ? `<span style="font-size:.78em">${rest}</span>` : ''}`;
+    }).join('');
   }
-  // Display-name substitutions — shown to reader but source text is unchanged
+  // Display-name substitutions — source text unchanged, display uses Title Case
   const headingAliases = { 'SUMMARY': 'Professional Summary', 'EXPERIENCE': 'Work Experience' };
-  const displayHeading = headingAliases[(sec.heading||'').trim().toUpperCase()] || toTitleCase(sec.heading||'');
+  const rawHeading = headingAliases[(sec.heading||'').trim().toUpperCase()] ||
+    (sec.heading||'').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  const displayHeading = rawHeading;
   const dividerKws = ['EXPERIENCE','EDUCATION','AWARDS','HONORS','EXPERTISE','TRAINING','VOLUNTEER','LEADERSHIP','SKILL','COMPETENCIES'];
   const hasTopLine = showLines && layout === 'standard' && dividerKws.some(k => (sec.heading||'').toUpperCase().includes(k));
   if(layout==='executive') headingHtml=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;"><div style="flex:1;height:1px;background:${accent};"></div><div style="font-size:.7em;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:${accent};white-space:nowrap;">${e(displayHeading)}</div><div style="flex:1;height:1px;background:${accent};"></div></div>`;
@@ -8998,7 +9008,7 @@ function fmtLinkify(raw) {
   else if(layout==='ruled') headingHtml=`<div style="font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#333;border-bottom:2px solid ${accent};padding-bottom:2px;margin-bottom:5px;">${e(displayHeading)}</div>`;
   else if(layout==='boldline') headingHtml=`<div style="font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:${accent};margin-bottom:4px;padding-left:4px;border-left:3px solid ${accent};">${e(displayHeading)}</div>`;
   else if(layout==='professional') headingHtml=`<div style="font-size:${headingPx};font-weight:600;font-variant:small-caps;letter-spacing:${headingLS};color:#888;font-family:${headingFont},Arial,sans-serif;margin-bottom:2px;margin-top:0;">${e(displayHeading)}</div>`;
-  else if(layout==='standard') headingHtml=`<div style="${hasTopLine ? `border-top:${lineW} solid ${lineColor};padding-top:.05in;margin-top:.04in;` : ''}font-size:${headingPx};font-weight:${_fmt.headingFontWeight||400};font-variant:small-caps;letter-spacing:${headingLS};color:#111;font-family:${headingFont},Arial,sans-serif;margin-bottom:.12in;">${e(displayHeading)}</div>`;
+  else if(layout==='standard') headingHtml=`<div style="${hasTopLine ? `border-top:${lineW} solid ${lineColor};padding-top:.05in;margin-top:.04in;` : ''}font-size:${headingPx};font-weight:${_fmt.headingFontWeight||400};letter-spacing:${headingLS};color:#111;font-family:${headingFont},Arial,sans-serif;margin-bottom:.12in;">${fmtSmallCaps(displayHeading)}</div>`;
   else headingHtml=`<div style="font-size:.7em;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:${accent};border-bottom:1px solid ${accent}44;padding-bottom:2px;margin-bottom:5px;">${e(displayHeading)}</div>`;
   return`<div style="margin-bottom:${layout==='standard'?'.12in':layout==='professional'?'.10in':'.12in'}">${headingHtml}<div style="font-size:${size};font-family:${font},Arial,sans-serif;line-height:${layout==='compact'?'1.25':'1.35'};">${body}</div></div>`;}
   // Two-column layouts
