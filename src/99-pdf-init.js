@@ -84,6 +84,32 @@ ${googleFontsLink}
     print-color-adjust: exact;
   }
   a { color: inherit; text-decoration: none; }
+  
+  /* PAGE BREAK CONTROL — prevents orphans and split sections.
+     Each top-level section (Summary, Skills, Work Experience entries, Education, Awards)
+     stays together when possible. Headings stay with their first child.
+     Bullets stay with their context. Prevents the "AWARDS heading on page 2, body on page 3"
+     orphan that happens when content barely overflows. */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+    break-after: avoid;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  /* Section-level: try to keep section + first child together */
+  body > div {
+    page-break-inside: auto;
+  }
+  /* Individual experience entries (role + bullets) shouldn't split mid-bullet */
+  div[style*="margin-top:14px"] {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  /* Last short sections (Education, Awards) — keep whole on one page */
+  div[style*="margin-bottom"]:last-child {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
 </style>
 </head>
 <body>${fullHtml}</body>

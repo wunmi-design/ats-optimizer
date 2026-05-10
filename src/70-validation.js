@@ -13,9 +13,10 @@
 
 const RESUME_LENGTH = {
   // Estimated character capacity per page at default font settings.
-  // Calibrated from real Lato 10pt resumes with 0.5in margins:
-  // ~50 chars/line × ~55 lines = ~2750 chars/page (accounts for whitespace, headers, gaps).
-  CHARS_PER_PAGE: 2800,
+  // Calibrated CONSERVATIVELY from real Lato 10pt resumes with 0.5in margins.
+  // We deliberately UNDERestimate so the trim is aggressive enough to prevent
+  // single-line orphans (e.g., AWARDS entry) spilling to next page.
+  CHARS_PER_PAGE: 2600,
   
   // Calculate years of experience from resume text by parsing date ranges.
   // Looks for MM/YY – MM/YY or MM/YY – Present patterns in work experience.
@@ -136,46 +137,93 @@ function capBulletsPerRole(text, maxBullets) {
 // Uses AI to intelligently trim resume to fit recommended page count based on YOE.
 // Drops weakest bullets first (those without metrics or that duplicate other accomplishments).
 // Preserves: section structure, role headers, dates, summary, skills, education.
-// ITERATIVE: Will trim up to 3 times if the resume still exceeds the target.
+// ITERATIVE: Will trim up to 4 times if the resume still exceeds the target.
+// VERIFIED: Measures actual rendered height after each trim — char count alone can miss
+// visual overflow (orphan lines, section spacing, awards taking a full line).
+
+// Measures the actual rendered height of resume text in pages by rendering it in a
+// hidden div with the same width and styling as the live preview, then dividing the
+// resulting offsetHeight by the per-page content area height.
+// Returns the page count as a decimal (e.g., 2.05 = just over 2 pages), or null if
+// the format functions aren't loaded yet.
+function measureRenderedPages(text) {
+  try {
+    if (typeof fmtRenderSections !== 'function' || typeof fmtParseText !== 'function') {
+      return null;
+    }
+    const marginIn = parseFloat(_fmt.margin || '0.5in');
+    const contentWidthIn = 8.5 - (2 * marginIn);
+    const contentHeightPx = (11 - 2 * marginIn) * 96; // per-page usable height
+    
+    const container = document.createElement('div');
+    container.style.cssText = `position:absolute;left:-9999px;top:0;width:${contentWidthIn}in;visibility:hidden;font-family:${_fmt.bodyFont || 'Lato'},Arial,sans-serif;font-size:${_fmt.bodySize || 10}pt;line-height:1.5;color:${_fmt.textColor || '#111'};`;
+    container.innerHTML = fmtRenderSections(fmtParseText(text));
+    document.body.appendChild(container);
+    const height = container.getBoundingClientRect().height;
+    document.body.removeChild(container);
+    
+    return height / contentHeightPx;
+  } catch (e) {
+    console.warn('measureRenderedPages failed:', e);
+    return null;
+  }
+}
+
 async function trimToTargetLength(text) {
   const analysis = RESUME_LENGTH.analyze(text);
   
-  // Only trim if resume is too long
-  if (analysis.status !== 'too_long') {
+  // Verify with actual rendering — char estimate can miss orphan lines or whitespace
+  const initialPages = measureRenderedPages(text);
+  const visuallyTooLong = initialPages !== null && initialPages > analysis.targetPages + 0.02;
+  
+  // Skip if both char count AND rendering say we're under target
+  if (analysis.status !== 'too_long' && !visuallyTooLong) {
     return text;
   }
   
-  // Use 90% of target as inner goal to ensure we leave buffer for rendering
-  // (line breaks, role headers, section spacing add visual height beyond raw chars)
-  const safetyFactor = 0.90;
-  const targetChars = Math.floor(analysis.targetChars * safetyFactor);
-  
+  // Use 85% of target as inner goal — leaves a real buffer for rendering variance
+  const safetyFactor = 0.85;
   let current = text;
   let currentChars = current.replace(/\s+/g, ' ').length;
   let iteration = 0;
-  const MAX_ITERATIONS = 3;
+  const MAX_ITERATIONS = 4;
   
-  while (currentChars > targetChars && iteration < MAX_ITERATIONS) {
+  while (iteration < MAX_ITERATIONS) {
+    // Verify with rendering — if we already fit visually, stop iterating
+    const renderedPages = measureRenderedPages(current);
+    if (renderedPages !== null && renderedPages <= analysis.targetPages + 0.02) {
+      console.log(`Trim verified visually: ${renderedPages.toFixed(2)} pages ≤ ${analysis.targetPages}`);
+      return current;
+    }
+    
     iteration++;
+    // Each iteration tightens the target by 5% to push harder when overflow persists
+    const iterationFactor = safetyFactor - (iteration - 1) * 0.05;
+    const targetChars = Math.floor(analysis.targetChars * iterationFactor);
     const reductionPct = Math.round(((currentChars - targetChars) / currentChars) * 100);
+    const visualOverflow = renderedPages !== null ? renderedPages.toFixed(2) : 'unknown';
     
     try {
-      const prompt = `You are a resume editor. Trim this resume to fit ${analysis.targetPages} page(s) (~${targetChars} characters total). The candidate has ${analysis.yoe} years of experience.
+      const prompt = `You are a resume editor. Trim this resume to fit STRICTLY within ${analysis.targetPages} page(s). The candidate has ${analysis.yoe} years of experience.
 
-CURRENT LENGTH: ${currentChars} characters
-TARGET LENGTH: ${targetChars} characters (~${analysis.targetPages} pages with safety buffer)
-REDUCTION NEEDED: approximately ${reductionPct}%
+CURRENT: ${currentChars} characters, visually rendering at ${visualOverflow} pages
+TARGET: ${targetChars} characters maximum, MUST fit on ${analysis.targetPages} page(s)
+REDUCTION NEEDED: approximately ${reductionPct}% — be aggressive
+
+CRITICAL CONSTRAINT: Output MUST fit on exactly ${analysis.targetPages} page(s). If it spills 1 line over, that fails. Be aggressive and prefer removing content over trying to barely fit.
 
 TRIMMING RULES (in priority order):
 1. Drop weakest bullets first — those without specific metrics, outcomes, or differentiated value
 2. If two bullets cover similar ground, keep the one with stronger metric/specificity
-3. Tighten verbose bullets to ~130 characters each (drop filler words, redundant phrases)
-4. Trim role context lines (the 1-line description below role title) if non-essential
-5. NEVER drop role headers, dates, or company names
-6. NEVER drop the entire SUMMARY, SKILLS, or EDUCATION sections (just trim within them)
-7. Keep at least 1 bullet per role (preserves work history)
-8. Older roles (5+ years ago) can have fewer bullets than recent ones
-9. PRESERVE EXACT FORMATTING: section structure, line breaks, bullet character (•), date format
+3. Tighten verbose bullets to ~120 characters each (drop filler words, redundant phrases)
+4. Remove role context/description lines (the 1-line text between role header and bullets) for older roles
+5. Trim role context lines to ~80 chars if kept
+6. Older roles (5+ years ago) should have 1-2 bullets max, not 3
+7. NEVER drop role headers, dates, or company names
+8. NEVER drop the entire SUMMARY, SKILLS, or EDUCATION sections (just trim within them)
+9. The AWARDS section can be condensed or removed if it's pushing the resume over a page
+10. Keep at least 1 bullet per role (preserves work history)
+11. PRESERVE EXACT FORMATTING: section structure, line breaks, bullet character (•), date format
 
 CRITICAL:
 - Use FIRST PERSON (I/me/my) — never third person
@@ -198,15 +246,30 @@ ${current}`;
         break;
       }
       
+      const reduction = (currentChars - trimmedChars) / currentChars;
       current = trimmed;
       currentChars = trimmedChars;
-      console.log(`Trim iteration ${iteration}: ${currentChars} chars (target: ${targetChars})`);
+      console.log(`Trim iteration ${iteration}: ${currentChars} chars (target: ${targetChars}, reduction: ${(reduction*100).toFixed(1)}%)`);
+      
+      // Early exit: AI plateaued and rendering still says we're over
+      if (reduction < 0.03) {
+        const checkPages = measureRenderedPages(current);
+        if (checkPages !== null && checkPages > analysis.targetPages + 0.02) {
+          console.warn(`Trim plateaued at ${checkPages.toFixed(2)} pages — AI can't reduce further`);
+        }
+        break;
+      }
     } catch (e) {
       console.warn(`trimToTargetLength iteration ${iteration} failed:`, e);
       break;
     }
   }
   
+  // Final verification log
+  const finalPages = measureRenderedPages(current);
+  if (finalPages !== null) {
+    console.log(`Final trim result: ${finalPages.toFixed(2)} pages (target ${analysis.targetPages})`);
+  }
   return current;
 }
 
