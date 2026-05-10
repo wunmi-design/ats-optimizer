@@ -6,7 +6,7 @@
 <link href="./ATS Resume_files/css2" rel="stylesheet">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,700&family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&family=Prata:wght@400&family=Cormorant:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,700&family=Gloock:wght@400&family=DM+Serif+Display:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Lato:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
 /* ── RESET & TOKENS ───────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -213,7 +213,7 @@ select option{background:var(--white);}
 .diff-del{background:#fee2e2;color:#7f1d1d;text-decoration:line-through;}
 .diff-empty{background:#f9fafb;color:transparent;}
 /* Post-Optimize "what changed" list */
-.change-item{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg);cursor:pointer;transition:background .12s, border-color .12s;}
+.change-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg);cursor:pointer;transition:background .12s, border-color .12s;}
 .change-item:hover{background:#f0fdfa;border-color:var(--teal);}
 .change-item .change-dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex-shrink:0;}
 .change-item.kind-add .change-dot{background:#22c55e;}
@@ -221,14 +221,6 @@ select option{background:var(--white);}
 .change-item.kind-edit .change-dot{background:#f59e0b;}
 .change-item .change-title{font-size:13px;font-weight:600;color:var(--ink);}
 .change-item .change-detail{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4;}
-.change-ba{display:flex;flex-direction:column;gap:6px;}
-.change-ba-row{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.45;}
-.change-ba-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 7px;border-radius:4px;flex-shrink:0;min-width:55px;text-align:center;margin-top:1px;}
-.change-ba-label.change-ba-add{background:#dcfce7;color:#166534;}
-.change-ba-label.change-ba-del{background:#fee2e2;color:#991b1b;}
-.change-ba-text{flex:1;color:var(--ink2);}
-.change-ba-before-text{text-decoration:line-through;color:#991b1b;opacity:.7;}
-.change-ba-after-text{color:#166534;font-weight:500;}
 /* Preview highlight on hover-over-change */
 .fmt-change-highlight{background:#fef9c3 !important;outline:2px solid #facc15;outline-offset:2px;border-radius:3px;transition:background .15s, outline-color .15s;}
 .tag.required{background:var(--teal-mid);border-color:var(--teal-dim);color:var(--teal-dark);}
@@ -566,25 +558,7 @@ select option{background:var(--white);}
 /* Not Pursuing — muted amber */
 .status-btn.not-pursuing{color:#92400e;background:#fef5f0;border:1.5px solid #fed7aa;}
 .status-btn.not-pursuing:hover{background:#feedde;}
-.status-popup{
-  position:absolute;
-  bottom:calc(100% + 6px);
-  right:0;
-  z-index:200;
-  background:var(--white);
-  border:1px solid var(--border);
-  border-radius:10px;
-  box-shadow:var(--shadow-lg);
-  padding:8px;
-  min-width:170px;
-  display:none;
-  max-width:90vw;
-}
-/* If popup would go off-screen right, align to left instead */
-.status-popup.left-align{
-  right:auto;
-  left:0;
-}
+.status-popup{position:absolute;bottom:calc(100% + 6px);right:0;z-index:200;background:var(--white);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-lg);padding:8px;min-width:170px;display:none;}
 .status-popup.open{display:block;}
 .status-popup label{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:500;}
 .status-popup label:hover{background:var(--surface);}
@@ -645,36 +619,41 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
 
   <!-- ═══ TOP BAR ═══ -->
   <div class="topbar">
-    <div style="display:flex;align-items:center;gap:6px;flex:1;white-space:nowrap;min-width:0;overflow:hidden;">
-      <div class="topbar-brand" style="gap:4px;font-size:13px;flex-shrink:0;">
-        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
-        Resume Optimizer
-      </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.8.0</span>
-      <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
-      <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
-        <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
-        <span class="edit-icon" id="proj-edit-icon" style="display:inline;font-size:10px;flex-shrink:0;color:var(--muted);">✎</span>
-      </div>
+    <div class="topbar-brand">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
+      ATS Resume
     </div>
-    
-    <div class="topbar-right" style="gap:10px;justify-content:flex-end;flex-shrink:0;">
+    <div class="topbar-divider"></div>
+    <div class="topbar-project" onclick="promptRenameProject()">
+      <span class="topbar-project-name" id="proj-name-display">OpenAI01 -scored 1, optimized 0</span>
+      <span class="edit-icon" id="proj-edit-icon" style="display: inline;">✎</span>
+    </div>
+    <div class="topbar-right">
+      <span id="user-display" style="font-size:12px;font-weight:500;color:var(--ink2);display:none;"></span>
+      <button class="btn btn-primary" id="auth-btn" onclick="handleAuthClick()">Sign in with Google</button>
+      <div class="topbar-key">
+        <span style="color: var(--muted); font-size: 12px; margin-right: 8px;">Build 2.4.93</span>
+        <label>API Key</label>
+        <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)">
+        <span id="api-saved" style="display: inline;">✓</span>
+      </div>
+      <button id="save-btn" class="btn btn-secondary btn-sm" onclick="if(!window._atsUser){handleAuthClick();return;}if(!proj){toast('No project open');return;}saveProject();toast('Saved to cloud')" title="Save">Save</button>
+      <div style="position:relative;display:inline-block;" id="file-menu-wrap">
+        <button class="btn btn-secondary btn-sm" onmouseenter="document.getElementById('file-dropdown').style.display='block'" onclick="document.getElementById('file-dropdown').style.display=document.getElementById('file-dropdown').style.display==='block'?'none':'block'">File ▾</button>
+        <div id="file-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:999;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-lg);min-width:160px;overflow:hidden;" onmouseleave="this.style.display='none'">
+          <div style="padding:6px 14px;font-size:12px;cursor:pointer;white-space:nowrap;" onmouseenter="this.style.background='var(--surface)'" onmouseleave="this.style.background=''" onclick="saveProjectToDisk();document.getElementById('file-dropdown').style.display='none'">💾 Export</div>
+          <div style="padding:6px 14px;font-size:12px;cursor:pointer;white-space:nowrap;" onmouseenter="this.style.background='var(--surface)'" onmouseleave="this.style.background=''" onclick="loadProjectFromDisk();document.getElementById('file-dropdown').style.display='none'">📂 Load</div>
+          <div style="padding:6px 14px;font-size:12px;cursor:pointer;white-space:nowrap;" onmouseenter="this.style.background='var(--surface)'" onmouseleave="this.style.background=''" onclick="saveAsNewProject();document.getElementById('file-dropdown').style.display='none'">📄 Save as New</div>
+        </div>
+      </div>
       <div style="position:relative;display:inline-block;" id="download-menu-wrap">
-        <button class="btn btn-primary btn-sm" onclick="toggleDownloadMenu(event)" style="font-size:11px;padding:5px 12px;">↓ Download Resume ▾</button>
+        <button class="btn btn-primary btn-sm" onclick="toggleDownloadMenu(event)">↓ Resume ▾</button>
         <div id="download-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);right:0;z-index:999;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-lg);min-width:170px;overflow:hidden;">
           <button onclick="fmtSavePdf();closeDownloadMenu()" style="display:block;width:100%;text-align:left;padding:9px 14px;font-size:12px;background:none;border:none;cursor:pointer;color:var(--ink);" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='none'">↓ Save as PDF</button>
           <button onclick="fmtSaveDocx();closeDownloadMenu()" style="display:block;width:100%;text-align:left;padding:9px 14px;font-size:12px;background:none;border:none;cursor:pointer;color:var(--ink);" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='none'">↓ Save as .docx</button>
           <div style="height:1px;background:var(--border);margin:4px 0;"></div>
           <button onclick="closeDownloadMenu();setTimeout(exportWorkday,50)" style="display:block;width:100%;text-align:left;padding:9px 14px;font-size:12px;background:none;border:none;cursor:pointer;color:var(--ink);" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='none'">↓ Workday Export</button>
           <button onclick="closeDownloadMenu();setTimeout(exportIcims,50)" style="display:block;width:100%;text-align:left;padding:9px 14px;font-size:12px;background:none;border:none;cursor:pointer;color:var(--ink);" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='none'">↓ iCIMS Export</button>
-        </div>
-      </div>
-      
-      <div style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:3px 6px;border-radius:6px;transition:background 0.2s;flex-shrink:0;" id="user-profile-btn" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''" onclick="handleAuthClick()">
-        <img id="user-avatar" src="" alt="User" style="width:26px;height:26px;border-radius:50%;object-fit:cover;background:var(--border);display:none;flex-shrink:0;">
-        <div style="display:flex;flex-direction:column;align-items:flex-start;font-size:9px;line-height:1.2;">
-          <span id="user-first-name" style="font-weight:600;color:var(--ink);white-space:nowrap;">User</span>
-          <span style="color:var(--muted);font-size:8px;">▼</span>
         </div>
       </div>
     </div>
@@ -688,42 +667,8 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
     <div class="tab" id="tab-format" onclick="switchTab('format')">Template</div>
     <div class="tab" id="tab-analyzer" onclick="switchTab(&#39;analyzer&#39;)">Optimizer <span id="tab-analyzer-score" class="score-pill" style="font-size: 10px; padding: 1px 5px; margin-left: 4px;">82%</span></div>
     <div style="flex:1;"></div>
-    
-    <!-- API Key (first after spacer) -->
-    <div class="topbar-key" style="padding:4px 8px;gap:4px;height:32px;align-items:center;margin-right:2px;">
-      <label style="flex-shrink:0;font-size:11px;">API Key</label>
-      <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)" style="width:100px;font-size:11px;">
-      <span id="api-saved" style="display:inline;flex-shrink:0;font-size:11px;">✓</span>
-    </div>
-    
-    <!-- Daily / Monthly counters -->
-    <div style="display:flex;align-items:center;gap:14px;margin-right:10px;font-size:12px;font-weight:500;padding:0 8px;">
-      <div style="display:flex;align-items:center;gap:6px;">
-        <span style="color:var(--muted);">Daily:</span>
-        <span id="daily-usage" style="color:var(--ink);">0/50,000</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;">
-        <span style="color:var(--muted);">Monthly:</span>
-        <span id="monthly-usage" style="color:var(--ink);">0/200,000</span>
-      </div>
-    </div>
-    
-    <!-- Undo / Redo -->
     <button class="btn btn-ghost btn-sm" id="undo-btn" onclick="undoVersion()" title="Undo" style="font-size:12px;padding:4px 10px;white-space:nowrap;">↩ Undo</button>
     <button class="btn btn-ghost btn-sm" id="redo-btn" onclick="redoVersion()" title="Redo" style="font-size:12px;padding:4px 10px;white-space:nowrap;">Redo ↪</button>
-    
-    <!-- Save (cloud) — moved from topbar -->
-    <button class="btn btn-ghost btn-sm" id="save-btn" onclick="if(!window._atsUser){handleAuthClick();return;}if(!proj){toast('No project open');return;}saveProject();toast('Saved to cloud')" title="Save to cloud" style="font-size:12px;padding:4px 10px;white-space:nowrap;">💾 Save</button>
-    
-    <!-- Export — replaces File menu -->
-    <div style="position:relative;display:inline-block;" id="file-menu-wrap">
-      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('file-dropdown').style.display=document.getElementById('file-dropdown').style.display==='block'?'none':'block'" style="font-size:12px;padding:4px 10px;white-space:nowrap;">↑ Export ▾</button>
-      <div id="file-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);right:0;z-index:999;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-lg);min-width:160px;overflow:hidden;" onmouseleave="this.style.display='none'">
-        <div style="padding:6px 14px;font-size:12px;cursor:pointer;white-space:nowrap;" onmouseenter="this.style.background='var(--surface)'" onmouseleave="this.style.background=''" onclick="saveProjectToDisk();document.getElementById('file-dropdown').style.display='none'">↑ Export project</div>
-        <div style="padding:6px 14px;font-size:12px;cursor:pointer;white-space:nowrap;" onmouseenter="this.style.background='var(--surface)'" onmouseleave="this.style.background=''" onclick="loadProjectFromDisk();document.getElementById('file-dropdown').style.display='none'">↓ Load project</div>
-        <div style="padding:6px 14px;font-size:12px;cursor:pointer;white-space:nowrap;" onmouseenter="this.style.background='var(--surface)'" onmouseleave="this.style.background=''" onclick="saveAsNewProject();document.getElementById('file-dropdown').style.display='none'">📄 Save as new</div>
-      </div>
-    </div>
   </div>
 
   <!-- ═══ MAIN LAYOUT ═══ -->
@@ -1894,48 +1839,12 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
           <span class="fmt-section-label" style="margin:0;">Typography</span>
           <button class="btn btn-ghost btn-sm" id="load-fonts-btn" onclick="loadSystemFonts()" style="font-size:11px;color:var(--teal);">Load system fonts</button>
         </div>
-        <!-- 1. NAME -->
-        <div class="fmt-row"><label>Name</label><select class="fmt-select" id="fmt-name-font" onchange="fmtSetTypo('nameFont',this.value)" style="font-family: &quot;Playfair Display&quot;, Arial, sans-serif;"><option value="Arial">Arial</option><option value="Helvetica">Helvetica</option><option value="Georgia">Georgia</option><option value="Garamond">Garamond</option><option value="Times New Roman">Times New Roman</option><option value="Lato">Lato</option><option value="DM Sans">DM Sans</option><option value="Source Sans 3">Source Sans 3</option><option value="Nunito">Nunito</option><option value="Playfair Display">Playfair Display</option><option value="Inter">Inter</option><option value="Roboto">Roboto</option><option value="Open Sans">Open Sans</option><option value="Montserrat">Montserrat</option><option value="Poppins">Poppins</option><option value="Josefin Sans">Josefin Sans</option><option value="Cormorant">Cormorant</option><option value="Cormorant Garamond">Cormorant Garamond</option><option value="Prata">Prata</option><option value="Gloock">Gloock</option><option value="DM Serif Display">DM Serif Display</option></select><input class="fmt-size-input" id="fmt-name-size" type="number" value="28" min="14" max="60" title="Size in pt" onchange="fmtSetSize('nameSize',this.value)"><select class="fmt-select" id="fmt-name-weight" style="width:80px;" onchange="fmtSetTypo('nameFontWeight',parseInt(this.value))"><option value="300">Light</option><option value="400">Regular</option><option value="500">Medium</option><option value="600">SemiBold</option><option value="700" selected="">Bold</option><option value="800">ExtraBold</option><option value="900">Black</option></select><select class="fmt-select" id="fmt-name-style" style="width:70px;" onchange="fmtSetTypo('nameFontStyle',this.value)"><option value="normal" selected="">Normal</option><option value="italic">Italic</option></select></div>
-
-        <!-- 2. TITLE UNDER NAME (resume role/title) -->
-        <div class="fmt-row"><label>Resume title</label><select class="fmt-select" id="fmt-role-font" onchange="fmtSetTypo('roleFont',this.value)" style="font-family: Lato, Arial, sans-serif;"><option value="Arial">Arial</option><option value="Helvetica">Helvetica</option><option value="Georgia">Georgia</option><option value="Garamond">Garamond</option><option value="Times New Roman">Times New Roman</option><option value="Lato">Lato</option><option value="DM Sans">DM Sans</option><option value="Source Sans 3">Source Sans 3</option><option value="Nunito">Nunito</option><option value="Playfair Display">Playfair Display</option><option value="Inter">Inter</option><option value="Roboto">Roboto</option><option value="Open Sans">Open Sans</option><option value="Montserrat">Montserrat</option><option value="Poppins">Poppins</option><option value="Josefin Sans">Josefin Sans</option><option value="Cormorant">Cormorant</option><option value="Cormorant Garamond">Cormorant Garamond</option><option value="Prata">Prata</option><option value="Gloock">Gloock</option><option value="DM Serif Display">DM Serif Display</option></select><input class="fmt-size-input" id="fmt-role-size" type="number" value="11" min="8" max="18" title="Size in pt" onchange="fmtSetSize('roleSize',this.value)"><select class="fmt-select" id="fmt-title-weight" style="width:80px;" onchange="fmtSetTypo('titleFontWeight',parseInt(this.value))"><option value="300">Light</option><option value="400" selected="">Regular</option><option value="500">Medium</option><option value="600">SemiBold</option><option value="700">Bold</option></select><select class="fmt-select" id="fmt-title-style" style="width:70px;" onchange="fmtSetTypo('titleFontStyle',this.value)"><option value="normal" selected="">Normal</option><option value="italic">Italic</option></select><select class="fmt-select" id="fmt-title-letter-spacing" style="width:90px;" onchange="fmtSetTypo('titleLetterSpacing',this.value)"><option value="0em">No spacing</option><option value="0.03em">Tight</option><option value="0.05em" selected="">Normal</option><option value="0.10em">Wide</option><option value="0.15em">Very wide</option><option value="0.20em">Max</option></select></div>
-
-        <!-- 3. SECTION HEADINGS -->
-        <select id="fmt-heading-font" style="display:none;" onchange="fmtSetTypo('headingFont',this.value)"></select>
-        <div class="fmt-row"><label>Section headings</label><span style="font-size:10px;color:var(--muted);margin-right:6px;">(same font as Name)</span><input class="fmt-size-input" id="fmt-heading-size" type="number" value="11" min="8" max="18" title="Heading size in pt" onchange="fmtSetSize('headingSize',this.value)"><select class="fmt-select" id="fmt-heading-weight" style="width:80px;" onchange="fmtSetTypo('headingFontWeight',parseInt(this.value))"><option value="300">Light</option><option value="400" selected="">Regular</option><option value="500">Medium</option><option value="600">SemiBold</option><option value="700">Bold</option></select><select class="fmt-select" id="fmt-heading-letter-spacing" style="width:90px;" onchange="fmtSetTypo('headingLetterSpacing',this.value)"><option value="0em">No spacing</option><option value="0.03em">Tight</option><option value="0.06em" selected="">Normal</option><option value="0.10em">Wide</option><option value="0.15em">Very wide</option><option value="0.20em">Max</option></select></div>
-
-        <!-- 4. BODY TEXT -->
-        <div class="fmt-row"><label>Body text</label><select class="fmt-select" id="fmt-body-font" onchange="fmtSetTypo('bodyFont',this.value)" style="font-family: Lato, Arial, sans-serif;"><option value="Arial">Arial</option><option value="Helvetica">Helvetica</option><option value="Georgia">Georgia</option><option value="Garamond">Garamond</option><option value="Times New Roman">Times New Roman</option><option value="Lato">Lato</option><option value="DM Sans">DM Sans</option><option value="Source Sans 3">Source Sans 3</option><option value="Nunito">Nunito</option><option value="Playfair Display">Playfair Display</option><option value="Inter">Inter</option><option value="Roboto">Roboto</option><option value="Open Sans">Open Sans</option><option value="Montserrat">Montserrat</option><option value="Poppins">Poppins</option><option value="Josefin Sans">Josefin Sans</option><option value="Cormorant Garamond">Cormorant Garamond</option><option value="Prata">Prata</option><option value="Gloock">Gloock</option><option value="DM Serif Display">DM Serif Display</option></select><input class="fmt-size-input" id="fmt-body-size" type="number" value="11" min="8" max="16" title="Size in pt" onchange="fmtSetSize('bodySize',this.value)"></div>
-
-        <!-- 5. COMPANY + EXPERIENCE ROLE TITLE (separate controllers) -->
-        <div class="fmt-row"><label>Company</label><select class="fmt-select" id="fmt-exp-font" onchange="fmtSetTypo('expFont',this.value)" style="font-family: Lato, Arial, sans-serif;"><option value="Arial">Arial</option><option value="Helvetica">Helvetica</option><option value="Georgia">Georgia</option><option value="Garamond">Garamond</option><option value="Times New Roman">Times New Roman</option><option value="Lato">Lato</option><option value="DM Sans">DM Sans</option><option value="Source Sans 3">Source Sans 3</option><option value="Nunito">Nunito</option><option value="Playfair Display">Playfair Display</option><option value="Inter">Inter</option><option value="Roboto">Roboto</option><option value="Open Sans">Open Sans</option><option value="Montserrat">Montserrat</option><option value="Poppins">Poppins</option><option value="Josefin Sans">Josefin Sans</option><option value="Cormorant Garamond">Cormorant Garamond</option><option value="Prata">Prata</option><option value="Gloock">Gloock</option><option value="DM Serif Display">DM Serif Display</option></select><input class="fmt-size-input" id="fmt-exp-size" type="number" value="12" min="8" max="18" title="Size in pt" onchange="fmtSetSize('expSize',this.value)"></div>
-        <div class="fmt-row"><label>Exp. role title</label><span style="flex:1;"></span><input class="fmt-size-input" id="fmt-exp-role-size" type="number" value="11" min="8" max="18" title="Size for job role titles within experience entries (e.g. Senior Designer). Bold auto. Independent of Resume title." onchange="fmtSetSize('expRoleSize',this.value)"><span style="font-size:10px;color:var(--muted);margin-left:4px;white-space:nowrap;">bold auto</span></div>
-
-        <!-- 6. SKILLS -->
-        <div class="fmt-row"><label>Skills</label><span style="flex:1;"></span><input class="fmt-size-input" id="fmt-skills-size" type="number" value="11" min="7" max="16" title="Skill chip size" onchange="fmtSetSize('skillsSize',this.value)"></div>
-
-        <!-- 7. DIVIDER LINES -->
-        <div class="fmt-row" style="margin-top:8px;">
-          <label>Section lines</label>
-          <span style="flex:1;"></span>
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;">
-            <span style="font-size:11px;color:var(--muted);" id="divider-lines-label">On</span>
-            <div style="position:relative;display:inline-block;width:34px;height:18px;" onclick="fmtToggleDividerLines()">
-              <div id="divider-lines-track" style="position:absolute;inset:0;background:var(--teal);border-radius:9px;transition:background .2s;"></div>
-              <div id="divider-lines-thumb" style="position:absolute;top:2px;left:18px;width:14px;height:14px;background:#fff;border-radius:50%;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.25);"></div>
-            </div>
-          </label>
-        </div>
-        <div class="fmt-row" style="padding-left:4px;gap:8px;">
-          <label style="color:var(--muted);font-size:11px;white-space:nowrap;">Thickness</label>
-          <select class="fmt-select" id="fmt-divider-width" style="width:90px;" onchange="fmtSetTypo('dividerLineWidth',this.value)">
-            <option value="0.5">Hairline</option><option value="0.75">Thin</option><option value="1" selected="">Normal</option><option value="1.5">Medium</option><option value="2">Thick</option>
-          </select>
-          <label style="color:var(--muted);font-size:11px;white-space:nowrap;margin-left:8px;">Opacity</label>
-          <select class="fmt-select" id="fmt-divider-opacity" style="width:80px;" onchange="fmtSetTypo('dividerLineOpacity',parseFloat(this.value))">
-            <option value="0.2">20%</option><option value="0.4">40%</option><option value="0.6">60%</option><option value="0.8">80%</option><option value="1" selected="">100%</option>
-          </select>
-        </div>
+        <div class="fmt-row"><label>Name</label><select class="fmt-select" id="fmt-name-font" onchange="fmtSetTypo(&#39;nameFont&#39;,this.value)" style="font-family: &quot;Playfair Display&quot;, Arial, sans-serif;"><option value="Arial">Arial</option><option value="Helvetica">Helvetica</option><option value="Georgia">Georgia</option><option value="Garamond">Garamond</option><option value="Palatino">Palatino</option><option value="Times New Roman">Times New Roman</option><option value="Lato">Lato</option><option value="DM Sans">DM Sans</option><option value="Source Sans 3">Source Sans 3</option><option value="Nunito">Nunito</option><option value="Merriweather">Merriweather</option><option value="Playfair Display" selected="">Playfair Display</option><option value="Libre Baskerville">Libre Baskerville</option><option value="Inter">Inter</option><option value="Roboto">Roboto</option><option value="Open Sans">Open Sans</option><option value="Raleway">Raleway</option><option value="Montserrat">Montserrat</option><option value="Poppins">Poppins</option><option value="Josefin Sans">Josefin Sans</option><option value="Cormorant Garamond">Cormorant Garamond</option><option value="EB Garamond">EB Garamond</option></select><input class="fmt-size-input" id="fmt-name-size" type="number" value="28" min="14" max="60" title="Size in px" onchange="fmtSetSize(&#39;nameSize&#39;,this.value)"></div>
+        <div class="fmt-row"><label>Body text</label><select class="fmt-select" id="fmt-body-font" onchange="fmtSetTypo(&#39;bodyFont&#39;,this.value)" style="font-family: Lato, Arial, sans-serif;"><option value="Arial">Arial</option><option value="Helvetica">Helvetica</option><option value="Georgia">Georgia</option><option value="Garamond">Garamond</option><option value="Palatino">Palatino</option><option value="Times New Roman">Times New Roman</option><option value="Lato" selected="">Lato</option><option value="DM Sans">DM Sans</option><option value="Source Sans 3">Source Sans 3</option><option value="Nunito">Nunito</option><option value="Merriweather">Merriweather</option><option value="Playfair Display">Playfair Display</option><option value="Libre Baskerville">Libre Baskerville</option><option value="Inter">Inter</option><option value="Roboto">Roboto</option><option value="Open Sans">Open Sans</option><option value="Raleway">Raleway</option><option value="Montserrat">Montserrat</option><option value="Poppins">Poppins</option><option value="Josefin Sans">Josefin Sans</option><option value="Cormorant Garamond">Cormorant Garamond</option><option value="EB Garamond">EB Garamond</option></select><input class="fmt-size-input" id="fmt-body-size" type="number" value="11" min="8" max="16" title="Size in px" onchange="fmtSetSize(&#39;bodySize&#39;,this.value)"></div>
+        <div class="fmt-row"><label>Section titles</label><select class="fmt-select" id="fmt-heading-font" onchange="fmtSetTypo(&#39;headingFont&#39;,this.value)" style="font-family: Lato, Arial, sans-serif;"><option value="Arial">Arial</option><option value="Helvetica">Helvetica</option><option value="Georgia">Georgia</option><option value="Garamond">Garamond</option><option value="Palatino">Palatino</option><option value="Times New Roman">Times New Roman</option><option value="Lato" selected="">Lato</option><option value="DM Sans">DM Sans</option><option value="Source Sans 3">Source Sans 3</option><option value="Nunito">Nunito</option><option value="Merriweather">Merriweather</option><option value="Playfair Display">Playfair Display</option><option value="Libre Baskerville">Libre Baskerville</option><option value="Inter">Inter</option><option value="Roboto">Roboto</option><option value="Open Sans">Open Sans</option><option value="Raleway">Raleway</option><option value="Montserrat">Montserrat</option><option value="Poppins">Poppins</option><option value="Josefin Sans">Josefin Sans</option><option value="Cormorant Garamond">Cormorant Garamond</option><option value="EB Garamond">EB Garamond</option></select><input class="fmt-size-input" id="fmt-heading-size" type="number" value="11" min="8" max="18" title="Size in px" onchange="fmtSetSize(&#39;headingSize&#39;,this.value)"></div>
+        <div class="fmt-row"><label>Company</label><select class="fmt-select" id="fmt-exp-font" onchange="fmtSetTypo(&#39;expFont&#39;,this.value)" style="font-family: Lato, Arial, sans-serif;"><option value="Arial">Arial</option><option value="Helvetica">Helvetica</option><option value="Georgia">Georgia</option><option value="Garamond">Garamond</option><option value="Palatino">Palatino</option><option value="Times New Roman">Times New Roman</option><option value="Lato" selected="">Lato</option><option value="DM Sans">DM Sans</option><option value="Source Sans 3">Source Sans 3</option><option value="Nunito">Nunito</option><option value="Merriweather">Merriweather</option><option value="Playfair Display">Playfair Display</option><option value="Libre Baskerville">Libre Baskerville</option><option value="Inter">Inter</option><option value="Roboto">Roboto</option><option value="Open Sans">Open Sans</option><option value="Raleway">Raleway</option><option value="Montserrat">Montserrat</option><option value="Poppins">Poppins</option><option value="Josefin Sans">Josefin Sans</option><option value="Cormorant Garamond">Cormorant Garamond</option><option value="EB Garamond">EB Garamond</option></select><input class="fmt-size-input" id="fmt-exp-size" type="number" value="12" min="8" max="18" title="Size in px" onchange="fmtSetSize(&#39;expSize&#39;,this.value)"></div>
+        <div class="fmt-row"><label>Role / Title</label><select class="fmt-select" id="fmt-role-font" onchange="fmtSetTypo(&#39;roleFont&#39;,this.value)" style="font-family: Lato, Arial, sans-serif;"><option value="Arial">Arial</option><option value="Helvetica">Helvetica</option><option value="Georgia">Georgia</option><option value="Garamond">Garamond</option><option value="Palatino">Palatino</option><option value="Times New Roman">Times New Roman</option><option value="Lato" selected="">Lato</option><option value="DM Sans">DM Sans</option><option value="Source Sans 3">Source Sans 3</option><option value="Nunito">Nunito</option><option value="Merriweather">Merriweather</option><option value="Playfair Display">Playfair Display</option><option value="Libre Baskerville">Libre Baskerville</option><option value="Inter">Inter</option><option value="Roboto">Roboto</option><option value="Open Sans">Open Sans</option><option value="Raleway">Raleway</option><option value="Montserrat">Montserrat</option><option value="Poppins">Poppins</option><option value="Josefin Sans">Josefin Sans</option><option value="Cormorant Garamond">Cormorant Garamond</option><option value="EB Garamond">EB Garamond</option></select><input class="fmt-size-input" id="fmt-role-size" type="number" value="11" min="8" max="18" title="Size in px" onchange="fmtSetSize(&#39;roleSize&#39;,this.value)"></div>
+        <div class="fmt-row"><label>Skills</label><span style="flex:1;"></span><input class="fmt-size-input" id="fmt-skills-size" type="number" value="11" min="7" max="16" title="Skill chip size in px" onchange="fmtSetSize(&#39;skillsSize&#39;,this.value)"></div>
 
         <span class="fmt-section-label" style="margin-top:14px;">Colors</span>
 
@@ -1986,19 +1895,24 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <div class="panel-view" id="view-jd">
         <div class="bold mb-3" style="font-size:15px;">Job Description</div>
 
+        <!-- URL import -->
         <div class="card mb-3">
-          <div class="two">
-            <div class="field"><label class="fl">Job title</label><input type="text" id="jd-title" oninput="syncJDToWorkspace()"></div>
-            <div class="field"><label class="fl">Company</label><input type="text" id="jd-company" oninput="syncJDToWorkspace()"></div>
-          </div>
           <div class="field">
-            <label class="fl">Job posting URL <span style="color:var(--muted);font-weight:400;">(for reference — paste the description below)</span></label>
-            <div style="display:flex;gap:8px;align-items:center;">
-              <input type="url" id="jd-url" style="flex:1;" placeholder="https://..." oninput="syncJDToWorkspace();updateJdUrlLink()">
-              <a id="jd-url-open" href="#" target="_blank" rel="noopener" onclick="return openJdUrl(event)" style="display:none;font-size:12px;color:var(--teal);text-decoration:none;white-space:nowrap;padding:6px 10px;border:1px solid var(--border);border-radius:6px;">Open ↗</a>
+            <label class="fl">Job posting URL</label>
+            <div style="display:flex;gap:8px;">
+              <input type="url" id="jd-url" style="flex:1;" oninput="syncJDToWorkspace()" onkeydown="if(event.key===&#39;Enter&#39;)fetchJobFromUrl()">
+              <button class="btn btn-secondary btn-sm" onclick="fetchJobFromUrl()" style="white-space:nowrap;">Fetch →</button>
             </div>
           </div>
-          <div class="field"><label class="fl">Full job description</label><textarea id="jd-text" oninput="syncJDToWorkspace()" style="min-height:240px;" placeholder="Paste the full job description here..."></textarea></div>
+          <div class="loading-row mt-1" id="jd-url-loading"><div class="spin"></div><span id="jd-url-msg">Fetching job posting...</span></div>
+          <div id="jd-url-error" style="display:none;font-size:12px;color:var(--red);margin-top:6px;"></div>
+        </div>
+
+        <!-- Manual fallback -->
+        <div class="card mb-3">
+          <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Or enter manually</div>
+          <div class="two"><div class="field"><label class="fl">Job title</label><input type="text" id="jd-title" oninput="syncJDToWorkspace()"></div><div class="field"><label class="fl">Company</label><input type="text" id="jd-company" oninput="syncJDToWorkspace()"></div></div>
+          <div class="field"><label class="fl">Full job description</label><textarea id="jd-text" oninput="syncJDToWorkspace()" style="min-height:180px;"></textarea></div>
         </div>
 
         <div class="flex-c gap-2">
@@ -2115,18 +2029,6 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
             </div>
           </div>
 
-          <!-- What Has Changed (shown after optimization, hidden by default) -->
-          <div class="card mb-3" id="what-changed-card" style="display:none;">
-            <div class="card-head" style="margin-bottom:12px;">
-              <span class="card-title">What Has Changed</span>
-              <div style="display:flex;align-items:center;gap:12px;">
-                <span class="text-xs text-muted" id="what-changed-count"></span>
-                <span class="text-xs text-muted" id="what-changed-score-line"></span>
-              </div>
-            </div>
-            <div id="what-changed-list" style="display:flex;flex-direction:column;gap:8px;"></div>
-          </div>
-
           <!-- Single unified suggestions card. Hidden from user since 2.4.82 — Optimize/Optimize
                Extreme apply suggestions automatically. The DOM elements (#top-fixes, #fix-cb, etc.)
                must remain in the document because autoOptimize iterates them to gather fixes. -->
@@ -2168,7 +2070,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
           </div>
 
           <!-- Applied Fixes Inventory -->
-          <div class="card" id="applied-fixes-card" style="margin-top:16px;">
+          <div class="card" style="margin-top:16px;">
             <div class="card-title mb-2">Applied Fixes</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;">
               <!-- Left: Applied improvements -->
@@ -2633,148 +2535,6 @@ NY Top Creative Winner · WIx and Vitamin T · 2014</div>
 
 <script>
 // ═══════════════════════════════════════════════════════
-//  CONFIG & CONSTANTS
-// ═══════════════════════════════════════════════════════
-const CONFIG = {
-  // Project status definitions — single source of truth
-  statuses: [
-    { id: 'didnt-apply', label: "Didn't Apply", cssClass: 'didnt-apply' },
-    { id: 'ready-to-send', label: 'Ready to Send', cssClass: 'ready-to-send' },
-    { id: 'applied', label: 'Applied', cssClass: 'applied' },
-    { id: 'interviewing', label: 'Interviewing', cssClass: 'interviewing' },
-    { id: 'not-pursuing', label: 'Not Pursuing', cssClass: 'not-pursuing' }
-  ],
-  
-  // Token limits per user
-  tokens: {
-    dailyLimit: 50000,
-    monthlyLimit: 200000,
-    // Estimated tokens per operation
-    estimatedPerAnalysis: 3000,        // Analyze JD + answer questions
-    estimatedPerOptimization: 5500     // One optimization pass
-  },
-  
-  // Model routing — all calls now use Opus (Sonnet routing reverted; Opus performs better)
-  models: {
-    opus: 'claude-opus-4-5',     // Default for all operations
-    sonnet: 'claude-opus-4-5'    // Reverted: was Sonnet for scoring/titles, now Opus
-  },
-  
-  // Helper: get status by ID
-  getStatus: function(id) {
-    return this.statuses.find(s => s.id === id) || { id: 'Status?', label: 'Status?', cssClass: 'none' };
-  },
-  
-  // Helper: get label for a status ID
-  getStatusLabel: function(id) {
-    return this.getStatus(id).label;
-  },
-  
-  // Helper: get CSS class for a status ID
-  getStatusClass: function(id) {
-    return this.getStatus(id).cssClass;
-  }
-};
-
-// ═══════════════════════════════════════════════════════
-//  TEMPLATE GENERATORS
-// ═══════════════════════════════════════════════════════
-const Templates = {
-  // Generate status popup HTML with all status options
-  statusPopup: function(projectId, currentStatus) {
-    const options = CONFIG.statuses.map(status => 
-      `<label><input type="radio" name="status-${projectId}" value="${status.id}" ${currentStatus===status.id?'checked':''} onchange="setProjectStatus('${projectId}','${status.id}')"> ${status.label}</label>`
-    ).join('\n            ');
-    
-    return `<div class="status-popup" id="status-${projectId}" role="menu">
-            ${options}
-          </div>`;
-  }
-};
-
-// ═══════════════════════════════════════════════════════
-//  TOKEN TRACKING & LIMITS
-// ═══════════════════════════════════════════════════════
-const TokenTracker = {
-  // Get daily usage for current user
-  getDailyUsage: function(userId) {
-    if (!userId) return 0;
-    const key = `tokens_daily_${userId}_${new Date().toISOString().split('T')[0]}`;
-    return parseInt(localStorage.getItem(key) || '0');
-  },
-  
-  // Get monthly usage for current user
-  getMonthlyUsage: function(userId) {
-    if (!userId) return 0;
-    const year = new Date().getFullYear();
-    const month = String(new Date().getMonth() + 1).padStart(2, '0');
-    const key = `tokens_monthly_${userId}_${year}-${month}`;
-    return parseInt(localStorage.getItem(key) || '0');
-  },
-  
-  // Add tokens to both daily and monthly counters
-  addTokens: function(userId, amount) {
-    if (!userId) return;
-    const today = new Date().toISOString().split('T')[0];
-    const dailyKey = `tokens_daily_${userId}_${today}`;
-    const year = new Date().getFullYear();
-    const month = String(new Date().getMonth() + 1).padStart(2, '0');
-    const monthlyKey = `tokens_monthly_${userId}_${year}-${month}`;
-    
-    const currentDaily = parseInt(localStorage.getItem(dailyKey) || '0');
-    const currentMonthly = parseInt(localStorage.getItem(monthlyKey) || '0');
-    
-    localStorage.setItem(dailyKey, currentDaily + amount);
-    localStorage.setItem(monthlyKey, currentMonthly + amount);
-    
-    TokenTracker.updateUI(userId);
-  },
-  
-  // Check if user has tokens available for an operation
-  canUseTokens: function(userId, estimatedTokens) {
-    const daily = TokenTracker.getDailyUsage(userId);
-    const monthly = TokenTracker.getMonthlyUsage(userId);
-    const dailyOK = daily + estimatedTokens <= CONFIG.tokens.dailyLimit;
-    const monthlyOK = monthly + estimatedTokens <= CONFIG.tokens.monthlyLimit;
-    return dailyOK && monthlyOK;
-  },
-  
-  // Get remaining tokens
-  getRemaining: function(userId) {
-    const daily = TokenTracker.getDailyUsage(userId);
-    const monthly = TokenTracker.getMonthlyUsage(userId);
-    return {
-      daily: CONFIG.tokens.dailyLimit - daily,
-      monthly: CONFIG.tokens.monthlyLimit - monthly
-    };
-  },
-  
-  // Update UI with current usage
-  updateUI: function(userId) {
-    if (!userId) return;
-    const daily = TokenTracker.getDailyUsage(userId);
-    const monthly = TokenTracker.getMonthlyUsage(userId);
-    const dailyEl = document.getElementById('daily-usage');
-    const monthlyEl = document.getElementById('monthly-usage');
-    if (dailyEl) dailyEl.textContent = `${daily.toLocaleString()}/${CONFIG.tokens.dailyLimit.toLocaleString()}`;
-    if (monthlyEl) monthlyEl.textContent = `${monthly.toLocaleString()}/${CONFIG.tokens.monthlyLimit.toLocaleString()}`;
-    
-    // Color warn if approaching limits
-    if (dailyEl && daily > CONFIG.tokens.dailyLimit * 0.8) {
-      dailyEl.style.color = '#dc2626';
-    } else if (dailyEl) {
-      dailyEl.style.color = 'var(--ink)';
-    }
-    
-    if (monthlyEl && monthly > CONFIG.tokens.monthlyLimit * 0.8) {
-      monthlyEl.style.color = '#dc2626';
-    } else if (monthlyEl) {
-      monthlyEl.style.color = 'var(--ink)';
-    }
-  }
-};
-
-// ═══════════════════════════════════════════════════════
 //  UI LAYER
 // ═══════════════════════════════════════════════════════
 
@@ -2821,29 +2581,10 @@ function handleAuthClick() {
 
 function setAuthUI() {
   if (window._atsUser) {
-    const profileBtn = document.getElementById('user-profile-btn');
-    const avatar = document.getElementById('user-avatar');
-    const firstName = document.getElementById('user-first-name');
-    
-    // Show user profile button
-    if (profileBtn) profileBtn.style.display = 'flex';
-    
-    // Set user's first name
-    const fullName = window._atsUser.name || window._atsUser.email || 'User';
-    const first = fullName.split(' ')[0];
-    if (firstName) firstName.textContent = first;
-    
-    // Set user's avatar if available from Google OAuth
-    if (window._atsUser.picture && avatar) {
-      avatar.src = window._atsUser.picture;
-      avatar.style.display = 'block';
-    }
-    
-    // Update token usage display
-    TokenTracker.updateUI(window._atsUser.id);
-  } else {
-    const profileBtn = document.getElementById('user-profile-btn');
-    if (profileBtn) profileBtn.style.display = 'none';
+    document.getElementById('auth-btn').textContent = 'Sign Out';
+    const name = window._atsUser.name || window._atsUser.email || 'Signed in';
+    document.getElementById('user-display').textContent = name;
+    document.getElementById('user-display').style.display = 'inline';
   }
 }
 
@@ -2867,8 +2608,7 @@ async function handleAuthCallback() {
         window._atsUser = {
           id: userData.id,
           email: userData.email,
-          name: userData.user_metadata?.full_name || userData.user_metadata?.name || userData.email,
-          picture: userData.user_metadata?.picture || userData.user_metadata?.avatar_url
+          name: userData.user_metadata?.full_name || userData.user_metadata?.name || userData.email
         };
         localStorage.setItem('ats_user', JSON.stringify(window._atsUser));
       } catch(e) {
@@ -3053,59 +2793,15 @@ function getKey() {
   if (!k.startsWith('sk-ant-')) throw new Error('Key should start with sk-ant-');
   return k;
 }
-
-// Check if user has provided their own API key (vs using app's key)
-function hasOwnApiKey() {
-  const inputKey = document.getElementById('api-in')?.value || '';
-  const storedKey = localStorage.getItem('ats_key') || '';
-  return inputKey.length > 0 || storedKey.length > 0;
-}
-
 try { const k=localStorage.getItem('ats_key'); if(k){_apiKey=k;const el=document.getElementById('api-in');if(el)el.value=k;document.getElementById('api-saved').style.display='inline';} } catch(e) {}
 
 // ─────────────────────────────────────────────────────────
 //  CLAUDE FETCH
 // ─────────────────────────────────────────────────────────
-//
-// In-memory cache for deterministic API calls (e.g., JD analysis).
-// Cleared on page reload. Same prompt+model+temperature → cached response.
-// Reduces API cost ~20-30% in typical usage where users re-analyze the same JD.
-const _promptCache = new Map();
-const _PROMPT_CACHE_MAX = 50;  // Cap cache size to prevent memory bloat
-
-// Simple hash function for cache keys (djb2)
-function _hashPrompt(prompt, model, temperature) {
-  const str = `${model||'default'}:${temperature??'default'}:${prompt}`;
-  let hash = 5381;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) + hash) + str.charCodeAt(i);
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-  return hash.toString(36);
-}
-
-// Add result to cache, evicting oldest if full (FIFO)
-function _cachePut(key, value) {
-  if (_promptCache.size >= _PROMPT_CACHE_MAX) {
-    const firstKey = _promptCache.keys().next().value;
-    _promptCache.delete(firstKey);
-  }
-  _promptCache.set(key, value);
-}
-
-async function claudeFetch(prompt, maxTokens, att, temperature, model, cacheable) {
-  // Cache check (only when explicitly opted-in)
-  if (cacheable) {
-    const cacheKey = _hashPrompt(prompt, model, temperature);
-    if (_promptCache.has(cacheKey)) {
-      // Cache hit — return immediately, no API call
-      return _promptCache.get(cacheKey);
-    }
-  }
+async function claudeFetch(prompt, maxTokens, att, temperature) {
   const key = getKey();
   const attempt = att||1;
-  const useModel = model || CONFIG.models.opus;
-  const reqBody = {model:useModel,max_tokens:maxTokens||3000,messages:[{role:'user',content:prompt}]};
+  const reqBody = {model:'claude-opus-4-5',max_tokens:maxTokens||3000,messages:[{role:'user',content:prompt}]};
   if (temperature !== undefined) reqBody.temperature = temperature;
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method:'POST',
@@ -3117,13 +2813,13 @@ async function claudeFetch(prompt, maxTokens, att, temperature, model, cacheable
       const w = Math.min(attempt * 15000, 60000);
       if (attempt === 1) toast(`Rate limit — waiting ${w/1000}s...`);
       await new Promise(r=>setTimeout(r,w));
-      return claudeFetch(prompt,maxTokens,attempt+1,temperature,model,cacheable);
+      return claudeFetch(prompt,maxTokens,attempt+1,temperature);
     }
     // All retries exhausted — throw a clean error without the API URL
     throw new Error('RATE_LIMIT');
   }
   if (resp.status===529||resp.status===503||resp.status===500) {
-    if (attempt<4) { const w=attempt*8000; if (attempt===1) toast(`Retrying in ${w/1000}s...`); await new Promise(r=>setTimeout(r,w)); return claudeFetch(prompt,maxTokens,attempt+1,temperature,model,cacheable); }
+    if (attempt<4) { const w=attempt*8000; if (attempt===1) toast(`Retrying in ${w/1000}s...`); await new Promise(r=>setTimeout(r,w)); return claudeFetch(prompt,maxTokens,attempt+1,temperature); }
     throw new Error('API_UNAVAILABLE');
   }
   if (!resp.ok) {
@@ -3134,24 +2830,7 @@ async function claudeFetch(prompt, maxTokens, att, temperature, model, cacheable
     throw new Error(clean);
   }
   const d=await resp.json();
-  
-  // Track actual token usage from API response - always update counter so user sees real usage
-  if (d.usage && window._atsUser) {
-    const totalTokens = (d.usage.input_tokens || 0) + (d.usage.output_tokens || 0);
-    if (totalTokens > 0) {
-      TokenTracker.addTokens(window._atsUser.id, totalTokens);
-    }
-  }
-  
-  const result = d.content?.map(b=>b.text||'').join('')||'';
-  
-  // Cache the result if cacheable
-  if (cacheable && result) {
-    const cacheKey = _hashPrompt(prompt, model, temperature);
-    _cachePut(cacheKey, result);
-  }
-  
-  return result;
+  return d.content?.map(b=>b.text||'').join('')||'';
 }
 
 function parseJson(raw) {
@@ -3320,31 +2999,28 @@ let proj = null;
 //  PROJECT GRID
 // ─────────────────────────────────────────────────────────
 function statusLabel(s) {
-  return CONFIG.getStatusLabel(s);
+  if (s === 'applied') return 'Applied';
+  if (s === 'interviewing') return 'Interviewing';
+  if (s === 'not-pursuing') return 'Not Pursuing';
+  if (s === 'didnt-apply') return "Didn't Apply";
+  if (s === 'ready-to-send') return 'Ready to Send';
+  return 'Status?';
 }
 function statusCls(s) {
-  return CONFIG.getStatusClass(s);
+  if (s === 'applied') return 'applied';
+  if (s === 'interviewing') return 'interviewing';
+  if (s === 'not-pursuing') return 'not-pursuing';
+  if (s === 'didnt-apply') return 'didnt-apply';
+  if (s === 'ready-to-send') return 'ready-to-send';
+  return 'none';
 }
 function toggleStatusPopup(id, e) {
   e.stopPropagation();
   const popup = document.getElementById('status-' + id);
   const isOpen = popup?.classList.contains('open');
   // Close all popups
-  document.querySelectorAll('.status-popup.open').forEach(p => {
-    p.classList.remove('open');
-    p.classList.remove('left-align');
-  });
-  if (!isOpen && popup) {
-    popup.classList.add('open');
-    // Check if popup would go off-screen to the right
-    const rect = popup.getBoundingClientRect();
-    const popupWidth = popup.offsetWidth || 170;
-    const buttonRect = e.target.closest('[onclick*="toggleStatusPopup"]')?.getBoundingClientRect() || rect;
-    const rightEdge = buttonRect.right + popupWidth;
-    if (rightEdge > window.innerWidth - 20) {
-      popup.classList.add('left-align');
-    }
-  }
+  document.querySelectorAll('.status-popup.open').forEach(p => p.classList.remove('open'));
+  if (!isOpen && popup) popup.classList.add('open');
 }
 function setProjectStatus(id, status) {
   const p = ProjectStore.load(id);
@@ -3452,7 +3128,13 @@ function renderProjGrid() {
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);" onclick="event.stopPropagation()">
         <div class="status-wrap">
           <button class="status-btn ${statusCls(p.status)}" onclick="toggleStatusPopup('${p.id}',event)" aria-label="Set application status">${statusLabel(p.status)}</button>
-          ${Templates.statusPopup(p.id, p.status)}
+          <div class="status-popup" id="status-${p.id}" role="menu">
+            <label><input type="radio" name="status-${p.id}" value="didnt-apply" ${p.status==='didnt-apply'?'checked':''} onchange="setProjectStatus('${p.id}','didnt-apply')"> Didn't Apply</label>
+            <label><input type="radio" name="status-${p.id}" value="ready-to-send" ${p.status==='ready-to-send'?'checked':''} onchange="setProjectStatus('${p.id}','ready-to-send')"> Ready to Send</label>
+            <label><input type="radio" name="status-${p.id}" value="applied" ${p.status==='applied'?'checked':''} onchange="setProjectStatus('${p.id}','applied')"> Applied</label>
+            <label><input type="radio" name="status-${p.id}" value="interviewing" ${p.status==='interviewing'?'checked':''} onchange="setProjectStatus('${p.id}','interviewing')"> Interviewing</label>
+            <label><input type="radio" name="status-${p.id}" value="not-pursuing" ${p.status==='not-pursuing'?'checked':''} onchange="setProjectStatus('${p.id}','not-pursuing')"> Not Pursuing</label>
+          </div>
         </div>
         <div class="proj-card-menu">
           <button class="proj-ellipsis" onclick="toggleProjMenu('${p.id}',event)" title="More options" aria-label="Project options">···</button>
@@ -3660,7 +3342,7 @@ function loadProject(id) {
   if (strengths) strengths.innerHTML = '';
   const gaps = document.getElementById('score-gaps');
   if (gaps) gaps.innerHTML = '';
-  try { s('jd-title', proj.jdTitle||''); s('jd-company', proj.jdCompany||''); s('jd-text', proj.jdText||''); s('jd-url', proj.jdUrl||''); updateJdUrlLink(); } catch(e) {}
+  try { s('jd-title', proj.jdTitle||''); s('jd-company', proj.jdCompany||''); s('jd-text', proj.jdText||''); s('jd-url', proj.jdUrl||''); } catch(e) {}
   try { if (proj.jdAnalysis) renderJDAnalysis(proj.jdAnalysis); } catch(e) {}
   try { if (proj.questions?.length) renderQuestions(proj.questions); } catch(e) {}
   try { if (proj.outcomeQuestions?.length) renderOutcomeQuestions(); } catch(e) {}
@@ -3756,22 +3438,6 @@ function loadProject(id) {
   renderAppliedFixes();
   // Re-render grid so the active-project border moves to the newly loaded tile.
   try { renderProjGrid(); } catch(e) {}
-  
-  // If this project has been optimized before, restore the What Has Changed view.
-  // We persisted blocks (with AI titles) on proj.lastOptimize, so this renders without
-  // any API calls — instant restore, no token cost.
-  if (proj.lastOptimize?.blocks?.length) {
-    setTimeout(() => {
-      try {
-        renderWhatHasChangedView(
-          proj.lastOptimize.blocks,
-          proj.lastOptimize.scoreBefore || 0,
-          proj.lastOptimize.scoreAfter || 0
-        );
-      } catch(e) { console.warn('Failed to restore What Has Changed view:', e); }
-    }, 150);
-  }
-  
   toast('Loaded: ' + proj.name);
   // Stay on projects tab — don't switch tabs when loading. Resume loads on right side.
   // switchTab(draft ? 'content' : 'jd');
@@ -4449,33 +4115,6 @@ function syncJDToWorkspace() {
   autoSave();
 }
 
-// Show/hide the "Open ↗" link next to the URL field based on whether a URL is present.
-// Called on input events and after loading a project so the link reflects current state.
-function updateJdUrlLink() {
-  const url = (document.getElementById('jd-url')?.value || '').trim();
-  const link = document.getElementById('jd-url-open');
-  if (!link) return;
-  if (url && /^https?:\/\//i.test(url)) {
-    link.style.display = 'inline-block';
-    link.href = url;
-  } else {
-    link.style.display = 'none';
-    link.removeAttribute('href');
-  }
-}
-
-// Open the URL in a new tab. Works even if the field has whitespace or http schemes that the
-// browser would otherwise misinterpret. Returns false to suppress the default anchor click
-// behavior since we open via window.open() for full control.
-function openJdUrl(e) {
-  if (e) e.preventDefault();
-  const url = (document.getElementById('jd-url')?.value || '').trim();
-  if (!url) { toast('No URL entered'); return false; }
-  const safe = /^https?:\/\//i.test(url) ? url : 'https://' + url;
-  window.open(safe, '_blank', 'noopener,noreferrer');
-  return false;
-}
-
 // Converts HTML (often double-encoded — entities embedded in JSON, then literal HTML inside) to
 // clean plaintext suitable for the JD textarea. Decodes entities, parses as DOM, and walks block
 // elements emitting newlines so headings and lists don't run together. Used by the Ashby/Lever/
@@ -4703,13 +4342,24 @@ async function fetchJobFromUrl() {
       }
     }
 
-    // No AI fallback here — Claude has no real web access via the API, so asking it to "fetch"
-    // a URL just produces hallucinated content (made-up JDs that look plausible but are wrong).
-    // We'd rather fail loudly and let the user paste the JD text manually.
+    // Last resort: use Claude to fetch via web search context
     if (!html) {
-      loading?.classList.remove('show');
-      throw new Error('Could not fetch this page automatically. Please copy the job description and paste it into the description field below.');
+      if (msgEl) msgEl.textContent = 'Fetching via AI...';
+      try {
+        const aiRaw = await claudeFetch(`I need the full job description from this URL: ${url}
+Please provide the complete job posting text including title, company, responsibilities, qualifications, and requirements. Return ONLY valid JSON:
+{"title":"job title","company":"company name","description":"full job description"}`, 3000);
+        const aiParsed = parseJson(aiRaw);
+        if (aiParsed.title) { s('jd-title', aiParsed.title); if (proj) proj.jdTitle = aiParsed.title; }
+        if (aiParsed.company) { s('jd-company', aiParsed.company); if (proj) proj.jdCompany = aiParsed.company; }
+        if (aiParsed.description) { s('jd-text', aiParsed.description); if (proj) proj.jdText = aiParsed.description; }
+        loading?.classList.remove('show');
+        toast('Job details extracted via AI — review and click Analyze');
+        return;
+      } catch(aiErr) {}
     }
+
+    if (!html) throw new Error('Could not retrieve the page. Try pasting the description manually.');
 
     // Extract text content from HTML
     const parser = new DOMParser();
@@ -4728,17 +4378,16 @@ async function fetchJobFromUrl() {
     const raw = await claudeFetch(`Extract the job posting from the page text below. ALL THREE FIELDS ARE REQUIRED — do not skip any.
 
 Return ONLY valid JSON with no other text:
-{"title":"the exact job title from the posting","company":"the company name","description":"the COMPLETE job description text"}
+{"title":"the exact job title from the posting","company":"the company name","description":"the COMPLETE job description: responsibilities, qualifications, requirements, what you'll do, what you have. Include the full body text of the posting. Do NOT include navigation, footer, cookie banners, application instructions, or boilerplate."}
 
 Rules:
 - Title must be the actual job title (e.g. "Senior Product Designer"). Never return a department, page header, or page title.
-- Company must be the hiring ORGANIZATION name (e.g. "Loop", "Verizon", "Netflix"). Look for patterns like "At [Company]," or "[Company]'s" or "join [Company]" — the company name is usually a proper noun that owns the role. NEVER return a team name, department, or function (e.g. "Design Team", "Design", "Engineering", "Product", "Brand"). If the description says "The Design Team at Loop..." then the company is "Loop", not "Design" or "Design Team".
-- Description MUST be complete and include ALL sections: intro, what you'll do, responsibilities, requirements/qualifications, experience, compensation, benefits, and any company story or footer. Do NOT stop early. Do NOT summarize. Copy the full posting body verbatim. If the page has multiple sections (Overview, What You'll Do, Requirements, etc.), include ALL of them concatenated with line breaks. Missing any section is a failure.
-- Strip navigation menus, cookie banners, application form UI, and repeated headers/footers — keep only the actual job posting text.
-- Escape any double quotes inside the description field.
+- Company must be the hiring organization name. Never return the job board or aggregator name (Lever, Greenhouse, LinkedIn, Indeed, etc.) — extract the actual company.
+- Description must contain the full posting body. If the page has multiple sections (Overview, What You'll Do, Requirements, etc.), include them all concatenated with line breaks.
+- Strip JSON-breaking characters from the description (newlines OK, but escape any quotes).
 
 PAGE TEXT:
-${bodyText.slice(0, 25000)}`, 6000);
+${bodyText.slice(0, 12000)}`, 4000);
 
     const parsed = parseJson(raw);
     if (parsed.title) { s('jd-title', parsed.title); if (proj) proj.jdTitle = parsed.title; }
@@ -4912,10 +4561,7 @@ async function titleChangeBlocks(blocks) {
       `- One short sentence, max 15 words\n` +
       `- Say what improved (e.g. "Now leads with client journeys and AI-enhanced design")\n\n` +
       `BLOCKS:\n${JSON.stringify(compactBlocks)}`,
-      1500,
-      undefined,
-      undefined,
-      CONFIG.models.sonnet
+      1500
     );
     const cleaned = raw.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim();
     const parsed = JSON.parse(cleaned);
@@ -4945,193 +4591,106 @@ function autoTitleForBlock(b) {
   return `${verb} content`;
 }
 
-// Pure render function: paints the What Has Changed UI from already-built blocks.
-// Used both by showPostOptimizeView (after computing diff + AI titles) and by loadProject
-// (when restoring a previously-optimized project from saved state).
-function renderWhatHasChangedView(blocks, scoreBefore, scoreAfter) {
-  // Make sure analyzer-content stays visible
-  const analyzerEl = document.getElementById('analyzer-content');
-  if (analyzerEl) analyzerEl.style.display = 'block';
-  
-  // Hide the legacy post-optimize content (we don't use it anymore)
-  const postEl = document.getElementById('post-optimize-content');
-  if (postEl) postEl.style.display = 'none';
-  
-  // Hide Applied Fixes card and ATS Format Audit card while in post-optimize state
-  const appliedFixesCard = document.getElementById('applied-fixes-card');
-  if (appliedFixesCard) appliedFixesCard.style.display = 'none';
-  const atsAuditCard = document.getElementById('ats-audit-card');
-  if (atsAuditCard) atsAuditCard.style.display = 'none';
-  
-  // Show the What Has Changed card
-  const whatChangedCard = document.getElementById('what-changed-card');
-  if (whatChangedCard) whatChangedCard.style.display = 'block';
-  
-  // Score delta line shown in the card head
-  const delta = scoreAfter - scoreBefore;
-  const arrow = delta > 0 ? '↑' : (delta < 0 ? '↓' : '=');
-  const color = delta > 0 ? 'var(--green)' : (delta < 0 ? 'var(--red)' : 'var(--ink2)');
-  const scoreLine = document.getElementById('what-changed-score-line');
-  if (scoreLine) {
-    scoreLine.innerHTML = `Score: <span style="color:var(--muted);">${scoreBefore}%</span> <span style="color:${color};font-weight:700;">${arrow} ${scoreAfter}%</span>`;
-  }
-  
-  const countEl = document.getElementById('what-changed-count');
-  if (countEl) countEl.textContent = blocks.length + (blocks.length === 1 ? ' change' : ' changes');
-  
-  const list = document.getElementById('what-changed-list');
-  if (!list) return;
-  list.innerHTML = '';
-  if (!blocks.length) {
-    list.innerHTML = '<div class="text-xs text-muted" style="padding:14px 0;text-align:center;">No content changes detected.</div>';
-    return;
-  }
-  
-  blocks.forEach((b, i) => {
-    const div = document.createElement('div');
-    div.className = 'change-item kind-' + b.kind;
-    div.dataset.idx = i;
-    
-    const beforeText = (b.before || '').trim();
-    const afterText = (b.after || '').trim();
-    const truncate = (s, n) => s.length > n ? s.slice(0, n) + '…' : s;
-    
-    let beforeAfterHTML = '';
-    if (b.kind === 'add') {
-      beforeAfterHTML = `
-        <div class="change-ba-row">
-          <div class="change-ba-label change-ba-add">+ Added</div>
-          <div class="change-ba-text change-ba-after-text">${esc(truncate(afterText, 200))}</div>
-        </div>`;
-    } else if (b.kind === 'del') {
-      beforeAfterHTML = `
-        <div class="change-ba-row">
-          <div class="change-ba-label change-ba-del">− Removed</div>
-          <div class="change-ba-text change-ba-before-text">${esc(truncate(beforeText, 200))}</div>
-        </div>`;
-    } else {
-      beforeAfterHTML = `
-        <div class="change-ba-row">
-          <div class="change-ba-label change-ba-del">Before</div>
-          <div class="change-ba-text change-ba-before-text">${esc(truncate(beforeText, 200))}</div>
-        </div>
-        <div class="change-ba-row">
-          <div class="change-ba-label change-ba-add">After</div>
-          <div class="change-ba-text change-ba-after-text">${esc(truncate(afterText, 200))}</div>
-        </div>`;
-    }
-    
-    div.innerHTML = `
-      <span class="change-dot"></span>
-      <div style="flex:1;min-width:0;">
-        <div class="change-title">${esc(b.title || 'Loading…')}</div>
-        <div class="change-detail">${esc(b.detail || '')}</div>
-        <div class="change-ba" style="margin-top:8px;">${beforeAfterHTML}</div>
-      </div>`;
-    div.addEventListener('mouseenter', () => highlightPreviewForBlock(b));
-    div.addEventListener('mouseleave', () => clearPreviewHighlight());
-    list.appendChild(div);
-  });
-  if (proj) proj._postOptimizeBlocks = blocks;
-}
-
-// Shows the post-Optimize view inside analyzer-content. Hides Applied Fixes and ATS Format
-// Audit, shows the new "What Has Changed" card with before/after diffs and hover highlighting.
-// After AI labels the blocks, persists them on proj.lastOptimize so the view survives reload.
+// Replaces the suggestions panel with the post-Optimize view. Computes diff, groups into change
+// blocks, asks the AI for short titles, and renders an interactive list. Hovering an item
+// highlights and scrolls to the matching content in the resume preview.
 async function showPostOptimizeView(beforeText, afterText, scoreBefore, scoreAfter) {
   const ops = computeLineDiff(beforeText, afterText);
   let blocks = groupDiffIntoBlocks(ops);
   // Filter out trivially small blocks (single-line, fewer than 3 chars of change) which clutter
   // the list without telling the user anything useful.
   blocks = blocks.filter(b => (b.before + b.after).trim().length >= 3);
-  
-  // First render with placeholder titles so user sees the panel immediately
-  renderWhatHasChangedView(blocks, scoreBefore, scoreAfter);
-  
-  // Get AI titles for each block
-  await titleChangeBlocks(blocks);
-  
-  // Re-render with the real titles
-  renderWhatHasChangedView(blocks, scoreBefore, scoreAfter);
-  
-  // Persist on the project so reload + tab switch can restore the view without recomputing
-  if (proj) {
-    proj.lastOptimize = {
-      beforeText: beforeText,
-      afterText: afterText,
-      scoreBefore: scoreBefore,
-      scoreAfter: scoreAfter,
-      blocks: blocks.map(b => ({
-        kind: b.kind,
-        before: b.before || '',
-        after: b.after || '',
-        title: b.title || '',
-        detail: b.detail || ''
-      })),
-      timestamp: Date.now()
-    };
-    try { autoSave(); } catch(e) {}
+  // Show the panel immediately with placeholder titles so the user isn't staring at nothing
+  // while the AI batches the labels.
+  const analyzerEl = document.getElementById('analyzer-content');
+  const postEl = document.getElementById('post-optimize-content');
+  if (analyzerEl) analyzerEl.style.display = 'none';
+  if (postEl) postEl.style.display = 'block';
+  // Score line
+  const delta = scoreAfter - scoreBefore;
+  const arrow = delta > 0 ? '↑' : (delta < 0 ? '↓' : '=');
+  const color = delta > 0 ? 'var(--green)' : (delta < 0 ? 'var(--red)' : 'var(--ink2)');
+  const scoreLine = document.getElementById('post-opt-score-line');
+  if (scoreLine) {
+    scoreLine.innerHTML = `<span style="color:var(--muted);">${scoreBefore}</span> <span style="color:${color};">${arrow}</span> <span style="color:${color};">${scoreAfter}</span>`;
   }
+  const summary = document.getElementById('post-opt-summary');
+  if (summary) {
+    if (delta > 0) summary.textContent = `Score improved by ${delta} points. Click Save in the header to commit these changes.`;
+    else if (delta < 0) summary.textContent = `Score dropped by ${Math.abs(delta)} points. Review the changes below — you can revert by reloading the project without saving.`;
+    else summary.textContent = 'Score is unchanged. The changes below are stylistic or structural improvements.';
+  }
+  const countEl = document.getElementById('post-opt-changes-count');
+  if (countEl) countEl.textContent = blocks.length + (blocks.length === 1 ? ' change' : ' changes');
+  const list = document.getElementById('post-opt-changes-list');
+  if (list) {
+    list.innerHTML = '';
+    if (!blocks.length) {
+      list.innerHTML = '<div class="text-xs text-muted" style="padding:14px 0;text-align:center;">No content changes detected.</div>';
+      return;
+    }
+    blocks.forEach((b, i) => {
+      const div = document.createElement('div');
+      div.className = 'change-item kind-' + b.kind;
+      div.dataset.idx = i;
+      div.innerHTML = `
+        <span class="change-dot"></span>
+        <div style="flex:1;min-width:0;">
+          <div class="change-title">Loading…</div>
+          <div class="change-detail"></div>
+        </div>`;
+      div.addEventListener('mouseenter', () => highlightPreviewForBlock(b));
+      div.addEventListener('mouseleave', () => clearPreviewHighlight());
+      list.appendChild(div);
+    });
+  }
+  // Now batch-call AI for titles and update each item in place.
+  await titleChangeBlocks(blocks);
+  if (list) {
+    Array.from(list.children).forEach((el, i) => {
+      const b = blocks[i];
+      if (!b) return;
+      const titleEl = el.querySelector('.change-title');
+      const detailEl = el.querySelector('.change-detail');
+      if (titleEl) titleEl.textContent = b.title || 'Change';
+      if (detailEl) detailEl.textContent = b.detail || '';
+    });
+  }
+  proj._postOptimizeBlocks = blocks; // stash for potential re-render
 }
 
-// Finds text in the resume preview that matches a block's content, highlights the matching
-// element, and scrolls it into view. Uses textContent on candidate elements (which concatenates
-// all descendant text nodes) so multi-line bullets, wrapped text, and inline-styled runs all
-// match correctly. Falls back through progressively shorter substrings if the full needle fails.
+// Finds text in the resume preview that matches a block's "after" content, highlights it,
+// and scrolls it into view. The preview lives at #fmt-preview-page (a single tall page since
+// 2.4.74). We do a substring match on textContent of any descendant that contains all words from
+// the after text — first match wins.
 function highlightPreviewForBlock(block) {
   clearPreviewHighlight();
   const page = document.getElementById('fmt-preview-page');
   if (!page) return;
-  // Prefer after-text (what's in the current preview); fall back to before-text only for pure deletions.
+  // Pick the search text. After-text is preferred (it's what's in the current preview); fall
+  // back to before-text if this was a pure deletion (which won't appear in the preview at all).
   const searchSource = (block.after || block.before || '').trim();
   if (!searchSource) return;
-  
-  // Normalize whitespace function — collapses any whitespace run to a single space.
-  const norm = s => (s || '').replace(/\s+/g, ' ').trim();
-  
-  // Build a list of candidate needles, longest/most specific first.
-  // 1. Each meaningful line (>=6 chars after normalization)
-  // 2. Each meaningful sentence (split on period)
-  // 3. The whole search source
-  const lines = searchSource.split('\n').map(norm).filter(s => s.length >= 6);
-  const sentences = searchSource.split(/[.!?]+/).map(norm).filter(s => s.length >= 8);
-  const candidates = [...new Set([...lines, ...sentences])].sort((a, b) => b.length - a.length);
-  if (!candidates.length) return;
-  
-  // Walk all leaf-ish elements (those that contain text but no nested block elements).
-  // For each, get normalized textContent and check whether it contains any candidate.
-  const allElements = page.querySelectorAll('div, p, li, h1, h2, h3, h4, h5, h6, td, span');
-  
-  for (const candidate of candidates) {
-    // Try progressively shorter chunks (full, 80-char, 50-char, 30-char) so longer wraps still hit.
-    const chunks = [candidate, candidate.slice(0, 80), candidate.slice(0, 50), candidate.slice(0, 30)]
-      .filter((c, i, arr) => c.length >= 12 && arr.indexOf(c) === i);
-    
-    for (const chunk of chunks) {
-      // Find the SMALLEST element whose textContent contains the chunk — that's the most
-      // specific match (e.g., the bullet itself, not the section, not the page).
-      let bestMatch = null;
-      let bestSize = Infinity;
-      for (const el of allElements) {
-        const text = norm(el.textContent || '');
-        if (text.includes(chunk)) {
-          const size = text.length;
-          if (size < bestSize) {
-            bestSize = size;
-            bestMatch = el;
-          }
-        }
+  // Use the longest unique-ish line from the block as the lookup string.
+  const lines = searchSource.split('\n').map(s => s.trim()).filter(s => s.length >= 6);
+  if (!lines.length) return;
+  // Sort descending by length so we try the most specific first.
+  lines.sort((a, b) => b.length - a.length);
+  for (const needle of lines.slice(0, 5)) {
+    const found = findTextNodeContaining(page, needle.slice(0, 80));
+    if (found) {
+      // Highlight the closest meaningful element, not the text node itself.
+      const target = found.parentElement?.closest('div,p,li,h1,h2,h3,h4,h5,h6') || found.parentElement;
+      if (target) {
+        target.classList.add('fmt-change-highlight');
+        try { target.scrollIntoView({ behavior:'smooth', block:'center' }); } catch(e) {}
       }
-      if (bestMatch) {
-        bestMatch.classList.add('fmt-change-highlight');
-        try { bestMatch.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch(e) {}
-        return;
-      }
+      return;
     }
   }
 }
 
-// Legacy text-node walker — kept for compatibility with anything else that calls it.
+// Walks pageEl looking for a text node whose textContent contains the needle. Returns the node.
 function findTextNodeContaining(root, needle) {
   if (!root || !needle) return null;
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
@@ -5146,24 +4705,12 @@ function clearPreviewHighlight() {
   document.querySelectorAll('.fmt-change-highlight').forEach(el => el.classList.remove('fmt-change-highlight'));
 }
 
-// Lets the user dismiss the post-Optimize view: hide the What Has Changed card and restore
-// the Applied Fixes and ATS Format Audit cards.
+// Lets the user dismiss the post-Optimize view and go back to the suggestions panel.
 function exitPostOptimizeView() {
   const analyzerEl = document.getElementById('analyzer-content');
   const postEl = document.getElementById('post-optimize-content');
   if (postEl) postEl.style.display = 'none';
   if (analyzerEl) analyzerEl.style.display = '';
-  
-  // Hide the new What Has Changed card
-  const whatChangedCard = document.getElementById('what-changed-card');
-  if (whatChangedCard) whatChangedCard.style.display = 'none';
-  
-  // Restore Applied Fixes card and ATS Format Audit card
-  const appliedFixesCard = document.getElementById('applied-fixes-card');
-  if (appliedFixesCard) appliedFixesCard.style.display = '';
-  const atsAuditCard = document.getElementById('ats-audit-card');
-  if (atsAuditCard) atsAuditCard.style.display = '';
-  
   clearPreviewHighlight();
 }
 
@@ -5327,36 +4874,16 @@ async function analyzeJD() {
   loading.classList.add('show');
   try {
     const raw=await claudeFetch(`Analyze this job description. Return ONLY valid JSON:
-{"title":"exact job title","company":"hiring company name — the organization, never a team or department","seniority":"entry|mid|senior|executive","yoe_min":8,"yoe_max":15,"hard_skills":["..."],"soft_skills":["..."],"tools":["..."],"key_themes":["..."],"required":["..."],"preferred":["..."],"leadership_expected":true,"people_mgmt_expected":true,"signals":["..."]}
-
-For company: find the organization name (e.g. "Loop", "Netflix", "Verizon"). Look for "At [Company]," or "[Company]'s" or "join [Company]". Never return a team name like "Design Team" or a department like "Design" or "Engineering". If you cannot determine the company confidently, return "".
-
+{"title":"...","seniority":"entry|mid|senior|executive","yoe_min":8,"yoe_max":15,"hard_skills":["..."],"soft_skills":["..."],"tools":["..."],"key_themes":["..."],"required":["..."],"preferred":["..."],"leadership_expected":true,"people_mgmt_expected":true,"signals":["..."]}
 JOB DESCRIPTION:\n${jdText}`,2000);
     const analysis=parseJson(raw);
-    proj.jdAnalysis=analysis; proj.jdTitle=g('jd-title')||analysis.title||''; proj.jdText=jdText;
-    // Auto-fill company only if the field is empty — don't clobber what the user already typed.
-    if (!g('jd-company') && analysis.company) {
-      s('jd-company', analysis.company);
-      proj.jdCompany = analysis.company;
-    } else {
-      proj.jdCompany = g('jd-company') || '';
-    }
+    proj.jdAnalysis=analysis; proj.jdTitle=g('jd-title')||analysis.title||''; proj.jdCompany=g('jd-company')||''; proj.jdText=jdText;
     s('jd-title',proj.jdTitle);
     renderJDAnalysis(analysis);
     await generateQuestions(analysis);
     autoSave();
-    loading.classList.remove('show');
-    
-    // Score the resume against the JD now so user sees the original score immediately.
-    // This runs only if a resume is present — otherwise we just stop after JD analysis.
-    const resume = getResumeText();
-    if (resume && resume.trim()) {
-      // Switch to the Optimizer tab so the user sees the score appear in context.
-      switchTab('analyzer');
-      // Brief delay so the tab transition completes before the analysis overlay opens.
-      setTimeout(() => { try { runFullAnalysis(); } catch(e) { console.warn('Initial scoring failed:', e); } }, 150);
-    }
-  } catch(e){toast('Error: '+e.message); loading.classList.remove('show');}
+  } catch(e){toast('Error: '+e.message);}
+  loading.classList.remove('show');
 }
 
 function renderJDAnalysis(a) {
@@ -5939,7 +5466,7 @@ CRITICAL RULES:
 2. Each "before" field must be an EXACT quote from the resume.
 3. ONLY suggest improvements for content that is genuinely MISSING or WEAK.
 4. Do NOT suggest adding keywords already present in the resume.
-${(proj.appliedFixes||[]).length ? 'ALREADY APPLIED (do NOT re-suggest these):\n' + (proj.appliedFixes||[]).filter(f=>f).map(f=>f.title||f.text||'').filter(Boolean).join('\n') + '\n' : ''}JOB:\n${jdText.slice(0,2500)}\nRESUME:\n${resume.slice(0,2500)}`, 3000, undefined, 0, CONFIG.models.sonnet);
+${(proj.appliedFixes||[]).length ? 'ALREADY APPLIED (do NOT re-suggest these):\n' + (proj.appliedFixes||[]).map(f=>f.title||f.text).join('\n') + '\n' : ''}JOB:\n${jdText.slice(0,2500)}\nRESUME:\n${resume.slice(0,2500)}`, 3000, undefined, 0);
 
     const score = useCachedScore ? cachedScore : parseJson(scoreRaw);
 
@@ -5976,7 +5503,7 @@ TRUTH GROUNDING (highest-priority rule):
 - Do NOT suggest lifting JD marketing phrases ("win-win-win", "talk and hang out", "players and users") into bullets describing unrelated work.
 - A missing keyword is acceptable. A fabricated bullet is not. When in doubt, suggest dropping the keyword rather than forcing it.
 
-Rules: only flag real issues. Never fabricate metrics, skills, brands, domains, team members, or accomplishments. NEVER output placeholder tokens (X%, Y%, [number], [percent], ___, TBD) in any "stronger" or "suggestion" field — if you don't have a real metric from the resume, write the suggestion without a percentage. NEVER use em dashes (—) in any rewrite. Use commas, periods, or restructure the sentence. Em dashes are an AI tell and don't sound human.
+Rules: only flag real issues. Never fabricate metrics, skills, brands, domains, team members, or accomplishments. NEVER output placeholder tokens (X%, Y%, [number], [percent], ___, TBD) in any "stronger" or "suggestion" field — if you don't have a real metric from the resume, write the suggestion without a percentage.
 JOB:\n${jdText.slice(0,2000)}\nRESUME:\n${resume.slice(0,2500)}`, 3000);
     const auditRaw = await claudeFetch(`Audit this resume for ATS issues. Return ONLY valid JSON:
 {"checks":[{"id":"c1","label":"Check name","status":"pass|fail|warn","issue":"description if fail/warn"}],"overall":"pass|warn|fail","summary":"..."}
@@ -6115,9 +5642,9 @@ SCORING RULES:
 - keyword_match: % of JD keywords found. summary_quality: 50-75 words target, penalize >90 or <40. bullet_quality: ~150 characters target per bullet, penalize >180 chars or no metrics. hard_skills/soft_skills: match to JD + skill count 15-25 target. title_alignment: exact JD title match. overall: weighted average.
 TOP_FIXES PRIORITY: 1) Missing keywords 2) Title mismatch 3) Summary length fix with rewrite 4) Long bullets with tighter rewrites 5) Skill count adjustment.
 CRITICAL RULES: Read resume carefully. Mark keywords found:true if anywhere in resume. Each "before" = exact quote. Only suggest genuinely missing/weak content.
-${(proj.appliedFixes||[]).length ? 'ALREADY APPLIED (do NOT re-suggest):\n' + (proj.appliedFixes||[]).filter(f=>f).map(f=>f.title||f.text||'').filter(Boolean).join('\n') + '\n' : ''}
+${(proj.appliedFixes||[]).length ? 'ALREADY APPLIED (do NOT re-suggest):\n' + (proj.appliedFixes||[]).map(f=>f.title||f.text).join('\n') + '\n' : ''}
 QUALITY RULES: Do not invent metrics. Only use real documented accomplishments.
-JOB:\n${jdText.slice(0,3000)}\nRESUME:\n${resume.slice(0,3000)}`,3000,undefined,undefined,CONFIG.models.sonnet);
+JOB:\n${jdText.slice(0,3000)}\nRESUME:\n${resume.slice(0,3000)}`,3000);
     const score=parseJson(raw);
     proj.scores.push(score); autoSave();
     renderDashboard(score);
@@ -6134,15 +5661,7 @@ function renderDashboard(score) {
     const circ=document.getElementById('score-circle');
     if(circ){const c=2*Math.PI*42;circ.style.strokeDashoffset=c-(pct/100)*c;circ.style.stroke=pct>=80?'var(--green)':pct>=60?'var(--teal)':'var(--red)';}
     const numEl=document.getElementById('score-num');if(numEl)numEl.textContent=pct+'%';
-    // Update the label under the score: shows "original match" when the resume hasn't been
-    // optimized in this project yet, or "match" once at least one fix has been applied. Lets
-    // the user see at a glance whether the displayed score reflects the un-optimized resume.
-    const labelEl = document.querySelector('#analyzer-content .score-ring-num .l');
-    if (labelEl) {
-      const hasFixes = (proj?.appliedFixes?.length || 0) > 0;
-      labelEl.textContent = hasFixes ? 'match' : 'original match';
-    }
-  const cells=[['keyword_match','Keywords'],['hard_skills','Hard Skills'],['soft_skills','Soft Skills'],['yoe_alignment','Years of Experience'],['summary_quality','Summary'],['bullet_quality','Bullets']];
+  const cells=[['keyword_match','Keywords'],['hard_skills','Hard Skills'],['soft_skills','Soft Skills'],['title_alignment','Title Match'],['yoe_alignment','Years of Experience'],['summary_quality','Summary'],['bullet_quality','Bullets']];
   const grid=document.getElementById('score-grid');
   if(grid)grid.innerHTML=cells.filter(([k])=>score[k]!==undefined&&score[k]!==null).map(([k,l])=>{
     const v=score[k]||0;
@@ -6161,10 +5680,9 @@ function renderDashboard(score) {
   const fixes=document.getElementById('top-fixes');
   if(fixes&&score.top_fixes?.length){
     // Filter out fixes that have already been applied in this project
-    const appliedTitles = new Set((proj.appliedFixes || []).filter(f => f && f.type === 'fix').map(f => f.title));
-    const nonAppliedFixes = score.top_fixes.filter((f, i) => {
-      if (!f) return false;  // skip null entries from malformed AI response
-      if (appliedTitles.has(f.title)) return false;
+    const appliedTitles = new Set((proj.appliedFixes || []).filter(f => f.type === 'fix').map(f => f.title));
+    const nonAppliedFixes = score.top_fixes.filter((f,i) => {
+      if (appliedTitles.has(f.title)) return false;  // Already applied
       const item = document.getElementById('fix-item-'+i);
       return !item || !item.classList.contains('applied');
     });
@@ -6211,7 +5729,7 @@ function renderDashboard(score) {
     let html='';
     if(missing.length){
       // Filter out keywords already added in this project
-      const appliedKeywords = new Set((proj.appliedFixes || []).filter(f => f && f.type === 'keyword').map(f => f.text));
+      const appliedKeywords = new Set((proj.appliedFixes || []).filter(f => f.type === 'keyword').map(f => f.text));
       const newMissing = missing.filter(k => !appliedKeywords.has(k.keyword));
       if (newMissing.length) {
         proj._missingKeywords=newMissing.map(k=>k.keyword);
@@ -6239,14 +5757,7 @@ function renderDashboard(score) {
   // Update the suggestion counts after rendering
   updateSuggestionCounts();
   } catch(e) {
-    console.error('renderDashboard error at:', e.message, e.stack);
-    console.log('Score state:', JSON.stringify({
-      hasTopFixes: !!score?.top_fixes,
-      topFixesLen: score?.top_fixes?.length,
-      topFixSample: score?.top_fixes?.slice(0,3),
-      appliedFixesLen: proj?.appliedFixes?.length,
-      appliedFixSample: (proj?.appliedFixes||[]).slice(0,3)
-    }));
+    console.error('renderDashboard error:', e);
     toast('Error displaying analysis results: ' + e.message);
   }
 }
@@ -6600,42 +6111,6 @@ function deduplicateResume(text) {
 // Caps total skill count at 24, prioritizing skills most relevant to the JD.
 // Runs after the dedup passes so it operates on a clean resume.
 // If JD context isn't available or the resume already has <=30 skills, returns input unchanged.
-// Limit each role's bullets to a maximum of 3. Removes extra bullets after the 3rd.
-// Keeps role headers, descriptions, and maintains formatting.
-function capBulletsPerRole(text) {
-  const lines = text.split('\n');
-  const result = [];
-  let bulletCount = 0;
-  let inRole = false;
-  
-  for (const line of lines) {
-    const trimmed = line.trim();
-    
-    // Detect role header (has dates like 01/16 – 06/17 or 09/25 – Present)
-    if (trimmed.match(/\d{1,2}\/\d{2}\s*[–-]\s*(?:\d{1,2}\/\d{2}|Present|Current)/)) {
-      inRole = true;
-      bulletCount = 0;
-      result.push(line);
-      continue;
-    }
-    
-    // Check if this is a bullet (starts with • or -)
-    if (trimmed.startsWith('•') || trimmed.startsWith('-')) {
-      if (bulletCount < 3) {
-        result.push(line);
-        bulletCount++;
-      }
-      // Skip bullets beyond the 3rd
-      continue;
-    }
-    
-    // Keep all non-bullet lines (headers, descriptions, etc.)
-    result.push(line);
-  }
-  
-  return result.join('\n');
-}
-
 async function capSkillsTo30(text) {
   try {
     // Find the SKILLS section. Match from "SKILLS" header to the next ALL-CAPS section header
@@ -6885,96 +6360,6 @@ function stripPlaceholders(text) {
   return out;
 }
 
-// Replace em dashes with commas. Em dashes (—) are an AI tell — they don't sound human in
-// resume copy. We replace them with comma+space, which is the natural human equivalent in
-// most contexts. Examples:
-//   "non-designers—partnering with research" → "non-designers, partnering with research"
-//   "team — across products"                 → "team, across products"
-//   "word -- word" (double hyphen as dash)   → "word, word"
-//
-// We deliberately LEAVE en dashes (–) alone because they're used legitimately in date ranges
-// like "01/16 – 06/17". Touching them would break formatting in the EXPERIENCE section.
-// Detect third-person pronouns in text. Returns array of matches with context.
-// Third-person: he, she, they, it, name + pronouns
-// First-person OK: I, me, my, we, us, our
-function detectThirdPersonPronouns(text) {
-  const matches = [];
-  const lines = text.split('\n');
-  
-  // Pattern: standalone he/she/they/it at word boundary, or Name + pronoun
-  // Also catch "they" when used as singular third-person
-  const thirdPersonPatterns = [
-    /\b(he|she|it)\s+(is|are|was|were|has|have|brings|builds|led|drives|creates|manages|improved|achieved|designed|developed)/gi,
-    /\b(he|she|it)\b(?!\s+and)/gi,  // he/she/it not followed by "and"
-    /\b(his|her|its)\b/gi,          // possessive forms
-  ];
-  
-  lines.forEach((line, idx) => {
-    thirdPersonPatterns.forEach(pattern => {
-      let match;
-      while ((match = pattern.exec(line)) !== null) {
-        matches.push({
-          line: idx,
-          text: line.trim(),
-          pronoun: match[1] || match[0],
-          context: line.substring(Math.max(0, match.index - 20), Math.min(line.length, match.index + 50))
-        });
-      }
-    });
-  });
-  
-  return matches;
-}
-
-// Validate that resume content uses first person or has no pronouns.
-// Returns { valid: bool, issues: string[], suggestions: string[] }
-function validatePronounConsistency(text) {
-  const issues = [];
-  const suggestions = [];
-  const thirdPersonMatches = detectThirdPersonPronouns(text);
-  
-  if (thirdPersonMatches.length === 0) {
-    return { valid: true, issues: [], suggestions: [] };
-  }
-  
-  // Found third-person pronouns
-  issues.push(`Found ${thirdPersonMatches.length} third-person pronoun(s). Resume must use first person ("I", "me", "my") or no pronouns.`);
-  
-  thirdPersonMatches.slice(0, 3).forEach(match => {
-    suggestions.push(`Line ${match.line + 1}: "${match.context.trim()}" → Use first person or rewrite without pronouns`);
-  });
-  
-  return { 
-    valid: false, 
-    issues, 
-    suggestions: suggestions.slice(0, 3)
-  };
-}
-
-function stripEmDashes(text) {
-  let out = text;
-  
-  // Replace em dashes with comma+space, absorbing any surrounding whitespace.
-  out = out.replace(/\s*—\s*/g, ', ');
-  
-  // Replace double-hyphen used as em dash (only when surrounded by whitespace).
-  out = out.replace(/\s+--\s+/g, ', ');
-  
-  // Cleanup: collapse double commas, fix space-before-punctuation, normalize whitespace.
-  out = out.split('\n').map(line => {
-    const lead = (line.match(/^(\s*)/) || ['', ''])[1];
-    const body = line.slice(lead.length)
-      .replace(/,\s*,/g, ',')           // ",, " or "," + ", " → ","
-      .replace(/\s+([,.;:])/g, '$1')    // " ," → ","
-      .replace(/\s{2,}/g, ' ')          // collapse multi-spaces
-      .replace(/^[,\s]+/, '')           // strip leading comma if dash was at start of line
-      .replace(/\s+$/, '');             // trailing whitespace
-    return lead + body;
-  }).join('\n');
-  
-  return out;
-}
-
 // Builds a "VERIFIED FACTS" block from the project's Content Editor data.
 // This is the closed world the optimizer must work within — companies, role titles, dates,
 // every existing bullet, every skill. The model may rephrase or amplify anything in this list
@@ -7040,15 +6425,6 @@ TRUTH GROUNDING (highest-priority rule, overrides JD-matching):
   • Lifting verbatim phrases from the JD (e.g. "win-win-win", "talk and hang out", "players and users", "intuitive scalable experiences") into bullets that describe work where those concepts didn't apply. JD vocabulary is fine where it genuinely matches; it is fabrication where it doesn't.
 - If a fix or keyword would require fabrication to apply cleanly, apply it only to the role(s) where the underlying experience actually supports it. If no role supports it, leave it out — a missing keyword is acceptable; a fabricated bullet is not.
 - When the JD asks for a domain the candidate lacks, the right move is transferable framing: lead with the candidate's real scale, platform thinking, cross-functional leadership, or strategic vision — never invent the missing domain.
-
-VOICE RULES (apply to every rewrite):
-- NEVER use em dashes (—) anywhere in the resume output. Em dashes don't sound human and are an AI tell.
-- When you would use an em dash for a parenthetical aside, use a comma or restructure into two sentences. Examples:
-  • Wrong: "design systems that empower non-designers—partnering with research to generate ideas"
-  • Right: "design systems that empower non-designers, partnering with research to generate ideas"
-  • Right: "design systems that empower non-designers. I partner with research to generate ideas."
-- Hyphens in compound words (non-designers, cross-functional, end-to-end) are correct and stay.
-- En dashes (–) in date ranges (01/16 – 06/17) are correct and stay.
 `;
 
 // Builds the BULLET CONTEXT block injected into apply prompts. Lists every bullet that has a
@@ -7077,15 +6453,6 @@ function buildBulletContextBlock() {
 }
 
 async function applySelectedFixes(){
-  // Check token limits before proceeding (only if using app's key, not user's own)
-  if (window._atsUser && !hasOwnApiKey()) {
-    if (!TokenTracker.canUseTokens(window._atsUser.id, CONFIG.tokens.estimatedPerOptimization)) {
-      const remaining = TokenTracker.getRemaining(window._atsUser.id);
-      toast(`Optimization requires ~${CONFIG.tokens.estimatedPerOptimization} tokens. You have ${remaining.daily} daily remaining, ${remaining.monthly} monthly remaining.`);
-      return;
-    }
-  }
-  
   const fixCbs = Array.from(document.querySelectorAll('.fix-cb:checked'));
   const kwCbs = Array.from(document.querySelectorAll('.kw-missing-row input[data-kw]:checked'));
 
@@ -7135,8 +6502,7 @@ ${TRUTH_GROUNDING_RULES}
 Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT same section structure and order as the original resume${titleRule}\n- SKILLS must stay organized in labeled categories (e.g. Leadership:, Design:, Product:, Engineering:). If the original has categories, keep them. If not, organize skills into logical categories.\n- When adding keywords to skills, place them in the correct category\n- Do NOT merge all skills into one flat list\n- FORMATTING IS SACRED: Output must use IDENTICAL format as input — same line breaks, spacing, bullet characters, section header style.\n- Do NOT reformat, restructure, merge lines, split lines, add/remove blank lines, or change bullet style.\n- Do NOT change the number of roles, reorder roles, or alter dates/companies.\n- ONLY change the specific text content requested. Everything else stays EXACTLY as-is.\n- WHEN A FIX MODIFIES A BULLET: REPLACE the original bullet with the rewritten version. Never keep both the old bullet AND a rewritten variant of it. The output must contain exactly one bullet for each accomplishment, not the original plus a near-duplicate.\n- NEVER ADD NEW BULLETS that describe the same team, product area, or accomplishment as an existing bullet. If a fix would generate a new bullet, check whether an existing bullet already covers that team/scope/metric. If yes, modify the existing bullet instead of appending a new one.
 - CRITICAL: Before returning, check for duplicate job entries. If any company + title + date combination appears more than once, remove the duplicate. Each role must appear exactly once.
 - CRITICAL: NEVER output placeholder metric tokens. Forbidden: "X%", "XX%", "Y%", "Z%", "[number]%", "[percent]%", "[metric]%", "___%", "TBD%", or any bracketed/blank stand-in for a number. If you don't have a real value from the original resume, write the bullet WITHOUT a percentage — a bullet with no metric is acceptable, a bullet with a placeholder metric is NOT.
-- CRITICAL: Within each role, check for repeated metrics or phrases across bullets. If the same metric (e.g. '26% MAU growth') appears in more than one bullet, remove it from the less specific bullet and keep it only in the bullet that explains it most clearly.\n- NEVER FABRICATE metrics, percentages, revenue figures, outcomes, team members, products, domains, or accomplishments not present in VERIFIED FACTS. If the original says '26% MAU growth', keep that exact number. Never invent '40% user growth' or '$2M revenue' unless those exact figures exist in VERIFIED FACTS.\n- NEVER USE competitor brand names anywhere in the resume. 'Commercial Card', 'Capital One brand', 'Chase', 'Amex', etc. are competitor product names. Replace with generic terms.\n- CRITICAL: Use FIRST PERSON (I/me/my) throughout. NEVER write in third person (he/she/they/name). Remove all third-person pronouns.
-- BEFORE returning the resume, scan every bullet, summary line, and skill for: (1) any metric not in VERIFIED FACTS, (2) any competitor brand name, (3) any domain/product/team-member that does not appear in VERIFIED FACTS, (4) any verbatim JD phrase grafted onto unrelated work, (5) ANY THIRD-PERSON PRONOUNS. Remove or rewrite all five.\n- SKILLS must stay in labeled categories. NEVER merge into one block.\n- Remove non-skills from the skills section: phrases like 'Business Goals', 'portfolio strategy', 'Experience Design organization' are NOT skills.\n- SUMMARY must be 50-75 words. If the current summary exceeds 75 words, trim it. NEVER let it grow beyond 75 words.\n- NEVER repeat the same phrase twice in the summary. Check for duplicates before returning.\n- The job title directly under the candidate's name MUST exactly match the JD title. Do not revert it.\n- Bullets target: ~150 characters each (180 hard ceiling). Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n${verifiedFactsBlock}${bulletContextBlock}\n\n${promptBody}RESUME:\n${resume}`,
+- CRITICAL: Within each role, check for repeated metrics or phrases across bullets. If the same metric (e.g. '26% MAU growth') appears in more than one bullet, remove it from the less specific bullet and keep it only in the bullet that explains it most clearly.\n- NEVER FABRICATE metrics, percentages, revenue figures, outcomes, team members, products, domains, or accomplishments not present in VERIFIED FACTS. If the original says '26% MAU growth', keep that exact number. Never invent '40% user growth' or '$2M revenue' unless those exact figures exist in VERIFIED FACTS.\n- NEVER USE competitor brand names anywhere in the resume. 'Commercial Card', 'Capital One brand', 'Chase', 'Amex', etc. are competitor product names. Replace with generic terms.\n- BEFORE returning the resume, scan every bullet, summary line, and skill for: (1) any metric not in VERIFIED FACTS, (2) any competitor brand name, (3) any domain/product/team-member that does not appear in VERIFIED FACTS, (4) any verbatim JD phrase grafted onto unrelated work. Remove or rewrite all four.\n- SKILLS must stay in labeled categories. NEVER merge into one block.\n- Remove non-skills from the skills section: phrases like 'Business Goals', 'portfolio strategy', 'Experience Design organization' are NOT skills.\n- SUMMARY must be 50-75 words. If the current summary exceeds 75 words, trim it. NEVER let it grow beyond 75 words.\n- NEVER repeat the same phrase twice in the summary. Check for duplicates before returning.\n- The job title directly under the candidate's name MUST exactly match the JD title. Do not revert it.\n- Bullets target: ~150 characters each (180 hard ceiling). Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n${verifiedFactsBlock}${bulletContextBlock}\n\n${promptBody}RESUME:\n${resume}`,
       4000
     );
     const firstPass = deduplicateResume(result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim());
@@ -7164,46 +6530,20 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     overlaySub.textContent = 'Removing repeated boilerplate across roles';
     const boilerplateCleaned = await dedupeCrossRoleBoilerplate(differentiated);
 
-    // Phase 4b: Cap bullets at 3 per role for ATS optimization.
-    overlaySub.textContent = 'Limiting bullets to 3 per role';
-    const bulletsCapped = capBulletsPerRole(boilerplateCleaned);
-
     // Phase 5: Cap skills at 24, prioritizing JD-relevant ones.
     overlaySub.textContent = 'Prioritizing skills for this role';
-    const skillsCapped = await capSkillsTo30(bulletsCapped);
+    const skillsCapped = await capSkillsTo30(boilerplateCleaned);
 
     // Phase 6: Regex safety net — strip any placeholder tokens (X%, [number]%, ___%, etc.).
     const cleaned = stripPlaceholders(skillsCapped);
-    
-    // Phase 7: Replace em dashes with commas — em dashes don't sound human.
-    const finalText = stripEmDashes(cleaned);
-
-    // Phase 8: CRITICAL VALIDATION — check for third-person pronouns (he/she/they in resume content).
-    // Resumes must use first person (I/me/my) or no pronouns. Third-person is unprofessional.
-    const pronounCheck = validatePronounConsistency(finalText);
-    if (!pronounCheck.valid) {
-      // If third-person pronouns found, flag this to the user but don't block
-      // (in case they intentionally want to review before auto-rewriting)
-      const issueMsg = pronounCheck.issues[0];
-      const suggestions = pronounCheck.suggestions.join('\n');
-      const confirmRewrite = confirm(
-        `⚠️ PRONOUN CHECK FAILED\n\n${issueMsg}\n\nSuggested fixes:\n${suggestions}\n\n` +
-        `Resume must use FIRST PERSON (I/me/my) not third person.\n\n` +
-        `OK = Continue anyway (review manually)\nCancel = Go back and edit`
-      );
-      if (!confirmRewrite) {
-        overlayClose();
-        return;
-      }
-    }
 
     // Push as a new draft so each Apply Selected click increments the version (v1 → v2 → v3...)
-    proj.drafts.push(finalText);
+    proj.drafts.push(cleaned);
     proj._redoStack = [];
     proj._aiApplied = true;
     proj._cachedScore = null; proj._analysisHash = null; proj.scores = [];
     autoSave();
-    showResume(finalText, proj.drafts.length);
+    showResume(cleaned, proj.drafts.length);
 
     // Mark applied items and record them
     fixCbs.forEach(cb => {
@@ -7299,33 +6639,6 @@ async function autoOptimize(opts) {
   if (!jdText) { toast('Paste a job description in the Job Description tab first'); return; }
   if (!proj) { toast('Create a project first'); return; }
 
-  // If the JD has questions and any are unanswered, give the user the chance to fill them in
-  // first. Answers feed into the optimizer as verified facts and produce noticeably better
-  // rewrites. We use a confirm dialog so they can choose to proceed without answering.
-  // Skip this check on subsequent passes inside Optimize Extreme so we don't prompt 3x.
-  if (!passLabel) {
-    const unanswered = (proj.questions || []).filter(q => !q.answer || !q.answer.trim()).length;
-    if (unanswered > 0) {
-      const goAnswer = confirm(
-        `You have ${unanswered} unanswered question${unanswered > 1 ? 's' : ''} about your experience.\n\n` +
-        `Answering them gives the optimizer verified facts to work with and produces a stronger rewrite.\n\n` +
-        `Click OK to answer them now (recommended).\n` +
-        `Click Cancel to skip and optimize anyway.`
-      );
-      if (goAnswer) {
-        switchTab('jd');
-        setTimeout(() => {
-          const firstUnanswered = (proj.questions || []).find(q => !q.answer || !q.answer.trim());
-          if (firstUnanswered) {
-            const ta = document.getElementById('qa-' + firstUnanswered.id);
-            if (ta) { ta.scrollIntoView({behavior:'smooth', block:'center'}); ta.focus(); }
-          }
-        }, 200);
-        return;
-      }
-    }
-  }
-
   const overlay = document.getElementById('apply-overlay');
   const overlayMsg = document.getElementById('overlay-msg');
   const overlaySub = document.getElementById('overlay-sub');
@@ -7337,12 +6650,11 @@ async function autoOptimize(opts) {
   overlay.style.display = 'flex';
 
   try {
-    // Phase 1: Score & analyze. If the resume + JD haven't changed since last analysis,
-    // runFullAnalysis returns instantly from cache (via _analysisHash). No re-scoring,
-    // no token cost. We removed the cache-clear that used to force re-analysis here.
+    // Phase 1: Score & analyze (single pass — both quick and deep analysis)
     overlayMsg.textContent = 'Analyzing resume...';
     overlaySub.textContent = 'Evaluating your resume against the job description';
 
+    proj._cachedScore = null; proj._analysisHash = null; proj.scores = [];
     await runFullAnalysis(true);
 
     // runFullAnalysis clears the deep-fix-items panel and produces only 1-3 score-level top fixes.
@@ -7415,8 +6727,7 @@ ${TRUTH_GROUNDING_RULES}
 Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT same section structure and order as the original resume${titleRule}\n- SKILLS must stay organized in labeled categories (e.g. Leadership:, Design:, Product:, Engineering:). If the original has categories, keep them. If not, organize skills into logical categories.\n- When adding keywords to skills, place them in the correct category\n- Do NOT merge all skills into one flat list\n- FORMATTING IS SACRED: Output must use IDENTICAL format as input — same line breaks, spacing, bullet characters, section header style.\n- Do NOT reformat, restructure, merge lines, split lines, add/remove blank lines, or change bullet style.\n- Do NOT change the number of roles, reorder roles, or alter dates/companies.\n- ONLY change the specific text content requested. Everything else stays EXACTLY as-is.\n- WHEN A FIX MODIFIES A BULLET: REPLACE the original bullet with the rewritten version. Never keep both the old bullet AND a rewritten variant of it. The output must contain exactly one bullet for each accomplishment, not the original plus a near-duplicate.\n- NEVER ADD NEW BULLETS that describe the same team, product area, or accomplishment as an existing bullet. If a fix would generate a new bullet, check whether an existing bullet already covers that team/scope/metric. If yes, modify the existing bullet instead of appending a new one.
 - CRITICAL: Before returning, check for duplicate job entries. If any company + title + date combination appears more than once, remove the duplicate. Each role must appear exactly once.
 - CRITICAL: NEVER output placeholder metric tokens. Forbidden: "X%", "XX%", "Y%", "Z%", "[number]%", "[percent]%", "[metric]%", "___%", "TBD%", or any bracketed/blank stand-in for a number. If you don't have a real value from the original resume, write the bullet WITHOUT a percentage — a bullet with no metric is acceptable, a bullet with a placeholder metric is NOT.
-- CRITICAL: Within each role, check for repeated metrics or phrases across bullets. If the same metric (e.g. '26% MAU growth') appears in more than one bullet, remove it from the less specific bullet and keep it only in the bullet that explains it most clearly.\n- NEVER FABRICATE metrics, percentages, revenue figures, outcomes, team members, products, domains, or accomplishments not present in VERIFIED FACTS. If the original says '26% MAU growth', keep that exact number. Never invent '40% user growth' or '$2M revenue' unless those exact figures exist in VERIFIED FACTS.\n- NEVER USE competitor brand names anywhere in the resume. 'Commercial Card', 'Capital One brand', 'Chase', 'Amex', etc. are competitor product names. Replace with generic terms.\n- CRITICAL: Use FIRST PERSON (I/me/my) throughout. NEVER write in third person (he/she/they/name). Remove all third-person pronouns.
-- BEFORE returning the resume, scan every bullet, summary line, and skill for: (1) any metric not in VERIFIED FACTS, (2) any competitor brand name, (3) any domain/product/team-member that does not appear in VERIFIED FACTS, (4) any verbatim JD phrase grafted onto unrelated work, (5) ANY THIRD-PERSON PRONOUNS. Remove or rewrite all five.\n- SKILLS must stay in labeled categories. NEVER merge into one block.\n- Remove non-skills from the skills section: phrases like 'Business Goals', 'portfolio strategy', 'Experience Design organization' are NOT skills.\n- SUMMARY must be 50-75 words. If the current summary exceeds 75 words, trim it. NEVER let it grow beyond 75 words.\n- NEVER repeat the same phrase twice in the summary. Check for duplicates before returning.\n- The job title directly under the candidate's name MUST exactly match the JD title. Do not revert it.\n- Bullets target: ~150 characters each (180 hard ceiling). Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n${verifiedFactsBlock}${bulletContextBlock}\n\n${promptBody}RESUME:\n${currentResume}`,
+- CRITICAL: Within each role, check for repeated metrics or phrases across bullets. If the same metric (e.g. '26% MAU growth') appears in more than one bullet, remove it from the less specific bullet and keep it only in the bullet that explains it most clearly.\n- NEVER FABRICATE metrics, percentages, revenue figures, outcomes, team members, products, domains, or accomplishments not present in VERIFIED FACTS. If the original says '26% MAU growth', keep that exact number. Never invent '40% user growth' or '$2M revenue' unless those exact figures exist in VERIFIED FACTS.\n- NEVER USE competitor brand names anywhere in the resume. 'Commercial Card', 'Capital One brand', 'Chase', 'Amex', etc. are competitor product names. Replace with generic terms.\n- BEFORE returning the resume, scan every bullet, summary line, and skill for: (1) any metric not in VERIFIED FACTS, (2) any competitor brand name, (3) any domain/product/team-member that does not appear in VERIFIED FACTS, (4) any verbatim JD phrase grafted onto unrelated work. Remove or rewrite all four.\n- SKILLS must stay in labeled categories. NEVER merge into one block.\n- Remove non-skills from the skills section: phrases like 'Business Goals', 'portfolio strategy', 'Experience Design organization' are NOT skills.\n- SUMMARY must be 50-75 words. If the current summary exceeds 75 words, trim it. NEVER let it grow beyond 75 words.\n- NEVER repeat the same phrase twice in the summary. Check for duplicates before returning.\n- The job title directly under the candidate's name MUST exactly match the JD title. Do not revert it.\n- Bullets target: ~150 characters each (180 hard ceiling). Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n${verifiedFactsBlock}${bulletContextBlock}\n\n${promptBody}RESUME:\n${currentResume}`,
       4000
     );
     const firstPass = deduplicateResume(result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim());
@@ -7434,34 +6745,18 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     overlaySub.textContent = 'Removing repeated boilerplate across roles';
     const boilerplateCleaned = await dedupeCrossRoleBoilerplate(differentiated);
 
-    overlaySub.textContent = 'Limiting bullets to 3 per role';
-    const bulletsCapped = capBulletsPerRole(boilerplateCleaned);
-
     overlaySub.textContent = 'Prioritizing skills for this role';
-    const skillsCapped = await capSkillsTo30(bulletsCapped);
+    const skillsCapped = await capSkillsTo30(boilerplateCleaned);
 
     const cleaned = stripPlaceholders(skillsCapped);
-    
-    // Phase 7: Replace em dashes with commas — em dashes don't sound human.
-    const finalText = stripEmDashes(cleaned);
-
-    // Phase 8: CRITICAL VALIDATION — check for third-person pronouns.
-    const pronounCheck = validatePronounConsistency(finalText);
-    if (!pronounCheck.valid) {
-      const issueMsg = pronounCheck.issues[0];
-      const suggestions = pronounCheck.suggestions.join('\n');
-      console.warn(`⚠️ PRONOUN CHECK: ${issueMsg}\n${suggestions}`);
-      // In auto-optimize, warn but don't block — user can review and edit
-      toast(`⚠️ Warning: Found third-person pronouns. Review and use first person.`);
-    }
 
     // Push as a new draft so the version increments by exactly one
-    proj.drafts.push(finalText);
+    proj.drafts.push(cleaned);
     proj._redoStack = [];
     proj._aiApplied = true;
     proj._cachedScore = null; proj._analysisHash = null; proj.scores = [];
     autoSave();
-    showResume(finalText, proj.drafts.length);
+    showResume(cleaned, proj.drafts.length);
 
     // Mark all applied
     unappliedFixes.forEach(f => recordAppliedFix('fix', f.title, f.title));
@@ -7766,7 +7061,7 @@ function savePdf(){
 // ─────────────────────────────────────────────────────────
 //  FORMAT SYSTEM
 // ─────────────────────────────────────────────────────────
-const _fmt = { template:'standard', font:'Lato', nameFont:'Prata', bodyFont:'Lato', headingFont:'Prata', expFont:'Lato', roleFont:'Lato', nameSize:26, bodySize:10, headingSize:14, expSize:10, roleSize:11, expRoleSize:11, skillsSize:10, accent:'#111111', size:'10pt', margin:'0.5in', bgColor:'#ffffff', textColor:'#111111', nameFontWeight:500, nameFontStyle:'normal', titleFontWeight:400, titleFontStyle:'normal', titleLetterSpacing:'0.05em', showDividerLines:true, headingLetterSpacing:'0.06em', headingFontWeight:400, dividerLineWidth:'2', dividerLineOpacity:0.6, summaryHeadingSize:14, skillsHeadingSize:14, experienceHeadingSize:14, expertiseHeadingSize:14 };
+const _fmt = { template:'standard', font:'Arial', nameFont:'Arial', bodyFont:'Arial', headingFont:'Arial', expFont:'Arial', roleFont:'Arial', nameSize:21, bodySize:10, headingSize:11, expSize:11, roleSize:12, skillsSize:10, accent:'#111111', size:'10pt', margin:'0.65in', bgColor:'#ffffff', textColor:'#111111' };
 
 // Template definitions — each has a render function
 const TEMPLATES = [
@@ -7890,11 +7185,11 @@ function renderTemplateGrid() {
 // so picking Standard always lands on a known-good baseline.
 const TEMPLATE_PRESETS = {
   standard: {
-    nameFont: 'Prata', nameSize: 26,
+    nameFont: 'Playfair Display', nameSize: 21,
     bodyFont: 'Lato', bodySize: 10,
-    headingFont: 'Prata', headingSize: 14,
-    expFont: 'Lato', expSize: 10,
-    roleFont: 'Lato', roleSize: 11,
+    headingFont: 'Lato', headingSize: 11,
+    expFont: 'Lato', expSize: 11,
+    roleFont: 'Lato', roleSize: 12,
     skillsSize: 10,
   },
   professional: {
@@ -7961,10 +7256,10 @@ function fmtSetProp(key, val, btn) {
 function fmtSet(k,v,btn){fmtSetProp(k,v,btn);}
 
 // Fallback Google Fonts list
-const GOOGLE_FONTS = ['Arial','Helvetica','Georgia','Garamond','Times New Roman',
-  'Lato','DM Sans','Source Sans 3','Nunito','Playfair Display',
-  'Inter','Roboto','Open Sans','Montserrat','Poppins',
-  'Josefin Sans','Cormorant','Cormorant Garamond','Prata','Gloock','DM Serif Display'];
+const GOOGLE_FONTS = ['Arial','Helvetica','Georgia','Garamond','Palatino','Times New Roman',
+  'Lato','DM Sans','Source Sans 3','Nunito','Merriweather','Playfair Display',
+  'Libre Baskerville','Inter','Roboto','Open Sans','Raleway','Montserrat','Poppins',
+  'Josefin Sans','Cormorant Garamond','EB Garamond'];
 
 let _systemFontsLoaded = false;
 
@@ -8335,43 +7630,9 @@ function closeDownloadMenu() {
   if (dd) dd.style.display = 'none';
 }
 
-// Dynamically loads a Google Font if it isn't already linked. Called whenever the user picks
-// a font from any dropdown so fonts appear immediately without pre-loading all of them.
-function loadGoogleFont(family) {
-  if (!family || !GOOGLE_FONTS.includes(family)) return; // system font or not in list
-  const id = 'gf-' + family.replace(/\s+/g, '-').toLowerCase();
-  if (document.getElementById(id)) return;
-  const link = document.createElement('link');
-  link.id = id;
-  link.rel = 'stylesheet';
-  link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family).replace(/%20/g,'+')}:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,300;1,400;1,700&display=swap`;
-  document.head.appendChild(link);
-}
-
 function fmtSetTypo(key, val) {
   _fmt[key] = val;
   if (key === 'bodyFont') _fmt.font = val;
-  // Name font drives heading font — they always match
-  if (key === 'nameFont') {
-    _fmt.headingFont = val;
-    const hEl = document.getElementById('fmt-heading-font');
-    if (hEl) hEl.value = val;
-    loadGoogleFont(val);
-  }
-  if (typeof val === 'string' && key.toLowerCase().includes('font')) loadGoogleFont(val);
-  updateLivePreview();
-}
-
-// Toggle horizontal divider lines on/off
-function fmtToggleDividerLines() {
-  _fmt.showDividerLines = !_fmt.showDividerLines;
-  const on = _fmt.showDividerLines;
-  const label = document.getElementById('divider-lines-label');
-  const track = document.getElementById('divider-lines-track');
-  const thumb = document.getElementById('divider-lines-thumb');
-  if (label) label.textContent = on ? 'On' : 'Off';
-  if (track) track.style.background = on ? 'var(--teal)' : '#bbb';
-  if (thumb) thumb.style.left = on ? '18px' : '2px';
   updateLivePreview();
 }
 
@@ -8406,13 +7667,8 @@ function restoreFmt(saved) {
     'fmt-body-size': 'bodySize',
     'fmt-heading-size': 'headingSize',
     'fmt-exp-size': 'expSize',
-    'fmt-exp-role-size': 'expRoleSize',
     'fmt-role-size': 'roleSize',
     'fmt-skills-size': 'skillsSize',
-    'fmt-summary-heading-size': 'summaryHeadingSize',
-    'fmt-skills-heading-size': 'skillsHeadingSize',
-    'fmt-experience-heading-size': 'experienceHeadingSize',
-    'fmt-expertise-heading-size': 'expertiseHeadingSize',
   };
   Object.entries(sizeMap).forEach(([elId, key]) => {
     const el = document.getElementById(elId);
@@ -8441,37 +7697,6 @@ function restoreFmt(saved) {
       el.style.fontFamily = _fmt[key] + ',Arial,sans-serif';
     }
   });
-  
-  // Pre-load any Google Fonts referenced in this project's saved settings
-  ['nameFont','bodyFont','headingFont','expFont','roleFont'].forEach(k => {
-    if (_fmt[k]) loadGoogleFont(_fmt[k]);
-  });
-
-  // Sync weight/style dropdowns
-  const selectSyncMap = {
-    'fmt-name-weight': 'nameFontWeight',
-    'fmt-name-style':  'nameFontStyle',
-    'fmt-title-weight':'titleFontWeight',
-    'fmt-title-style': 'titleFontStyle',
-    'fmt-title-letter-spacing': 'titleLetterSpacing',
-    'fmt-heading-weight': 'headingFontWeight',
-    'fmt-heading-letter-spacing': 'headingLetterSpacing',
-    'fmt-divider-width': 'dividerLineWidth',
-    'fmt-divider-opacity': 'dividerLineOpacity',
-  };
-  Object.entries(selectSyncMap).forEach(([elId, key]) => {
-    const el = document.getElementById(elId);
-    if (el && _fmt[key] !== undefined) el.value = String(_fmt[key]);
-  });
-
-  // Sync divider lines toggle
-  const on = _fmt.showDividerLines !== false;
-  const lbl = document.getElementById('divider-lines-label');
-  const trk = document.getElementById('divider-lines-track');
-  const thm = document.getElementById('divider-lines-thumb');
-  if (lbl) lbl.textContent = on ? 'On' : 'Off';
-  if (trk) trk.style.background = on ? 'var(--teal)' : '#bbb';
-  if (thm) thm.style.left = on ? '18px' : '2px';
 
   // Sync font size chips
   document.querySelectorAll('#view-format .fmt-chip-row .fmt-chip').forEach(b => {
@@ -8596,18 +7821,13 @@ const PAGE_HEIGHT_IN = 11;
 function applyPreviewToPages(html) {
   const wrapper = document.getElementById('fmt-preview-pages-wrapper');
   if (!wrapper) return;
-  // Extend bgColor to the outer gutter so margins match the page background.
-  const bg = _fmt.bgColor || '#ffffff';
-  const livePreview = document.getElementById('fmt-live-preview');
-  if (livePreview) livePreview.style.background = bg;
-  wrapper.style.background = bg;
   // Per-page styles. The single page becomes one tall continuous render with dashed boundary
   // lines drawn over it at every US Letter (8.5in × 11in) interval so the user can see where
   // the printer will split pages.
   const pageStyle = {
     fontFamily: _fmt.bodyFont + ',Arial,sans-serif',
     fontSize: _fmt.size,
-    padding: `0.5in`,
+    padding: `calc(${_fmt.margin} / 4) ${_fmt.margin} ${_fmt.margin} ${_fmt.margin}`,
     lineHeight: _fmt.template === 'compact' ? '1.3' : '1.35',
     background: _fmt.bgColor || '#ffffff',
     color: _fmt.textColor || '#111111',
@@ -8676,7 +7896,7 @@ function drawPageBreakLinesOnPage(pageEl) {
   pageEl.querySelectorAll('.page-break-line, .max-length-line').forEach(el => el.remove());
   const PAGE_HEIGHT_PX = PAGE_HEIGHT_IN * 96;
   const totalHeight = pageEl.scrollHeight;
-  let y = PAGE_HEIGHT_PX - 50;  // Adjusted to account for actual margin + gap (112px - 62px)
+  let y = PAGE_HEIGHT_PX;
   let pageNum = 2;
   while (y < totalHeight) {
     const line = document.createElement('div');
@@ -8817,13 +8037,8 @@ function fmtLinkify(raw) {
   const namePx=(_fmt.nameSize||28)+'pt';
   const headingPx=(_fmt.headingSize||11)+'pt';
   const expPx=(_fmt.expSize||12)+'pt';
-  const rolePx=(_fmt.roleSize||11)+'pt';          // resume title (under person's name)
-  const expRolePx=(_fmt.expRoleSize||11)+'pt';    // role titles within experience entries
+  const rolePx=(_fmt.roleSize||11)+'pt';
   const roleFont=_fmt.roleFont||expFont;
-  const nameWeight=_fmt.nameFontWeight||700;
-  const nameStyle=_fmt.nameFontStyle||'normal';
-  const titleWeight=_fmt.titleFontWeight||400;
-  const titleStyle=_fmt.titleFontStyle||'normal';
   const e=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const sidKws=['CORE COMPETENCIES','SKILLS','COMPETENCIES','EDUCATION','CERTIFICATIONS','AWARDS','HONORS'];
   const sidS=secs.filter(s=>s.type==='section'&&sidKws.some(k=>(s.heading||'').includes(k)));
@@ -8835,47 +8050,27 @@ function fmtLinkify(raw) {
     if(layout==='executive')return`<div style="text-align:center;margin-bottom:.2in;"><div style="font-size:${namePx};font-weight:700;font-family:${nameFont},Arial,sans-serif;letter-spacing:.02em;">${e(name)}</div><div style="height:2px;background:${accent};margin:.1in auto .05in;width:80%;"></div><div style="height:1px;background:#bbb;width:50%;margin:0 auto .1in;"></div>${contactHtml}</div>`;
     if(layout==='minimal')return`<div style="margin-bottom:.25in;"><div style="font-size:${namePx};font-weight:700;font-family:${nameFont},Arial,sans-serif;">${e(name)}</div>${contactHtml}</div>`;
     if(layout==='standard'){
-      // Split-header layout: name + title on the left, contact column on the right.
-      // Contact items are right-aligned and stacked vertically. The phone number's cap-height
-      // aligns visually with the name's cap-height because we use align-items:flex-start.
-      // First line after name is treated as title (job title), rest are contact lines.
-      // A "title" is a short non-link, non-email, non-phone, non-address line.
+      // Left-aligned header. First line after name treated as title (job title), rest as stacked contact lines.
+      // A "title" is a short non-link, non-email, non-phone, non-address line — typically the candidate's professional headline.
       const isContact=(s)=>/[@]|^\+?[\d\s().-]{7,}$|^\d|http|www\.|\.com|\.io|\.co|linkedin|github|^[A-Z][a-zA-Z\s]+,\s*[A-Z]{2}$/i.test(s.trim());
-      // Read job title from CE data directly when available — this bypasses fmtParseText
-      // which would misclassify an all-caps title like "DESIGN" as a section heading.
-      const ceTitle = (proj?.ce?.contact?.title || '').trim();
-      let title = '';
-      let contactLines = rest.slice();
-      if (ceTitle) {
-        title = ceTitle;
-        // rest is all contact lines (title was not emitted into the text)
-      } else if (rest.length > 0 && !isContact(rest[0]) && rest[0].trim().length < 60) {
-        title = rest[0];
-        contactLines = rest.slice(1);
+      let title='';let contactLines=rest.slice();
+      if(rest.length>0&&!isContact(rest[0])&&rest[0].trim().length<60){
+        title=rest[0];
+        contactLines=rest.slice(1);
       }
-      // Split each contact line by separators (· | ,) so each contact item ends up on its own
-      // right-aligned line. Source resumes often have "email | phone | location" — we want
-      // them stacked vertically per the new design.
-      const contactItems = contactLines.flatMap(line =>
-        line.split(/\s*[·|]\s*/).map(s => s.trim()).filter(Boolean)
-      );
-      // All contact items use body text color — no special link color in the contact section.
-      const contactTextColor = _fmt.textColor || '#111';
-      const contactHtml=contactItems.map(item=>{
-        return `<div style="font-size:${size};font-family:${font},Arial,sans-serif;color:${contactTextColor};line-height:1.55;">${fmtLinkify(item)}</div>`;
+      // Subtitle (job title under name) and contact lines render at body-size; honors the Body text size input.
+      // Per Bug 58: email/phone/location render in black (#111). Portfolio/website + LinkedIn render in blue (#1a5fa5). Nothing underlined.
+      const contactHtml=contactLines.map(l=>{
+        const trimmed=l.trim();
+        const isLink=/http|www\.|\.com|\.io|\.co|linkedin|github/i.test(trimmed) && !trimmed.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/);
+        const color=isLink?'#1a5fa5':'#111';
+        return `<div style="font-size:${size};font-family:${font},Arial,sans-serif;color:${color};line-height:1.55;">${fmtLinkify(l)}</div>`;
       }).join('');
-      const titleLS = _fmt.titleLetterSpacing || '0.05em';
-      const titleHtml=title?`<div style="font-size:${rolePx};font-weight:${titleWeight};font-style:${titleStyle};color:#666;letter-spacing:${titleLS};margin-top:.06in;font-family:${roleFont},Arial,sans-serif;line-height:1.2;">${e(title)}</div>`:'';
-      const showLines = _fmt.showDividerLines !== false;
-      const lineW2 = (_fmt.dividerLineWidth || '1') + 'px';
-      const lineOp2 = _fmt.dividerLineOpacity !== undefined ? _fmt.dividerLineOpacity : 1;
-      const lineColor2 = `rgba(80,80,80,${lineOp2})`;
-      return`<div style="display:flex;justify-content:space-between;align-items:center;gap:.4in;margin-top:0;${showLines ? `border-bottom:${lineW2} solid ${lineColor2};padding-bottom:.08in;margin-bottom:.05in;` : 'margin-bottom:.18in;'}">
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:${namePx};font-weight:${nameWeight};font-style:${nameStyle};letter-spacing:-.01em;font-family:${nameFont},Arial,sans-serif;color:#111;line-height:1.0;">${e(name)}</div>
-          ${titleHtml}
-        </div>
-        <div style="text-align:right;flex-shrink:0;">${contactHtml}</div>
+      const titleHtml=title?`<div style="font-size:${rolePx};font-weight:400;color:#333;margin-bottom:.06in;font-family:${font},Arial,sans-serif;line-height:1.2;">${e(title)}</div>`:'';
+      return`<div style="margin-bottom:.12in;">
+        <div style="font-size:${namePx};font-weight:700;letter-spacing:-.01em;font-family:${nameFont},Arial,sans-serif;color:#111;line-height:1.05;margin-top:.18in;margin-bottom:.06in;">${e(name)}</div>
+        ${titleHtml}
+        ${contactHtml}
       </div>`;
     }
     if(layout==='professional'){
@@ -8997,9 +8192,9 @@ function fmtLinkify(raw) {
     // Less space below the label so chips sit closer to their subsection title.
     const labelHtml = label ? `<div style="font-weight:700;margin-top:6px;margin-bottom:0;color:#111;">${e(label)}</div>` : '';
     const chips = items.map(item => {
-      return `<span style="display:inline-block;white-space:nowrap;margin-right:8px;font-size:${chipPt};"><span style="color:#666;margin-right:8px;">•</span>${e(item)}</span>`;
+      return `<span style="display:inline-block;white-space:nowrap;margin-right:8px;font-size:${chipPt};"><span style="color:#111;margin-right:8px;">•</span>${e(item)}</span>`;
     }).join('');
-    return `${labelHtml}<div style="line-height:1.7;margin-bottom:4px;padding-left:20px;word-wrap:break-word;overflow-wrap:break-word;">${chips}</div>`;
+    return `${labelHtml}<div style="line-height:1.4;margin-bottom:4px;padding-left:20px;word-wrap:break-word;overflow-wrap:break-word;">${chips}</div>`;
   };
   if (layout === 'professional' || layout === 'standard') {
     const lines = sec.lines;
@@ -9010,7 +8205,7 @@ function fmtLinkify(raw) {
       if (!t) { html += '<div style="height:3px;"></div>'; i++; continue; }
       if (t.startsWith('•') || t.startsWith('-')) {
         const bulletText = t.replace(/^[•\-]\s*/, '');
-        html += `<div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:3px;color:#111;"><span style="color:#666;">•</span> ${fmtLinkify(bulletText)}</div>`;
+        html += `<div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:3px;color:#111;"><span style="color:${accent};">•</span> ${fmtLinkify(bulletText)}</div>`;
         i++; continue;
       }
       // Check if this is a job header pair. Match any date pattern: MM/YY format, 4-digit year
@@ -9030,8 +8225,8 @@ function fmtLinkify(raw) {
           if (layout === 'standard') {
             // Standard layout: role + date on top line (uses Role/Title size), company + location underneath (uses Company size)
             const topLine = jh.role
-              ? `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:1px;">
-                  <div style="font-size:${expRolePx};font-weight:700;font-family:${expFont},Arial,sans-serif;color:#111;">${ESC(jh.role)}</div>
+              ? `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:3px;">
+                  <div style="font-size:${rolePx};font-weight:700;font-family:${roleFont},Arial,sans-serif;color:#111;">${ESC(jh.role)}</div>
                   <div style="font-size:${size};font-weight:400;color:#666;white-space:nowrap;flex-shrink:0;">${ESC(jh.dates)}</div>
                  </div>`
               : '';
@@ -9040,7 +8235,7 @@ function fmtLinkify(raw) {
                   ${jh.company ? `<span style="font-weight:600;font-style:italic;">${ESC(jh.company)}</span>` : ''}${jh.location ? `${jh.company ? ' · ' : ''}<span style="font-weight:400;">${ESC(jh.location)}</span>` : ''}
                  </div>`
               : '';
-            html += `<div style="margin-top:14px;margin-bottom:6px;">${topLine}${subLine}</div>`;
+            html += `<div style="margin-top:10px;margin-bottom:6px;">${topLine}${subLine}</div>`;
           } else {
             // Original layout (Professional + fallback): company on top, role+date underneath
             const companyLine = (jh.company || jh.location)
@@ -9050,7 +8245,7 @@ function fmtLinkify(raw) {
               : '';
             const titleLine = jh.role
               ? `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:2px;">
-                  <div style="font-size:${expRolePx};font-weight:700;font-family:${expFont},Arial,sans-serif;">${ESC(jh.role)}</div>
+                  <div style="font-size:${rolePx};font-weight:700;font-family:${roleFont},Arial,sans-serif;">${ESC(jh.role)}</div>
                   <div style="font-weight:400;color:#888;white-space:nowrap;flex-shrink:0;">${ESC(jh.dates)}</div>
                  </div>`
               : '';
@@ -9149,7 +8344,7 @@ function fmtLinkify(raw) {
         if(t.startsWith('•')||t.startsWith('-'))
           return`<div style="padding-left:1em;text-indent:-.9em;margin-left:.9em;margin-bottom:2px;">${fmtLinkify(t)}</div>`;
         if(/\d{2}\/\d{2}/.test(t)&&t.length<120)
-          return`<div style="font-size:${(_fmt.expRoleSize||11)+'pt'};font-weight:700;margin-top:6px;margin-bottom:1px;">${fmtLinkify(t)}</div>`;
+          return`<div style="font-weight:600;margin-top:6px;margin-bottom:1px;">${fmtLinkify(t)}</div>`;
         const labelMatch=t.match(/^([A-Z][a-zA-Z\s&]+):\s(.+)$/);
         if(labelMatch&&labelMatch[1].length<30) {
           if (isSkillsSection) return renderSkillLine(labelMatch[1], labelMatch[2]);
@@ -9162,38 +8357,13 @@ function fmtLinkify(raw) {
   }
     // Section heading style per template
   let headingHtml;
-  const showLines = _fmt.showDividerLines !== false;
-  const headingLS = _fmt.headingLetterSpacing || '0.06em';
-  const lineW = (_fmt.dividerLineWidth || '1') + 'px';
-  const lineOp = _fmt.dividerLineOpacity !== undefined ? _fmt.dividerLineOpacity : 1;
-  const lineColor = `rgba(80,80,80,${lineOp})`;
-  // Manual small-caps: first letter at full size, rest explicitly uppercase at ~0.78em.
-  // CSS font-variant:small-caps synthesizes small-caps by shrinking glyphs, which makes
-  // strokes physically thinner — so the initial cap always looks heavier by contrast.
-  // Manual split gives identical stroke weight across all letters.
-  function fmtSmallCaps(text) {
-    const es = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    return text.split(/(\s+)/).map(seg => {
-      if (!seg || /^\s+$/.test(seg)) return ' ';
-      const first = es(seg[0]);
-      const rest = es(seg.slice(1).toUpperCase());
-      return `<span>${first}</span>${rest ? `<span style="font-size:.78em">${rest}</span>` : ''}`;
-    }).join('');
-  }
-  // Display-name substitutions — source text unchanged, display uses Title Case
-  const headingAliases = { 'SUMMARY': 'Professional Summary', 'EXPERIENCE': 'Work Experience' };
-  const rawHeading = headingAliases[(sec.heading||'').trim().toUpperCase()] ||
-    (sec.heading||'').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
-  const displayHeading = rawHeading;
-  const dividerKws = ['EXPERIENCE','EDUCATION','AWARDS','HONORS','EXPERTISE','TRAINING','VOLUNTEER','LEADERSHIP','SKILL','COMPETENCIES'];
-  const hasTopLine = showLines && layout === 'standard' && dividerKws.some(k => (sec.heading||'').toUpperCase().includes(k));
-  if(layout==='executive') headingHtml=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;"><div style="flex:1;height:1px;background:${accent};"></div><div style="font-size:.7em;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:${accent};white-space:nowrap;">${e(displayHeading)}</div><div style="flex:1;height:1px;background:${accent};"></div></div>`;
-  else if(layout==='minimal') headingHtml=`<div style="font-size:.8em;font-weight:600;color:${accent};margin-bottom:4px;letter-spacing:.03em;">${e(displayHeading)}</div>`;
-  else if(layout==='ruled') headingHtml=`<div style="font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#333;border-bottom:2px solid ${accent};padding-bottom:2px;margin-bottom:5px;">${e(displayHeading)}</div>`;
-  else if(layout==='boldline') headingHtml=`<div style="font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:${accent};margin-bottom:4px;padding-left:4px;border-left:3px solid ${accent};">${e(displayHeading)}</div>`;
-  else if(layout==='professional') headingHtml=`<div style="font-size:${headingPx};font-weight:600;font-variant:small-caps;letter-spacing:${headingLS};color:#888;font-family:${headingFont},Arial,sans-serif;margin-bottom:2px;margin-top:0;">${e(displayHeading)}</div>`;
-  else if(layout==='standard') headingHtml=`<div style="${hasTopLine ? `border-top:${lineW} solid ${lineColor};padding-top:.05in;margin-top:.04in;` : ''}font-size:${headingPx};font-weight:${_fmt.headingFontWeight||400};letter-spacing:${headingLS};color:#111;font-family:${headingFont},Arial,sans-serif;margin-bottom:.16in;">${fmtSmallCaps(displayHeading)}</div>`;
-  else headingHtml=`<div style="font-size:.7em;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:${accent};border-bottom:1px solid ${accent}44;padding-bottom:2px;margin-bottom:5px;">${e(displayHeading)}</div>`;
+  if(layout==='executive') headingHtml=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;"><div style="flex:1;height:1px;background:${accent};"></div><div style="font-size:.7em;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:${accent};white-space:nowrap;">${e(sec.heading)}</div><div style="flex:1;height:1px;background:${accent};"></div></div>`;
+  else if(layout==='minimal') headingHtml=`<div style="font-size:.8em;font-weight:600;color:${accent};margin-bottom:4px;letter-spacing:.03em;">${e(sec.heading)}</div>`;
+  else if(layout==='ruled') headingHtml=`<div style="font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#333;border-bottom:2px solid ${accent};padding-bottom:2px;margin-bottom:5px;">${e(sec.heading)}</div>`;
+  else if(layout==='boldline') headingHtml=`<div style="font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:${accent};margin-bottom:4px;padding-left:4px;border-left:3px solid ${accent};">${e(sec.heading)}</div>`;
+  else if(layout==='professional') headingHtml=`<div style="font-size:${headingPx};font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:#888;font-family:${headingFont},Arial,sans-serif;margin-bottom:2px;margin-top:0;">${e(sec.heading)}</div>`;
+  else if(layout==='standard') headingHtml=`<div style="font-size:${headingPx};font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#111;font-family:${headingFont},Arial,sans-serif;margin-bottom:2px;margin-top:0;">${e(sec.heading)}</div>`;
+  else headingHtml=`<div style="font-size:.7em;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:${accent};border-bottom:1px solid ${accent}44;padding-bottom:2px;margin-bottom:5px;">${e(sec.heading)}</div>`;
   return`<div style="margin-bottom:${layout==='standard'?'.12in':layout==='professional'?'.10in':'.12in'}">${headingHtml}<div style="font-size:${size};font-family:${font},Arial,sans-serif;line-height:${layout==='compact'?'1.25':'1.35'};">${body}</div></div>`;}
   // Two-column layouts
   // sidebar layout removed — single-column only
@@ -9243,136 +8413,150 @@ function fmtGetHtml(fp) {
 
 async function fmtSaveDocx(){await saveDocx();}
 
-// Print-to-PDF the resume by rendering it into a sandboxed iframe and printing only that.
-// Previous version (3.1.5 and earlier) tried to hide the rest of the app via @media print
-// rules, but the app's CSS was bleeding through and the print preview captured the whole UI.
-// The iframe approach has its own document, its own stylesheet, and its own print context, so
-// nothing from the parent app can leak in.
 async function fmtSavePdf() {
+  const text = getResumeText();
+  if (!text) { toast('No resume content'); return; }
+
+  updateLivePreview();
+  await new Promise(r => setTimeout(r, 150));
+
+  // The screen preview now paginates content across multiple page elements (2.4.71). Reading
+  // #fmt-preview-page would only capture page 1, so we re-render the full resume HTML from the
+  // current text. This guarantees the PDF/print contains every section regardless of preview
+  // pagination state.
   const fullText = getResumeText();
   if (!fullText || !fullText.trim()) {
     toast('Open the Template tab first so the preview renders');
     return;
   }
-  
-  updateLivePreview();
-  await new Promise(r => setTimeout(r, 150));
-  
   const fullHtml = fmtRenderSections(fmtParseText(fullText));
-  
-  // Resolve all the formatting bits the print needs from the current template config.
-  const bg       = _fmt.bgColor || '#ffffff';
-  const color    = _fmt.textColor || '#111111';
-  const fontFam  = (_fmt.bodyFont || 'Arial') + ',Arial,sans-serif';
-  const fontSize = (_fmt.bodySize || 11) + 'pt';
-  const lineH    = _fmt.template === 'compact' ? '1.3' : '1.35';
-  const pad      = _fmt.margin || '0.65in';
-  
+  // Mock a page-like object so existing references to page.style.* still work below.
+  const page = {
+    innerHTML: fullHtml,
+    style: {
+      background: _fmt.bgColor || '#ffffff',
+      color: _fmt.textColor || '#111111',
+      fontFamily: (_fmt.bodyFont || 'Arial') + ',Arial,sans-serif',
+      fontSize: ((_fmt.bodySize || 11) + 'pt'),
+      lineHeight: _fmt.template === 'compact' ? '1.3' : '1.35',
+    }
+  };
+
+  const bg      = page.style.background;
+  const color   = page.style.color;
+  const fontFam = page.style.fontFamily;
+  const fontSize = page.style.fontSize;
+  const lineH   = page.style.lineHeight;
+  const pad     = _fmt.margin || '0.65in';
+
+  // Embed used fonts as base64 so print renderer uses them
   let fontFaceCSS = '';
+  if (_systemFontsLoaded) {
+    const used = new Set([_fmt.nameFont,_fmt.bodyFont,_fmt.headingFont,_fmt.expFont,_fmt.roleFont].filter(Boolean));
+    const jobs = [];
+    document.fonts.forEach(face => {
+      if (!used.has(face.family) || face.status !== 'loaded' || !face.$$url) return;
+      jobs.push((async () => {
+        try {
+          const resp = await fetch(face.$$url);
+          const buf  = await resp.arrayBuffer();
+          const b64  = btoa(String.fromCharCode(...new Uint8Array(buf)));
+          fontFaceCSS += `@font-face{font-family:'${face.family}';font-style:normal;font-weight:${face.weight||400};src:url('data:font/truetype;base64,${b64}');}\n`;
+        } catch(e) {}
+      })());
+    });
+    if (jobs.length) {
+      toast('Embedding fonts...');
+      await Promise.allSettled(jobs);
+      await new Promise(r => setTimeout(r, 400));
+    }
+  }
 
-  // Build a Google Fonts URL covering every font used in the resume so the iframe can load
-  // them on its own. Cross-origin (Google) stylesheets can't be copied via cssRules above,
-  // so we have to re-import them inside the iframe document. Only include fonts we know are
-  // available on Google Fonts (defined in GOOGLE_FONTS).
-  const fontsUsed = [...new Set([
-    _fmt.nameFont, _fmt.bodyFont, _fmt.headingFont, _fmt.expFont, _fmt.roleFont
-  ].filter(f => f && GOOGLE_FONTS.includes(f)))];
-  const googleFontsLink = fontsUsed.length
-    ? `<link href="https://fonts.googleapis.com/css2?${fontsUsed.map(f => 'family=' + f.replace(/ /g,'+') + ':wght@400;500;600;700').join('&')}&display=swap" rel="stylesheet">`
-    : '';
-  
-  const filename = (await getResumeFilenameSmart('pdf')).replace('.pdf', '');
-  
-  // Build a complete, standalone HTML document for the iframe.
-  // @page margin: 0.5in on all sides — applied consistently to EVERY printed page by the
-  // browser engine, including top/bottom of pages 2, 3, etc. This is the ATS-safe standard.
-  // Previous approach used @page {margin:0} + body padding, which only applied to the body
-  // element's own box — page 2+ had no top/bottom margins, and page 1 had no bottom margin
-  // when content flowed past the first page.
-  // appStyles deliberately NOT included — the resume uses inline styles entirely.
-  // Including the app's CSS in the iframe pulled in stacking-context and background
-  // rules that fought our @page margin coloring. With a minimal stylesheet, the
-  // body::before fixed-position bleed reliably fills the @page margin zones.
+  document.getElementById('pdf-print-fontfaces')?.remove();
+  if (fontFaceCSS) {
+    const fs = document.createElement('style');
+    fs.id = 'pdf-print-fontfaces';
+    fs.textContent = fontFaceCSS;
+    document.head.appendChild(fs);
+    await new Promise(r => setTimeout(r, 300));
+  }
 
-  const printHtml = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>${esc(filename)}</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-${googleFontsLink}
-<style>
-  *, *::before, *::after { box-sizing: border-box; }
-  /* Real per-page margins via @page — content flows naturally across pages, with
-     0.5in top/bottom/left/right on every printed page. This is the only way to
-     get correct multi-page layout (sections can break across pages, no clipping,
-     no white gaps). The trade-off: in some Chrome versions the @page margin zones
-     render as paper white. We set background on html, body, AND a wrapper to
-     maximize the chance the margin zones inherit bgColor. */
-  @page {
-    margin: 0.5in;
-    size: letter;
-  }
-  html {
-    margin: 0;
-    padding: 0;
-    background: ${bg};
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-    color-adjust: exact;
-  }
-  body {
-    margin: 0;
-    padding: 0;
-    background: ${bg};
-    font-family: ${fontFam};
-    font-size: ${fontSize};
-    line-height: ${lineH};
-    color: ${color};
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-  a { color: inherit; text-decoration: none; }
-</style>
-</head>
-<body>${fullHtml}</body>
-</html>`;
-  
-  // Create a hidden iframe, write the doc, and print from inside it.
-  document.getElementById('pdf-print-iframe')?.remove();
-  const iframe = document.createElement('iframe');
-  iframe.id = 'pdf-print-iframe';
-  iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
-  document.body.appendChild(iframe);
-  
-  const idoc = iframe.contentDocument || iframe.contentWindow.document;
-  idoc.open();
-  idoc.write(printHtml);
-  idoc.close();
-  
-  // Wait for fonts and layout to settle inside the iframe before printing.
-  // Google Fonts need a network round-trip, so we give them a moment.
-  await new Promise(r => setTimeout(r, 1000));
-  try {
-    if (idoc.fonts && idoc.fonts.ready) await idoc.fonts.ready;
-  } catch(e) {}
-  // One more frame for the layout to apply the loaded fonts
-  await new Promise(r => setTimeout(r, 200));
-  
-  try {
-    iframe.contentWindow.focus();
-    const origTitle = document.title;
-    document.title = filename; // parent title = filename for browsers that use it
-    iframe.contentWindow.print();
-    document.title = origTitle;
-    toast('Tip: enable "Background graphics" in the print dialog to keep colors');
-  } catch(e) {
-    toast('Print failed: ' + (e.message || 'unknown'));
-  }
-  
-  // Clean up after a delay so the print dialog has time to read the iframe.
-  setTimeout(() => iframe.remove(), 5000);
+  document.getElementById('pdf-print-styles')?.remove();
+  const printStyle = document.createElement('style');
+  printStyle.id = 'pdf-print-styles';
+  printStyle.textContent = `
+    @media print {
+      /* Hide entire app UI */
+      body > * { display: none !important; }
+      #pdf-print-overlay { display: block !important; }
+      /* Hide preview-only page-break indicator lines */
+      .page-break-line { display: none !important; }
+      .max-length-line { display: none !important; }
+
+      /* Zero left/right page margins so bg color fills edge-to-edge.
+         Top/bottom use a small page margin PLUS matching bg so no white strip. */
+      @page {
+        margin: ${pad} 0;
+        size: letter;
+        background: ${bg};
+      }
+
+      html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: ${bg} !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      #pdf-print-overlay {
+        display: block !important;
+        position: static !important;
+        width: 100% !important;
+        min-height: 100vh !important;
+        background: ${bg} !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      /* Left/right padding on content; top/bottom come from @page margin */
+      #pdf-resume-inner {
+        padding: 0 ${pad} !important;
+        font-family: ${fontFam} !important;
+        font-size: ${fontSize} !important;
+        line-height: ${lineH} !important;
+        color: ${color} !important;
+        background: ${bg} !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+    }
+  `;
+  document.head.appendChild(printStyle);
+
+  document.getElementById('pdf-print-overlay')?.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'pdf-print-overlay';
+  overlay.style.cssText = 'display:none;';
+
+  const inner = document.createElement('div');
+  inner.id = 'pdf-resume-inner';
+  inner.innerHTML = page.innerHTML;
+  overlay.appendChild(inner);
+  document.body.appendChild(overlay);
+
+  await new Promise(r => setTimeout(r, 300));
+  const origTitle = document.title;
+  document.title = (await getResumeFilenameSmart('pdf')).replace('.pdf','');
+  window.print();
+  document.title = origTitle;
+  toast('Check "Background graphics" in the print dialog to preserve colors');
+
+  setTimeout(() => {
+    document.getElementById('pdf-print-overlay')?.remove();
+    document.getElementById('pdf-print-styles')?.remove();
+    document.getElementById('pdf-print-fontfaces')?.remove();
+  }, 4000);
 }
 
 // ─────────────────────────────────────────────────────────
@@ -10287,10 +9471,9 @@ function buildResumeTextFromCE(ce) {
   const name = [c.fname, c.lname].filter(Boolean).join(' ');
   if (!name && !ce.summary && !ce.roles?.length) return '';
   const lines = [];
-  // Header — name only. Job title is injected by the renderer directly from
-  // proj.ce.contact.title so it never goes through fmtParseText, which would
-  // misclassify an all-caps title like "DES" or "DESIGN" as a section heading.
+  // Header
   if (name) lines.push(name);
+  if (c.title) lines.push(c.title);
   const loc = [c.city, c.state].filter(Boolean).join(', ');
   // Build contact lines from per-field line assignments
   const fieldMap = { email: c.email, phone: c.phone, linkedin: c.linkedin, portfolio: c.portfolio, location: loc };
@@ -10790,9 +9973,11 @@ document.addEventListener('DOMContentLoaded',()=>{
     const page = document.getElementById('fmt-preview-page');
     if (page) page.innerHTML = '<div style="padding:2rem;text-align:center;color:#aaa;font-size:13px;">Create or load a project to see your resume preview.</div>';
   }
-  // System fonts loading is disabled — the user can still click "Load system fonts"
-  // manually if needed, but the app no longer pulls every font on the user's machine
-  // automatically. Only the Google Fonts in GOOGLE_FONTS are loaded.
+  // Auto-load system fonts if running on HTTPS (Netlify etc.)
+  // On file://, show the manual button instead
+  if (window.location.protocol === 'https:' && 'queryLocalFonts' in window) {
+    setTimeout(autoLoadSystemFonts, 500);
+  }
 });
 
 async function autoLoadSystemFonts() {
@@ -10831,4 +10016,4 @@ async function autoLoadSystemFonts() {
 </script>
 
 
-</body></html><!-- Force rebuild 1778437430 -->
+</body></html><!-- Force rebuild 1776962764 -->
