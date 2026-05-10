@@ -650,7 +650,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.5.2</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.5.3</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -8420,13 +8420,11 @@ const PAGE_HEIGHT_IN = 11;
 // height, then applies a CSS transform: scale(N) so the pages fit the preview panel width while
 // the page itself stays at literal Letter dimensions. Result reads as a true print preview.
 function applyPreviewToPages(html) {
-  const wrapper = document.getElementById('fmt-preview-pages-wrapper');
-  if (!wrapper) return;
-  // Set both the wrapper and its parent (#fmt-live-preview) to bgColor so the entire
-  // preview area — including the space outside the page shadow — matches the template color.
-  wrapper.style.background = bg;
   const livePreview = document.getElementById('fmt-live-preview');
   if (livePreview) livePreview.style.background = bg;
+  const wrapper = document.getElementById('fmt-preview-pages-wrapper');
+  if (!wrapper) return;
+  wrapper.style.background = bg;
   // Extend the resume background color to the outer gutter so the margin area
   // matches the page — avoids a gray band around a non-white resume background.
   const bg = _fmt.bgColor || '#ffffff';
