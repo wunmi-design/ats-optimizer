@@ -155,8 +155,11 @@ function measureRenderedPages(text) {
     const contentWidthIn = 8.5 - (2 * marginIn);
     const contentHeightPx = (11 - 2 * marginIn) * 96; // per-page usable height
     
+    // Match the PDF render line-height (1.35 for standard, 1.3 for compact)
+    const lh = _fmt.template === 'compact' ? '1.3' : '1.35';
+    
     const container = document.createElement('div');
-    container.style.cssText = `position:absolute;left:-9999px;top:0;width:${contentWidthIn}in;visibility:hidden;font-family:${_fmt.bodyFont || 'Lato'},Arial,sans-serif;font-size:${_fmt.bodySize || 10}pt;line-height:1.5;color:${_fmt.textColor || '#111'};`;
+    container.style.cssText = `position:absolute;left:-9999px;top:0;width:${contentWidthIn}in;visibility:hidden;font-family:${_fmt.bodyFont || 'Lato'},Arial,sans-serif;font-size:${_fmt.bodySize || 10}pt;line-height:${lh};color:${_fmt.textColor || '#111'};`;
     container.innerHTML = fmtRenderSections(fmtParseText(text));
     document.body.appendChild(container);
     const height = container.getBoundingClientRect().height;
@@ -167,6 +170,31 @@ function measureRenderedPages(text) {
     console.warn('measureRenderedPages failed:', e);
     return null;
   }
+}
+
+// Removes the AWARDS section if it has 1-2 entries — common cause of orphan pages
+// where AWARDS sits alone on the last page. Returns trimmed text only if AWARDS
+// was actually removed; otherwise returns original.
+function removeOrphanAwardsIfShort(text) {
+  // Find AWARDS section at the end of resume
+  const lines = text.split('\n');
+  let awardsStart = -1;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (/^AWARDS\s*$/i.test(lines[i].trim())) {
+      awardsStart = i;
+      break;
+    }
+  }
+  if (awardsStart === -1) return text;
+  
+  // Count non-empty content lines after AWARDS header
+  const contentLines = lines.slice(awardsStart + 1).filter(l => l.trim());
+  
+  // Only remove if AWARDS has 1-2 entries (orphan-prone case)
+  if (contentLines.length <= 2) {
+    return lines.slice(0, awardsStart).join('\n').trimEnd();
+  }
+  return text;
 }
 
 async function trimToTargetLength(text) {
@@ -210,18 +238,20 @@ CURRENT: ${currentChars} characters, visually rendering at ${visualOverflow} pag
 TARGET: ${targetChars} characters maximum, MUST fit on ${analysis.targetPages} page(s)
 REDUCTION NEEDED: approximately ${reductionPct}% — be aggressive
 
-CRITICAL CONSTRAINT: Output MUST fit on exactly ${analysis.targetPages} page(s). If it spills 1 line over, that fails. Be aggressive and prefer removing content over trying to barely fit.
+CRITICAL CONSTRAINT: Output MUST fit on exactly ${analysis.targetPages} page(s). If it spills 1 line over, that fails.
+
+COMMON ORPHAN PROBLEM: If the AWARDS section has only 1-2 entries and the resume is barely over the page limit, REMOVE THE ENTIRE AWARDS SECTION — it commonly orphans to a 3rd page with just 1 line on it. The resume reads stronger without an isolated awards line.
 
 TRIMMING RULES (in priority order):
-1. Drop weakest bullets first — those without specific metrics, outcomes, or differentiated value
-2. If two bullets cover similar ground, keep the one with stronger metric/specificity
-3. Tighten verbose bullets to ~120 characters each (drop filler words, redundant phrases)
-4. Remove role context/description lines (the 1-line text between role header and bullets) for older roles
-5. Trim role context lines to ~80 chars if kept
-6. Older roles (5+ years ago) should have 1-2 bullets max, not 3
-7. NEVER drop role headers, dates, or company names
-8. NEVER drop the entire SUMMARY, SKILLS, or EDUCATION sections (just trim within them)
-9. The AWARDS section can be condensed or removed if it's pushing the resume over a page
+1. If AWARDS has ≤2 entries and resume is near/over page limit, REMOVE the entire AWARDS section
+2. Drop weakest bullets first — those without specific metrics, outcomes, or differentiated value
+3. If two bullets cover similar ground, keep the one with stronger metric/specificity
+4. Tighten verbose bullets to ~120 characters each (drop filler words, redundant phrases)
+5. Remove role context/description lines (the 1-line text between role header and bullets) for older roles
+6. Trim role context lines to ~80 chars if kept
+7. Older roles (5+ years ago) should have 1-2 bullets max, not 3
+8. NEVER drop role headers, dates, or company names
+9. NEVER drop the entire SUMMARY, SKILLS, or EDUCATION sections (just trim within them)
 10. Keep at least 1 bullet per role (preserves work history)
 11. PRESERVE EXACT FORMATTING: section structure, line breaks, bullet character (•), date format
 
@@ -251,7 +281,7 @@ ${current}`;
       currentChars = trimmedChars;
       console.log(`Trim iteration ${iteration}: ${currentChars} chars (target: ${targetChars}, reduction: ${(reduction*100).toFixed(1)}%)`);
       
-      // Early exit: AI plateaued and rendering still says we're over
+      // Early exit: AI plateaued
       if (reduction < 0.03) {
         const checkPages = measureRenderedPages(current);
         if (checkPages !== null && checkPages > analysis.targetPages + 0.02) {
@@ -262,6 +292,19 @@ ${current}`;
     } catch (e) {
       console.warn(`trimToTargetLength iteration ${iteration} failed:`, e);
       break;
+    }
+  }
+  
+  // FINAL BACKSTOP: if still over target and AWARDS is short (likely orphaning), remove it
+  const postTrimPages = measureRenderedPages(current);
+  if (postTrimPages !== null && postTrimPages > analysis.targetPages + 0.02) {
+    const withoutAwards = removeOrphanAwardsIfShort(current);
+    if (withoutAwards !== current) {
+      const newPages = measureRenderedPages(withoutAwards);
+      if (newPages !== null && newPages <= postTrimPages) {
+        console.log(`Removed orphan AWARDS: ${postTrimPages.toFixed(2)} → ${newPages.toFixed(2)} pages`);
+        return withoutAwards;
+      }
     }
   }
   
