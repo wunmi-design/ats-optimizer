@@ -650,7 +650,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.6.1</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.6.2</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -9096,6 +9096,106 @@ async function fmtSavePdf() {
   
   let fontFaceCSS = '';
 
+  // SMART PRE-PAGINATION
+  // Render content into a hidden measuring container at exactly the print width and font
+  // settings, then walk top-level sections AND their body items to split at finer-grained
+  // boundaries (between experience entries, paragraphs, etc.) so we never get rigid empty
+  // gaps or clipped overflow. Each section is structured as:
+  //   <div> (outer)
+  //     <div> (heading) </div>
+  //     <div> (body wrapper) {flat items: bullets, experience entries, etc.} </div>
+  //   </div>
+  // When a section overflows the page, we split its body items across multiple page chunks,
+  // keeping the heading only with the first chunk. The result: each .resume-page is sized
+  // to fit naturally and is filled with bgColor including 0.5in padding (visible as margins).
+
+  const measure = document.createElement('div');
+  measure.style.cssText = `position:absolute;left:-99999px;top:0;width:7.5in;font-family:${fontFam};font-size:${fontSize};line-height:${lineH};color:${color};visibility:hidden;`;
+  measure.innerHTML = fullHtml;
+  document.body.appendChild(measure);
+  if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch(e) {} }
+  await new Promise(r => setTimeout(r, 200));
+
+  const PAGE_H = 10 * 96; // 10in content area (11in - 0.5in*2 padding) at 96dpi
+  const pages = [[]];
+  let curH = 0;
+
+  // Helper: push a piece of HTML onto the current page, optionally starting a new page first.
+  const startNewPage = () => { pages.push([]); curH = 0; };
+  const addToCurrent = (html, h) => { pages[pages.length - 1].push(html); curH += h; };
+
+  for (const section of measure.children) {
+    const secH = section.offsetHeight;
+
+    // CASE 1: section fits in remaining space on the current page → add as-is
+    if (curH + secH <= PAGE_H) {
+      addToCurrent(section.outerHTML, secH);
+      continue;
+    }
+
+    // CASE 2: doesn't fit here but fits on a fresh page AND current page has content → next page
+    if (secH <= PAGE_H && curH > 0) {
+      startNewPage();
+      addToCurrent(section.outerHTML, secH);
+      continue;
+    }
+
+    // CASE 3: section is too tall to fit on a single page → split its body items
+    // Section structure: outer div > [heading, bodyWrap]. bodyWrap > [item, item, ...]
+    const secKids = Array.from(section.children);
+    if (secKids.length < 2) {
+      // No splittable body — accept the overflow
+      if (curH > 0) startNewPage();
+      addToCurrent(section.outerHTML, secH);
+      continue;
+    }
+    const heading  = secKids[0];
+    const bodyWrap = secKids[1];
+    const items    = Array.from(bodyWrap.children);
+    const headH    = heading.offsetHeight;
+    const sectionStyle  = section.getAttribute('style') || '';
+    const bodyWrapStyle = bodyWrap.getAttribute('style') || '';
+
+    // Start fresh page if we already have content on the current one
+    if (curH > 0) startNewPage();
+
+    let chunkItems = [];
+    let chunkH     = headH; // first chunk includes the heading
+    let isFirstChunk = true;
+
+    const flushChunk = () => {
+      if (!chunkItems.length) return;
+      const headHtml = isFirstChunk ? heading.outerHTML : '';
+      const html = `<div style="${sectionStyle}">${headHtml}<div style="${bodyWrapStyle}">${chunkItems.map(el => el.outerHTML).join('')}</div></div>`;
+      addToCurrent(html, chunkH);
+      chunkItems = [];
+      chunkH     = 0;
+      isFirstChunk = false;
+    };
+
+    for (const item of items) {
+      const itemH = item.offsetHeight;
+      // If adding this item exceeds the page AND we already have items, flush + new page
+      if (chunkH + itemH > PAGE_H && chunkItems.length > 0) {
+        flushChunk();
+        startNewPage();
+      }
+      chunkItems.push(item);
+      chunkH += itemH;
+    }
+    flushChunk();
+  }
+
+  document.body.removeChild(measure);
+
+  // Build per-page HTML — each .resume-page is a self-contained 8.5×11in box with bgColor
+  // background and 0.5in padding. page-break-after:always forces one printed page per div.
+  const pageStyleBase = `width:8.5in;min-height:11in;padding:0.5in;background:${bg};box-sizing:border-box;`;
+  const pagedHtml = pages.map((pageItems, i) => {
+    const isLast = i === pages.length - 1;
+    return `<div class="resume-page" style="${pageStyleBase}${isLast ? '' : 'page-break-after:always;'}">${pageItems.join('')}</div>`;
+  }).join('');
+
   // Build a Google Fonts URL covering every font used in the resume so the iframe can load
   // them on its own. Cross-origin (Google) stylesheets can't be copied via cssRules above,
   // so we have to re-import them inside the iframe document. Only include fonts we know are
@@ -9130,17 +9230,13 @@ async function fmtSavePdf() {
 ${googleFontsLink}
 <style>
   *, *::before, *::after { box-sizing: border-box; }
-  /* Real per-page margins via @page — content flows naturally across pages, with
-     0.5in top/bottom/left/right on every printed page. This is the only way to
-     get correct multi-page layout (sections can break across pages, no clipping,
-     no white gaps). The trade-off: in some Chrome versions the @page margin zones
-     render as paper white. We set background on html, body, AND a wrapper to
-     maximize the chance the margin zones inherit bgColor. */
+  /* @page margin: 0 — the .resume-page divs supply their own 0.5in padding which fills
+     the visible margin area with bgColor on every page, regardless of browser. */
   @page {
-    margin: 0.5in;
+    margin: 0;
     size: letter;
   }
-  html {
+  html, body {
     margin: 0;
     padding: 0;
     background: ${bg};
@@ -9149,20 +9245,19 @@ ${googleFontsLink}
     color-adjust: exact;
   }
   body {
-    margin: 0;
-    padding: 0;
-    background: ${bg};
     font-family: ${fontFam};
     font-size: ${fontSize};
     line-height: ${lineH};
     color: ${color};
+  }
+  .resume-page {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
   a { color: inherit; text-decoration: none; }
 </style>
 </head>
-<body>${fullHtml}</body>
+<body>${pagedHtml}</body>
 </html>`;
   
   // Create a hidden iframe, write the doc, and print from inside it.
