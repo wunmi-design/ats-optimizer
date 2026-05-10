@@ -95,6 +95,10 @@ const RESUME_LENGTH = {
 // Keeps role headers, descriptions, and maintains formatting.
 function capBulletsPerRole(text, maxBullets) {
   const cap = maxBullets || 3;
+  const lines = text.split('\n');
+  const result = [];
+  let bulletCount = 0;
+  let inRole = false;
   
   for (const line of lines) {
     const trimmed = line.trim();
