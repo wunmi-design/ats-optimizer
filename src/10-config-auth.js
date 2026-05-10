@@ -115,6 +115,19 @@ const TokenTracker = {
     };
   },
   
+  // Reset usage counters for current user (daily + monthly)
+  resetUsage: function(userId) {
+    if (!userId) return;
+    const today = new Date().toISOString().split('T')[0];
+    const year = new Date().getFullYear();
+    const month = String(new Date().getMonth() + 1).padStart(2, '0');
+    const dailyKey = `tokens_daily_${userId}_${today}`;
+    const monthlyKey = `tokens_monthly_${userId}_${year}-${month}`;
+    localStorage.removeItem(dailyKey);
+    localStorage.removeItem(monthlyKey);
+    TokenTracker.updateUI(userId);
+  },
+  
   // Update UI with current usage
   updateUI: function(userId) {
     if (!userId) return;
@@ -203,6 +216,13 @@ function setAuthUI() {
     if (window._atsUser.picture && avatar) {
       avatar.src = window._atsUser.picture;
       avatar.style.display = 'block';
+    }
+    
+    // ONE-TIME RESET: Clear API usage counters for build 3.8.1 rollout
+    const RESET_KEY = `usage_reset_v381_${window._atsUser.id}`;
+    if (!localStorage.getItem(RESET_KEY)) {
+      TokenTracker.resetUsage(window._atsUser.id);
+      localStorage.setItem(RESET_KEY, '1');
     }
     
     // Update token usage display

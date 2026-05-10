@@ -2,13 +2,13 @@
 <div class="app-shell">
 
   <!-- ═══ TOP BAR ═══ -->
-  <div class="topbar">
-    <div style="display:flex;align-items:center;gap:6px;flex:1;white-space:nowrap;min-width:0;overflow:hidden;">
+  <div class="topbar" style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px;gap:16px;">
+    <div style="display:flex;align-items:center;gap:6px;flex:0 1 auto;white-space:nowrap;min-width:0;overflow:hidden;">
       <div class="topbar-brand" style="gap:4px;font-size:13px;flex-shrink:0;">
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.8.0</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.8.1</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -16,9 +16,19 @@
       </div>
     </div>
     
-    <div class="topbar-right" style="gap:10px;justify-content:flex-end;flex-shrink:0;">
+    <!-- Center: Save button (outlined) -->
+    <div style="display:flex;align-items:center;gap:14px;flex:0 1 auto;">
+      <button id="save-btn" onclick="if(!window._atsUser){handleAuthClick();return;}if(!proj){toast('No project open');return;}saveProject();toast('Saved to cloud')" title="Save to cloud" style="display:flex;align-items:center;gap:8px;padding:10px 28px;font-size:14px;font-weight:500;color:var(--ink);background:var(--white);border:1.5px solid var(--border);border-radius:999px;cursor:pointer;transition:all 0.2s;white-space:nowrap;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='var(--white)'">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4"></path></svg>
+        Save
+      </button>
+      
+      <!-- Download Resume (filled prominent) -->
       <div style="position:relative;display:inline-block;" id="download-menu-wrap">
-        <button class="btn btn-primary btn-sm" onclick="toggleDownloadMenu(event)" style="font-size:11px;padding:5px 12px;">↓ Download Resume ▾</button>
+        <button onclick="toggleDownloadMenu(event)" style="display:flex;align-items:center;gap:8px;padding:10px 28px;font-size:14px;font-weight:500;color:white;background:var(--brand);border:none;border-radius:999px;cursor:pointer;transition:all 0.2s;white-space:nowrap;box-shadow:var(--shadow);" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Download Resume
+        </button>
         <div id="download-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);right:0;z-index:999;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-lg);min-width:170px;overflow:hidden;">
           <button onclick="fmtSavePdf();closeDownloadMenu()" style="display:block;width:100%;text-align:left;padding:9px 14px;font-size:12px;background:none;border:none;cursor:pointer;color:var(--ink);" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='none'">↓ Save as PDF</button>
           <button onclick="fmtSaveDocx();closeDownloadMenu()" style="display:block;width:100%;text-align:left;padding:9px 14px;font-size:12px;background:none;border:none;cursor:pointer;color:var(--ink);" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='none'">↓ Save as .docx</button>
@@ -27,13 +37,14 @@
           <button onclick="closeDownloadMenu();setTimeout(exportIcims,50)" style="display:block;width:100%;text-align:left;padding:9px 14px;font-size:12px;background:none;border:none;cursor:pointer;color:var(--ink);" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='none'">↓ iCIMS Export</button>
         </div>
       </div>
-      
-      <div style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:3px 6px;border-radius:6px;transition:background 0.2s;flex-shrink:0;" id="user-profile-btn" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''" onclick="handleAuthClick()">
-        <img id="user-avatar" src="" alt="User" style="width:26px;height:26px;border-radius:50%;object-fit:cover;background:var(--border);display:none;flex-shrink:0;">
-        <div style="display:flex;flex-direction:column;align-items:flex-start;font-size:9px;line-height:1.2;">
-          <span id="user-first-name" style="font-weight:600;color:var(--ink);white-space:nowrap;">User</span>
-          <span style="color:var(--muted);font-size:8px;">▼</span>
-        </div>
+    </div>
+    
+    <!-- Right: User avatar + name -->
+    <div style="display:flex;align-items:center;gap:8px;cursor:pointer;flex-shrink:0;" id="user-profile-btn" onclick="handleAuthClick()">
+      <img id="user-avatar" src="" alt="User" style="width:44px;height:44px;border-radius:50%;object-fit:cover;background:var(--border);display:none;flex-shrink:0;border:1px solid var(--border);">
+      <div style="display:flex;flex-direction:column;align-items:center;font-size:13px;line-height:1.2;">
+        <span id="user-first-name" style="font-weight:500;color:var(--ink);white-space:nowrap;">User</span>
+        <span style="color:var(--muted);font-size:9px;margin-top:2px;">▼</span>
       </div>
     </div>
   </div>
@@ -47,35 +58,39 @@
     <div class="tab" id="tab-analyzer" onclick="switchTab(&#39;analyzer&#39;)">Optimizer <span id="tab-analyzer-score" class="score-pill" style="font-size: 10px; padding: 1px 5px; margin-left: 4px;">82%</span></div>
     <div style="flex:1;"></div>
     
-    <!-- API Key (first after spacer) -->
-    <div class="topbar-key" style="padding:4px 8px;gap:4px;height:32px;align-items:center;margin-right:2px;">
-      <label style="flex-shrink:0;font-size:11px;">API Key</label>
-      <input type="password" id="api-in" placeholder="sk-ant-..." oninput="onApiKey(this.value)" style="width:100px;font-size:11px;">
-      <span id="api-saved" style="display:inline;flex-shrink:0;font-size:11px;">✓</span>
+    <!-- API Key with key icon (rounded pill) -->
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--white);border:1px solid var(--border);border-radius:999px;height:36px;margin-right:10px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;color:var(--muted);"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+      <input type="password" id="api-in" placeholder="Api Key" oninput="onApiKey(this.value)" style="border:none;outline:none;background:transparent;width:140px;font-size:13px;color:var(--ink);">
+      <span id="api-saved" style="display:inline;flex-shrink:0;font-size:11px;color:var(--brand);">✓</span>
     </div>
     
-    <!-- Daily / Monthly counters -->
-    <div style="display:flex;align-items:center;gap:14px;margin-right:10px;font-size:12px;font-weight:500;padding:0 8px;">
-      <div style="display:flex;align-items:center;gap:6px;">
-        <span style="color:var(--muted);">Daily:</span>
-        <span id="daily-usage" style="color:var(--ink);">0/50,000</span>
+    <!-- Daily / Monthly counter pills -->
+    <div style="display:flex;align-items:center;gap:8px;margin-right:10px;">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--surface);border-radius:999px;font-size:12px;font-weight:500;height:36px;">
+        <span style="color:var(--ink);">Daily:</span>
+        <span id="daily-usage" style="color:var(--ink);font-weight:600;">0/50,000</span>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;">
-        <span style="color:var(--muted);">Monthly:</span>
-        <span id="monthly-usage" style="color:var(--ink);">0/200,000</span>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--surface);border-radius:999px;font-size:12px;font-weight:500;height:36px;">
+        <span style="color:var(--ink);">Monthly:</span>
+        <span id="monthly-usage" style="color:var(--ink);font-weight:600;">0/200,000</span>
       </div>
     </div>
     
-    <!-- Undo / Redo -->
-    <button class="btn btn-ghost btn-sm" id="undo-btn" onclick="undoVersion()" title="Undo" style="font-size:12px;padding:4px 10px;white-space:nowrap;">↩ Undo</button>
-    <button class="btn btn-ghost btn-sm" id="redo-btn" onclick="redoVersion()" title="Redo" style="font-size:12px;padding:4px 10px;white-space:nowrap;">Redo ↪</button>
+    <!-- Undo / Redo (circular icon buttons) -->
+    <button id="undo-btn" onclick="undoVersion()" title="Undo" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;background:var(--white);border:1px solid var(--border);border-radius:50%;cursor:pointer;margin-right:6px;transition:all 0.2s;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='var(--white)'">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;color:var(--ink);"><path d="M3 7v6h6M21 17a9 9 0 0 0-15-6.7L3 13"></path></svg>
+    </button>
+    <button id="redo-btn" onclick="redoVersion()" title="Redo" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;background:var(--white);border:1px solid var(--border);border-radius:50%;cursor:pointer;margin-right:10px;transition:all 0.2s;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='var(--white)'">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;color:var(--ink);"><path d="M21 7v6h-6M3 17a9 9 0 0 1 15-6.7L21 13"></path></svg>
+    </button>
     
-    <!-- Save (cloud) — moved from topbar -->
-    <button class="btn btn-ghost btn-sm" id="save-btn" onclick="if(!window._atsUser){handleAuthClick();return;}if(!proj){toast('No project open');return;}saveProject();toast('Saved to cloud')" title="Save to cloud" style="font-size:12px;padding:4px 10px;white-space:nowrap;">💾 Save</button>
-    
-    <!-- Export — replaces File menu -->
+    <!-- Project / Export menu (with share icon) -->
     <div style="position:relative;display:inline-block;" id="file-menu-wrap">
-      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('file-dropdown').style.display=document.getElementById('file-dropdown').style.display==='block'?'none':'block'" style="font-size:12px;padding:4px 10px;white-space:nowrap;">↑ Export ▾</button>
+      <button onclick="document.getElementById('file-dropdown').style.display=document.getElementById('file-dropdown').style.display==='block'?'none':'block'" style="display:flex;align-items:center;gap:8px;padding:8px 16px;font-size:13px;font-weight:500;color:var(--ink);background:var(--white);border:1px solid var(--border);border-radius:999px;cursor:pointer;transition:all 0.2s;height:36px;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='var(--white)'">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+        Project
+      </button>
       <div id="file-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);right:0;z-index:999;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-lg);min-width:160px;overflow:hidden;" onmouseleave="this.style.display='none'">
         <div style="padding:6px 14px;font-size:12px;cursor:pointer;white-space:nowrap;" onmouseenter="this.style.background='var(--surface)'" onmouseleave="this.style.background=''" onclick="saveProjectToDisk();document.getElementById('file-dropdown').style.display='none'">↑ Export project</div>
         <div style="padding:6px 14px;font-size:12px;cursor:pointer;white-space:nowrap;" onmouseenter="this.style.background='var(--surface)'" onmouseleave="this.style.background=''" onclick="loadProjectFromDisk();document.getElementById('file-dropdown').style.display='none'">↓ Load project</div>
