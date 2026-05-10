@@ -650,7 +650,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.6.8</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.6.9</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -6557,6 +6557,42 @@ function deduplicateResume(text) {
 // Caps total skill count at 24, prioritizing skills most relevant to the JD.
 // Runs after the dedup passes so it operates on a clean resume.
 // If JD context isn't available or the resume already has <=30 skills, returns input unchanged.
+// Limit each role's bullets to a maximum of 3. Removes extra bullets after the 3rd.
+// Keeps role headers, descriptions, and maintains formatting.
+function capBulletsPerRole(text) {
+  const lines = text.split('\n');
+  const result = [];
+  let bulletCount = 0;
+  let inRole = false;
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    
+    // Detect role header (has dates like 01/16 – 06/17 or 09/25 – Present)
+    if (trimmed.match(/\d{1,2}\/\d{2}\s*[–-]\s*(?:\d{1,2}\/\d{2}|Present|Current)/)) {
+      inRole = true;
+      bulletCount = 0;
+      result.push(line);
+      continue;
+    }
+    
+    // Check if this is a bullet (starts with • or -)
+    if (trimmed.startsWith('•') || trimmed.startsWith('-')) {
+      if (bulletCount < 3) {
+        result.push(line);
+        bulletCount++;
+      }
+      // Skip bullets beyond the 3rd
+      continue;
+    }
+    
+    // Keep all non-bullet lines (headers, descriptions, etc.)
+    result.push(line);
+  }
+  
+  return result.join('\n');
+}
+
 async function capSkillsTo30(text) {
   try {
     // Find the SKILLS section. Match from "SKILLS" header to the next ALL-CAPS section header
@@ -7027,9 +7063,13 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     overlaySub.textContent = 'Removing repeated boilerplate across roles';
     const boilerplateCleaned = await dedupeCrossRoleBoilerplate(differentiated);
 
+    // Phase 4b: Cap bullets at 3 per role for ATS optimization.
+    overlaySub.textContent = 'Limiting bullets to 3 per role';
+    const bulletsCapped = capBulletsPerRole(boilerplateCleaned);
+
     // Phase 5: Cap skills at 24, prioritizing JD-relevant ones.
     overlaySub.textContent = 'Prioritizing skills for this role';
-    const skillsCapped = await capSkillsTo30(boilerplateCleaned);
+    const skillsCapped = await capSkillsTo30(bulletsCapped);
 
     // Phase 6: Regex safety net — strip any placeholder tokens (X%, [number]%, ___%, etc.).
     const cleaned = stripPlaceholders(skillsCapped);
@@ -7273,8 +7313,11 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     overlaySub.textContent = 'Removing repeated boilerplate across roles';
     const boilerplateCleaned = await dedupeCrossRoleBoilerplate(differentiated);
 
+    overlaySub.textContent = 'Limiting bullets to 3 per role';
+    const bulletsCapped = capBulletsPerRole(boilerplateCleaned);
+
     overlaySub.textContent = 'Prioritizing skills for this role';
-    const skillsCapped = await capSkillsTo30(boilerplateCleaned);
+    const skillsCapped = await capSkillsTo30(bulletsCapped);
 
     const cleaned = stripPlaceholders(skillsCapped);
     
