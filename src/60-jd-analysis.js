@@ -823,6 +823,37 @@ function renderDashboard(score) {
       const hasFixes = (proj?.appliedFixes?.length || 0) > 0;
       labelEl.textContent = hasFixes ? 'match' : 'original match';
     }
+    
+    // Resume Length Insight — shows YOE-based length recommendation
+    try {
+      const insightEl = document.getElementById('length-insight');
+      const insightBody = document.getElementById('length-insight-body');
+      if (insightEl && insightBody) {
+        const resume = getResumeText();
+        if (resume) {
+          const analysis = RESUME_LENGTH.analyze(resume);
+          if (analysis.yoe > 0) {
+            let msg = '';
+            const currentLabel = analysis.currentPages.toFixed(1);
+            if (analysis.status === 'too_long') {
+              msg = `<div style="margin-bottom:4px;"><strong>Recommended:</strong> ${analysis.recommended.label} (you have ${analysis.yoe} years experience)</div><div style="color:var(--red);"><strong>Currently:</strong> ~${currentLabel} pages — will be auto-trimmed when you apply fixes</div>`;
+              insightEl.style.borderLeftColor = 'var(--red)';
+            } else if (analysis.status === 'too_short') {
+              msg = `<div style="margin-bottom:4px;"><strong>Recommended:</strong> ${analysis.recommended.label} (you have ${analysis.yoe} years experience)</div><div style="color:var(--muted);"><strong>Currently:</strong> ~${currentLabel} pages — consider expanding with more accomplishments</div>`;
+              insightEl.style.borderLeftColor = 'var(--teal)';
+            } else {
+              msg = `<div><strong>Recommended:</strong> ${analysis.recommended.label} (you have ${analysis.yoe} years experience)</div><div style="color:var(--green);margin-top:2px;">✓ Currently ~${currentLabel} pages — well-balanced</div>`;
+              insightEl.style.borderLeftColor = 'var(--green)';
+            }
+            insightBody.innerHTML = msg;
+            insightEl.style.display = 'block';
+          } else {
+            insightEl.style.display = 'none';
+          }
+        }
+      }
+    } catch(e) { console.warn('Length insight render failed:', e); }
+    
   const cells=[['keyword_match','Keywords'],['hard_skills','Hard Skills'],['soft_skills','Soft Skills'],['yoe_alignment','Years of Experience'],['summary_quality','Summary'],['bullet_quality','Bullets']];
   const grid=document.getElementById('score-grid');
   if(grid)grid.innerHTML=cells.filter(([k])=>score[k]!==undefined&&score[k]!==null).map(([k,l])=>{

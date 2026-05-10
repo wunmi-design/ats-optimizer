@@ -1,8 +1,100 @@
-function capBulletsPerRole(text) {
-  const lines = text.split('\n');
-  const result = [];
-  let bulletCount = 0;
-  let inRole = false;
+// ═══════════════════════════════════════════════════════
+//  RESUME LENGTH ANALYZER
+// ═══════════════════════════════════════════════════════
+//
+// Standard industry guidelines for resume length based on years of experience (YOE):
+//   < 5 years        → 1 page
+//   5-10 years       → 1-2 pages
+//   10-15 years      → 2 pages
+//   15-20 years      → 2 pages (3 max for senior roles)
+//   20+ years        → 2-3 pages (executive level)
+//
+// Page capacity at typical font settings (Lato 10pt, 0.5in margins): ~3500 chars/page
+
+const RESUME_LENGTH = {
+  // Estimated character capacity per page at default font settings
+  CHARS_PER_PAGE: 3500,
+  
+  // Calculate years of experience from resume text by parsing date ranges.
+  // Looks for MM/YY – MM/YY or MM/YY – Present patterns in work experience.
+  calculateYOE: function(text) {
+    const lines = text.split('\n');
+    let earliestStart = null;
+    const now = new Date();
+    
+    // Pattern: MM/YY – MM/YY or MM/YY - MM/YY or MM/YY – Present
+    const datePattern = /(\d{1,2})\/(\d{2})\s*[–\-]\s*(?:(\d{1,2})\/(\d{2})|Present|Current)/gi;
+    
+    for (const line of lines) {
+      let match;
+      const re = new RegExp(datePattern.source, datePattern.flags);
+      while ((match = re.exec(line)) !== null) {
+        const startMonth = parseInt(match[1]);
+        const startYear = parseInt(match[2]);
+        // Convert 2-digit year (e.g. 95 → 1995, 25 → 2025)
+        const fullStartYear = startYear < 50 ? 2000 + startYear : 1900 + startYear;
+        const startDate = new Date(fullStartYear, startMonth - 1);
+        if (!earliestStart || startDate < earliestStart) {
+          earliestStart = startDate;
+        }
+      }
+    }
+    
+    if (!earliestStart) return 0;
+    const yearsDiff = (now - earliestStart) / (1000 * 60 * 60 * 24 * 365.25);
+    return Math.round(yearsDiff * 10) / 10; // Round to 1 decimal
+  },
+  
+  // Get recommended page count based on YOE
+  getRecommendedPages: function(yoe) {
+    if (yoe < 5) return { min: 1, max: 1, label: '1 page' };
+    if (yoe < 10) return { min: 1, max: 2, label: '1-2 pages' };
+    if (yoe < 15) return { min: 2, max: 2, label: '2 pages' };
+    if (yoe < 20) return { min: 2, max: 2, label: '2 pages' };  // 3 acceptable max
+    return { min: 2, max: 3, label: '2-3 pages' };  // Executive level
+  },
+  
+  // Estimate current page count from resume text length
+  estimatePages: function(text) {
+    const chars = text.replace(/\s+/g, ' ').length;
+    return Math.round((chars / this.CHARS_PER_PAGE) * 10) / 10;
+  },
+  
+  // Get full analysis: YOE, recommended length, current length, status
+  analyze: function(text) {
+    const yoe = this.calculateYOE(text);
+    const recommended = this.getRecommendedPages(yoe);
+    const currentPages = this.estimatePages(text);
+    
+    let status = 'ok';
+    let action = null;
+    if (currentPages > recommended.max + 0.2) {
+      status = 'too_long';
+      action = 'trim';
+    } else if (currentPages < recommended.min - 0.3 && yoe >= 5) {
+      status = 'too_short';
+      action = 'expand';
+    }
+    
+    return {
+      yoe,
+      recommended,
+      currentPages,
+      status,
+      action,
+      targetPages: recommended.max,
+      targetChars: recommended.max * this.CHARS_PER_PAGE
+    };
+  }
+};
+
+// ═══════════════════════════════════════════════════════
+//  BULLET CAP
+// ═══════════════════════════════════════════════════════
+// Limit each role's bullets to a maximum of N (default 3). Removes extra bullets after the Nth.
+// Keeps role headers, descriptions, and maintains formatting.
+function capBulletsPerRole(text, maxBullets) {
+  const cap = maxBullets || 3;
   
   for (const line of lines) {
     const trimmed = line.trim();
@@ -17,11 +109,11 @@ function capBulletsPerRole(text) {
     
     // Check if this is a bullet (starts with • or -)
     if (trimmed.startsWith('•') || trimmed.startsWith('-')) {
-      if (bulletCount < 3) {
+      if (bulletCount < cap) {
         result.push(line);
         bulletCount++;
       }
-      // Skip bullets beyond the 3rd
+      // Skip bullets beyond the cap
       continue;
     }
     
@@ -30,6 +122,67 @@ function capBulletsPerRole(text) {
   }
   
   return result.join('\n');
+}
+
+// ═══════════════════════════════════════════════════════
+//  TRIM TO TARGET LENGTH (YOE-based)
+// ═══════════════════════════════════════════════════════
+// Uses AI to intelligently trim resume to fit recommended page count based on YOE.
+// Drops weakest bullets first (those without metrics or that duplicate other accomplishments).
+// Preserves: section structure, role headers, dates, summary, skills, education.
+async function trimToTargetLength(text) {
+  const analysis = RESUME_LENGTH.analyze(text);
+  
+  // Only trim if resume is too long
+  if (analysis.status !== 'too_long') {
+    return text;
+  }
+  
+  const targetChars = analysis.targetChars;
+  const currentChars = text.replace(/\s+/g, ' ').length;
+  const reductionPct = Math.round(((currentChars - targetChars) / currentChars) * 100);
+  
+  try {
+    const prompt = `You are a resume editor. Trim this resume to approximately ${analysis.targetPages} page(s) (~${targetChars} characters total). The candidate has ${analysis.yoe} years of experience.
+
+CURRENT LENGTH: ${currentChars} characters (~${analysis.currentPages} pages)
+TARGET LENGTH: ${targetChars} characters (~${analysis.targetPages} pages)
+REDUCTION NEEDED: approximately ${reductionPct}%
+
+TRIMMING RULES (in priority order):
+1. Drop weakest bullets first — those without specific metrics, outcomes, or differentiated value
+2. If two bullets cover similar ground, keep the one with stronger metric/specificity
+3. Tighten verbose bullets to ~150 characters each (drop filler words, redundant phrases)
+4. NEVER drop role headers, dates, or company names
+5. NEVER drop the entire SUMMARY, SKILLS, or EDUCATION sections (just trim within them)
+6. Keep at least 1 bullet per role (preserves work history)
+7. PRESERVE EXACT FORMATTING: section structure, line breaks, bullet character (•), date format
+
+CRITICAL:
+- Use FIRST PERSON (I/me/my) — never third person
+- NEVER fabricate metrics or outcomes
+- NEVER add new bullets or content
+- Output the COMPLETE trimmed resume, no commentary
+
+RESUME:
+${text}`;
+
+    const result = await claudeFetch(prompt, 4000);
+    const trimmed = result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim();
+    
+    // Safety check: if trim made it WORSE (longer) or removed too much (less than 60% target),
+    // return original
+    const trimmedChars = trimmed.replace(/\s+/g, ' ').length;
+    if (trimmedChars > currentChars || trimmedChars < targetChars * 0.6) {
+      console.warn('Trim safety check failed, returning original');
+      return text;
+    }
+    
+    return trimmed;
+  } catch (e) {
+    console.warn('trimToTargetLength failed, returning original:', e);
+    return text;
+  }
 }
 
 async function capSkillsTo30(text) {

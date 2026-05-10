@@ -90,9 +90,18 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     overlaySub.textContent = 'Limiting bullets to 3 per role';
     const bulletsCapped = capBulletsPerRole(boilerplateCleaned);
 
+    // Phase 4c: Auto-trim to recommended length based on YOE.
+    // Standard guideline: <5y=1pg, 5-10y=1-2pg, 10-15y=2pg, 15-20y=2pg, 20+y=2-3pg
+    const lengthAnalysis = RESUME_LENGTH.analyze(bulletsCapped);
+    let lengthAdjusted = bulletsCapped;
+    if (lengthAnalysis.status === 'too_long') {
+      overlaySub.textContent = `Trimming to ${lengthAnalysis.recommended.label} (${lengthAnalysis.yoe}y experience)`;
+      lengthAdjusted = await trimToTargetLength(bulletsCapped);
+    }
+
     // Phase 5: Cap skills at 24, prioritizing JD-relevant ones.
     overlaySub.textContent = 'Prioritizing skills for this role';
-    const skillsCapped = await capSkillsTo30(bulletsCapped);
+    const skillsCapped = await capSkillsTo30(lengthAdjusted);
 
     // Phase 6: Regex safety net — strip any placeholder tokens (X%, [number]%, ___%, etc.).
     const cleaned = stripPlaceholders(skillsCapped);
@@ -359,8 +368,16 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     overlaySub.textContent = 'Limiting bullets to 3 per role';
     const bulletsCapped = capBulletsPerRole(boilerplateCleaned);
 
+    // Auto-trim to recommended length based on YOE
+    const lengthAnalysis = RESUME_LENGTH.analyze(bulletsCapped);
+    let lengthAdjusted = bulletsCapped;
+    if (lengthAnalysis.status === 'too_long') {
+      overlaySub.textContent = `Trimming to ${lengthAnalysis.recommended.label} (${lengthAnalysis.yoe}y experience)`;
+      lengthAdjusted = await trimToTargetLength(bulletsCapped);
+    }
+
     overlaySub.textContent = 'Prioritizing skills for this role';
-    const skillsCapped = await capSkillsTo30(bulletsCapped);
+    const skillsCapped = await capSkillsTo30(lengthAdjusted);
 
     const cleaned = stripPlaceholders(skillsCapped);
     
