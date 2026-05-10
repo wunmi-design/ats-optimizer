@@ -650,7 +650,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.6.4</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.6.5</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -9125,8 +9125,7 @@ async function fmtSavePdf() {
   const addToCurrent = (html, h) => { pages[pages.length - 1].push(html); curH += h; };
 
   for (const section of measure.children) {
-    const secRect = section.getBoundingClientRect();
-    const secH = secRect.height;
+    const secH = section.offsetHeight;
     const remainingOnCurrent = PAGE_H - curH;
 
     // CASE 1: section fits in remaining space on the current page → add as-is
@@ -9143,9 +9142,8 @@ async function fmtSavePdf() {
     }
 
     // CASE 3: section is too tall to fit on a single page → split body items.
-    // CRITICAL: measure flow positions with getBoundingClientRect — this includes effective
-    // margins (and collapsed margins) so we correctly know how much vertical space items take.
-    // offsetHeight excludes margins, which was causing pages to be over-stuffed.
+    // Use offsetHeight but be CONSERVATIVE: only use 90% of budget to account for
+    // margin collapse and other rendering differences between measure container and PDF iframe.
     const secKids = Array.from(section.children);
     if (secKids.length < 2) {
       if (curH > 0) startNewPage();
@@ -9155,57 +9153,50 @@ async function fmtSavePdf() {
     const heading  = secKids[0];
     const bodyWrap = secKids[1];
     const items    = Array.from(bodyWrap.children);
+    const headH    = heading.offsetHeight;
     const sectionStyle  = section.getAttribute('style') || '';
     const bodyWrapStyle = bodyWrap.getAttribute('style') || '';
 
-    if (items.length === 0) {
-      if (curH > 0) startNewPage();
-      addToCurrent(section.outerHTML, secH);
-      continue;
-    }
+    const SAFETY_FACTOR = 0.90; // Use 90% of budget to be conservative
 
-    // Measure rendered positions (includes margins via natural flow).
-    const headingRect = heading.getBoundingClientRect();
-    const itemRects   = items.map(item => item.getBoundingClientRect());
-
-    // Greedily fill chunks. First chunk includes the heading; subsequent chunks don't.
     let chunkStart = 0;
     let isFirst = true;
 
     while (chunkStart < items.length) {
-      // Measure from heading.top (first chunk) or items[chunkStart].top (later chunks).
-      const chunkTop = isFirst ? headingRect.top : itemRects[chunkStart].top;
-      const budget = isFirst ? (PAGE_H - curH) : PAGE_H;
+      let chunkH = isFirst ? headH : 0;
+      let chunkItems = [];
+      let budget = isFirst ? (PAGE_H - curH) : PAGE_H;
+      budget = Math.floor(budget * SAFETY_FACTOR);
 
-      // Find the largest end index such that items[end-1].bottom - chunkTop <= budget
-      let chunkEnd = chunkStart;
-      while (chunkEnd < items.length) {
-        const candidateHeight = itemRects[chunkEnd].bottom - chunkTop;
-        if (candidateHeight > budget) break;
-        chunkEnd++;
+      // Greedily add items to this chunk
+      for (let i = chunkStart; i < items.length; i++) {
+        const itemH = items[i].offsetHeight;
+        if (chunkH + itemH > budget && chunkItems.length > 0) {
+          break; // This item doesn't fit
+        }
+        chunkItems.push(items[i]);
+        chunkH += itemH;
       }
 
-      // If no items fit AND we're on the first chunk with content already on the page,
-      // start a new page and retry from the same chunkStart.
-      if (chunkEnd === chunkStart) {
+      // If we couldn't fit any items and we're on the first chunk with content on the page,
+      // start a new page and retry
+      if (chunkItems.length === 0) {
         if (isFirst && curH > 0) {
           startNewPage();
-          continue; // retry — now budget = PAGE_H
+          continue; // retry on new page
         }
-        // Otherwise accept overflow of single item (it's bigger than a full page)
-        chunkEnd = chunkStart + 1;
+        // Force at least one item (it's bigger than a full page)
+        chunkItems.push(items[chunkStart]);
+        chunkH += items[chunkStart].offsetHeight;
       }
 
       // Build and emit the chunk
-      const chunkItemsHtml = items.slice(chunkStart, chunkEnd).map(it => it.outerHTML).join('');
-      const chunkActualH = isFirst
-        ? itemRects[chunkEnd - 1].bottom - headingRect.top
-        : itemRects[chunkEnd - 1].bottom - itemRects[chunkStart].top;
       const headHtml = isFirst ? heading.outerHTML : '';
-      const chunkHtml = `<div style="${sectionStyle}">${headHtml}<div style="${bodyWrapStyle}">${chunkItemsHtml}</div></div>`;
-      addToCurrent(chunkHtml, chunkActualH);
+      const itemsHtml = chunkItems.map(it => it.outerHTML).join('');
+      const chunkHtml = `<div style="${sectionStyle}">${headHtml}<div style="${bodyWrapStyle}">${itemsHtml}</div></div>`;
+      addToCurrent(chunkHtml, chunkH);
 
-      chunkStart = chunkEnd;
+      chunkStart += chunkItems.length;
       isFirst = false;
       if (chunkStart < items.length) startNewPage();
     }
