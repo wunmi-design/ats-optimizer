@@ -650,7 +650,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.5.1</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.5.2</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -8422,6 +8422,17 @@ const PAGE_HEIGHT_IN = 11;
 function applyPreviewToPages(html) {
   const wrapper = document.getElementById('fmt-preview-pages-wrapper');
   if (!wrapper) return;
+  // Set both the wrapper and its parent (#fmt-live-preview) to bgColor so the entire
+  // preview area — including the space outside the page shadow — matches the template color.
+  wrapper.style.background = bg;
+  const livePreview = document.getElementById('fmt-live-preview');
+  if (livePreview) livePreview.style.background = bg;
+  // Extend the resume background color to the outer gutter so the margin area
+  // matches the page — avoids a gray band around a non-white resume background.
+  const bg = _fmt.bgColor || '#ffffff';
+  const livePreview = document.getElementById('fmt-live-preview');
+  if (livePreview) livePreview.style.background = bg;
+  wrapper.style.background = bg;
   // Per-page styles. The single page becomes one tall continuous render with dashed boundary
   // lines drawn over it at every US Letter (8.5in × 11in) interval so the user can see where
   // the printer will split pages.
@@ -8680,12 +8691,10 @@ function fmtLinkify(raw) {
       const contactItems = contactLines.flatMap(line =>
         line.split(/\s*[·|]\s*/).map(s => s.trim()).filter(Boolean)
       );
-      // Per Bug 58: email/phone/location render in black (#111). Portfolio/website + LinkedIn
-      // render in blue (#1a5fa5). Nothing underlined.
+      // All contact items use body text color — no special link color in the contact section.
+      const contactTextColor = _fmt.textColor || '#111';
       const contactHtml=contactItems.map(item=>{
-        const isLink=/http|www\.|\.com|\.io|\.co|linkedin|github/i.test(item) && !item.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/);
-        const color=isLink?'#1a5fa5':'#111';
-        return `<div style="font-size:${size};font-family:${font},Arial,sans-serif;color:${color};line-height:1.55;">${fmtLinkify(item)}</div>`;
+        return `<div style="font-size:${size};font-family:${font},Arial,sans-serif;color:${contactTextColor};line-height:1.55;">${fmtLinkify(item)}</div>`;
       }).join('');
       const titleLS = _fmt.titleLetterSpacing || '0.05em';
       const titleHtml=title?`<div style="font-size:${rolePx};font-weight:${titleWeight};font-style:${titleStyle};color:#666;letter-spacing:${titleLS};margin-top:.06in;font-family:${roleFont},Arial,sans-serif;line-height:1.2;">${e(title)}</div>`:'';
