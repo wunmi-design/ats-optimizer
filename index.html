@@ -694,7 +694,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.1.2</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.1.3</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -7655,6 +7655,45 @@ ${text}`;
   }
 }
 
+// Cross-section dedup. The pro summary (top of resume, before first role) often restates the
+// strongest bullet metric — e.g. summary says "drove 26% MAU growth" and a bullet says
+// "Drove 26% MAU growth and 90% card activation". The bullet always has more context, so
+// we remove duplicated metrics from the SUMMARY (never from bullets) and rewrite the
+// summary sentence so it still reads naturally.
+async function dedupeSummaryVsBullets(text) {
+  try {
+    const prompt = `Your only job: find any specific metric (percentage, headcount, dollar amount, user/device count, year-over-year figure) that appears BOTH in the professional summary (the lines at the top of the resume, before the first role header) AND anywhere later in the resume (role summaries or bullets). For each duplicate, REMOVE it from the SUMMARY only — never from the bullets — and rewrite that summary sentence so it still reads naturally.
+
+WHAT COUNTS AS A DUPLICATE:
+- Same percentage (e.g. "26% MAU growth" in summary AND "26% MAU growth" in a bullet)
+- Same scale figure (e.g. "342M devices", "41M customers", "16M households", "50K users")
+- Same headcount (e.g. "team of 30", "9 designers", "6+ designers")
+- Same outcome phrase reusing the same metric (e.g. "drove 26% MAU growth" in summary AND "Drove 26% MAU growth and 90% card activation" in a bullet — the 26% MAU growth is a duplicate)
+
+REPLACEMENT PRINCIPLE — the summary describes WHO the candidate is, not WHAT bullets already say:
+- Replace duplicated metrics with seniority/scope language: years of experience, breadth of sectors, leadership scope at a tier level, expertise areas
+- Keep the summary at 50-75 words, 3-4 sentences, first person, confident, active voice
+- Do not introduce new metrics — only remove
+- Preserve the target-role value proposition at the end
+
+RULES:
+- ONLY rewrite the professional summary. Do NOT touch role headers, role summaries, bullets, skills, education, awards, or any other section.
+- Do NOT add new metrics, products, team members, or facts to the summary.
+- Do NOT delete the summary entirely — rewrite it.
+- If no duplicate metrics exist between summary and bullets, return the resume completely unchanged.
+
+Return ONLY the complete plain-text resume, no commentary, no code fences.
+
+RESUME:
+${text}`;
+    const result = await claudeFetch(prompt, 4000);
+    return result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim();
+  } catch (e) {
+    console.warn('dedupeSummaryVsBullets failed, returning original:', e);
+    return text;
+  }
+}
+
 // Final safety net — strips placeholder metric tokens that prompts may have leaked through.
 // Pure regex, no API call, can't fail. Targets common placeholder shapes.
 function stripPlaceholders(text) {
@@ -8048,12 +8087,17 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     overlaySub.textContent = 'Removing duplicate metrics across bullets';
     const deduped = await dedupeBulletMetrics(phraseDeduped);
 
+    // Phase 2c: Remove metrics from the summary that already appear in bullets.
+    // Bullets always have more context, so we keep them and rewrite the summary.
+    overlaySub.textContent = 'Removing duplicate facts between summary and bullets';
+    const summaryDeduped = await dedupeSummaryVsBullets(deduped);
+
     // Phase 3: Differentiate near-duplicate bullets across roles at the same employer.
     // Rewrites the less-specific occurrence using only facts already in that role, or deletes
     // the duplicate if no honest differentiation is possible. Critical at senior levels where
     // generic same-company language reads as careless copy-paste.
     overlaySub.textContent = 'Differentiating roles at the same employer';
-    const differentiated = await differentiateSameEmployerRoles(deduped);
+    const differentiated = await differentiateSameEmployerRoles(summaryDeduped);
 
     // Phase 4: Cross-role boilerplate dedup — catches filler phrases repeated across unrelated
     // roles (e.g. "building tools that help teams work effectively" in both Yodle and Verizon).
@@ -8351,8 +8395,11 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     overlaySub.textContent = 'Removing duplicate metrics across bullets';
     const deduped = await dedupeBulletMetrics(phraseDeduped);
 
+    overlaySub.textContent = 'Removing duplicate facts between summary and bullets';
+    const summaryDeduped = await dedupeSummaryVsBullets(deduped);
+
     overlaySub.textContent = 'Differentiating roles at the same employer';
-    const differentiated = await differentiateSameEmployerRoles(deduped);
+    const differentiated = await differentiateSameEmployerRoles(summaryDeduped);
 
     overlaySub.textContent = 'Removing repeated boilerplate across roles';
     const boilerplateCleaned = await dedupeCrossRoleBoilerplate(differentiated);
@@ -8562,15 +8609,33 @@ JD:\n${jdText.slice(0,2000)}`;
   try {
     if (selected.includes('summary')) {
       msg.textContent = 'Rewriting summary...';
+      // Build a list of bullet text so the summary writer knows what metrics are already
+      // covered downstream. The summary must NOT repeat any specific metric that appears
+      // in a bullet — bullets always have more surrounding context.
+      const bulletDump = (proj.ce.roles || [])
+        .flatMap(r => (r.bullets || []).map(b => `• ${b.text || ''}`))
+        .filter(s => s.trim().length > 2)
+        .join('\n');
       const raw = await claudeFetch(`Rewrite ONLY the professional summary of this resume. ${rules}
 
-SUMMARY RULES:
-- Length: 3–5 lines, approximately 50–100 words
-- Use exact keywords from the job description — ATS depends on keyword matching
-- Lead with title/seniority and strongest quantified result
-- Focus on results-oriented statements — no vague phrases like "hard worker", "passionate", "dynamic", "proven track record of success"
-- Every sentence must add specific value — no filler
+SUMMARY RULES (senior-level, ATS-optimized):
+- 3–4 sentences, 50–75 words, first person, confident and active voice
+- Lead with seniority + years of experience + sector breadth (e.g. "Senior Product Design leader with X years across FinTech and Connected Home")
+- Convey strategic thinking, leadership scope, and expertise areas — describe WHO the candidate is at a tier level, not WHAT each bullet already says
+- Weave in exact keywords from the job description where they fit naturally — never stuff
 - End with a clear value proposition tied to the target role
+- No filler words or clichés: "hard worker", "passionate", "dynamic", "results-driven", "proven track record", "synergy", "spearheaded"
+- Banned em dashes — use commas or periods instead
+
+CRITICAL — NO DUPLICATE FACTS:
+The summary must NOT repeat any specific metric (percentage, headcount, dollar amount, user/device/customer count) that already appears in any bullet. The bullet always has more context, so the summary uses scope/tier language instead.
+
+EXISTING BULLET METRICS — do NOT reuse any of these in the summary:
+${bulletDump || '(none)'}
+
+If the current summary contains a metric that appears in a bullet above, replace that metric in the summary with seniority/scope language (years of experience, sector breadth, team scope at a tier level, expertise areas).
+
+NEVER FABRICATE — use only facts already in the resume.
 
 Return ONLY the new summary text. No labels, no quotes, nothing else.
 TARGET ROLE: ${g('jd-title') || proj?.jdTitle || ''}
