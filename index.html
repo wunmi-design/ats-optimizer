@@ -694,7 +694,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.3.3</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.3.4</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -11677,9 +11677,32 @@ function buildResumeTextFromCE(ce) {
   // misclassify an all-caps title like "DES" or "DESIGN" as a section heading.
   if (name) lines.push(name);
   const loc = [c.city, c.state].filter(Boolean).join(', ');
-  // Build contact lines from per-field line assignments
+  // Build contact lines from per-field line assignments.
+  // NEW 5-LINE STACK (Standard template request):
+  //   Line 1: email
+  //   Line 2: phone
+  //   Line 3: location (city, state)
+  //   Line 4: portfolio / website
+  //   Line 5: LinkedIn
+  // Email rendering color: the Standard renderer wraps each item in a div with
+  // color = _fmt.textColor (#111 by default), and fmtLinkify uses color:inherit
+  // for the <a>, so emails inherit black naturally — no link-blue.
+  //
+  // Migration: any project still carrying the legacy 2-line default
+  // (portfolio+email+linkedin line 1, phone+location line 2) is treated as
+  // "uncustomized" and upgraded to the new 5-line layout. Projects with any
+  // other contactOrder are preserved as-is.
   const fieldMap = { email: c.email, phone: c.phone, linkedin: c.linkedin, portfolio: c.portfolio, location: loc };
-  const rawOrder = ce.contactOrder || [{key:'portfolio',line:1},{key:'email',line:1},{key:'linkedin',line:1},{key:'phone',line:2},{key:'location',line:2}];
+  const NEW_DEFAULT = [
+    {key:'email',     line:1},
+    {key:'phone',     line:2},
+    {key:'location',  line:3},
+    {key:'portfolio', line:4},
+    {key:'linkedin',  line:5}
+  ];
+  const LEGACY_DEFAULT_JSON = JSON.stringify([{key:'portfolio',line:1},{key:'email',line:1},{key:'linkedin',line:1},{key:'phone',line:2},{key:'location',line:2}]);
+  const hasCustom = ce.contactOrder && JSON.stringify(ce.contactOrder) !== LEGACY_DEFAULT_JSON;
+  const rawOrder = hasCustom ? ce.contactOrder : NEW_DEFAULT;
   const order = (typeof rawOrder[0] === 'string')
     ? rawOrder.map((k,i) => ({key:k, line: i<3?1:2}))
     : rawOrder;
