@@ -650,7 +650,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.0.3</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.1.0</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -6958,6 +6958,85 @@ function measureRenderedPages(text) {
   }
 }
 
+// Parses the END year from a role header line like "Title · Company · 09/25 – Present · Location"
+// Returns the year as a 4-digit number, or current year if "Present"/"Current", or null if no match.
+function parseRoleEndYear(roleHeader) {
+  // Match date range: MM/YY - MM/YY OR MM/YY - Present
+  const match = roleHeader.match(/\d{1,2}\/(\d{2})\s*[–\-]\s*(?:(\d{1,2})\/(\d{2})|Present|Current)/i);
+  if (!match) return null;
+  // If "Present/Current" match[2] is undefined → use current year
+  if (!match[2]) return new Date().getFullYear();
+  // Otherwise convert 2-digit year to 4-digit
+  const yy = parseInt(match[3], 10);
+  return yy < 50 ? 2000 + yy : 1900 + yy;
+}
+
+// Identifies roles whose END year is older than the staleness threshold (default 15 years).
+// Returns array of { startLine, endLine, header, endYear, age } for each stale role.
+// Used to alert the user (or programmatically remove if the AI didn't follow the rule).
+function findStaleRoles(text, thresholdYears) {
+  const threshold = thresholdYears || 15;
+  const currentYear = new Date().getFullYear();
+  const lines = text.split('\n');
+  const stale = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    // Detect role header: contains MM/YY range
+    if (!/\d{1,2}\/\d{2}\s*[–\-]\s*(?:\d{1,2}\/\d{2}|Present|Current)/i.test(line)) continue;
+    
+    const endYear = parseRoleEndYear(line);
+    if (!endYear) continue;
+    const age = currentYear - endYear;
+    if (age < threshold) continue;
+    
+    // Found a stale role — find its end (next role header, next ALL-CAPS section, or EOF)
+    let endLine = lines.length;
+    for (let j = i + 1; j < lines.length; j++) {
+      const next = lines[j].trim();
+      // Next role header (has date range)?
+      if (/\d{1,2}\/\d{2}\s*[–\-]\s*(?:\d{1,2}\/\d{2}|Present|Current)/i.test(next)) {
+        endLine = j;
+        break;
+      }
+      // Next section header (ALL CAPS)?
+      if (next.length > 2 && next === next.toUpperCase() && /^[A-Z][A-Z\s&\/]+$/.test(next)) {
+        endLine = j;
+        break;
+      }
+    }
+    
+    stale.push({ startLine: i, endLine, header: line.trim(), endYear, age });
+  }
+  
+  return stale;
+}
+
+// Removes stale roles (>15 years old by default) from resume text.
+// Returns trimmed text only if stale roles were found; otherwise returns original.
+function removeStaleRoles(text, thresholdYears) {
+  const stale = findStaleRoles(text, thresholdYears);
+  if (stale.length === 0) return text;
+  
+  const lines = text.split('\n');
+  // Mark lines to remove (work backwards so indices don't shift)
+  const toRemove = new Set();
+  for (const role of stale) {
+    for (let j = role.startLine; j < role.endLine; j++) {
+      toRemove.add(j);
+    }
+    // Also strip trailing blank lines after the removed role
+    let j = role.endLine;
+    while (j < lines.length && !lines[j].trim() && !toRemove.has(j)) {
+      toRemove.add(j);
+      j++;
+    }
+  }
+  
+  const kept = lines.filter((_, i) => !toRemove.has(i));
+  return kept.join('\n').trimEnd();
+}
+
 // AWARDS handling — rule-based assessment per industry guidelines:
 // 
 // REMOVE awards when:
@@ -7074,11 +7153,24 @@ async function trimToTargetLength(text) {
   const awardsExist = awardsSection !== null && awardsSection.bodyLines.length > 0;
   const keepAwards = awardsExist ? shouldKeepAwards(awardsSection.bodyLines) : true;
   
+  // STALE ROLE REMOVAL — drop roles ended 15+ years ago (industry best practice).
+  // Apply BEFORE other trimming since it saves more space than bullet trimming.
+  let workingText = text;
+  const staleRoles = findStaleRoles(text, 15);
+  if (staleRoles.length > 0) {
+    workingText = removeStaleRoles(text, 15);
+    console.log(`Removed ${staleRoles.length} stale role(s) (>15 years old): ${staleRoles.map(r => r.header.substring(0, 50)).join(' | ')}`);
+    // Re-check if we now fit
+    const newPages = measureRenderedPages(workingText);
+    if (newPages !== null && newPages <= analysis.targetPages + 0.02) {
+      return workingText;
+    }
+  }
+  
   // If awards are old/non-prestigious AND resume is over → remove them upfront
   // This gives the AI a cleaner starting point to trim within the page limit.
-  let workingText = text;
   if (awardsExist && !keepAwards) {
-    workingText = removeAwardsIfStale(text);
+    workingText = removeAwardsIfStale(workingText);
     if (workingText !== text) {
       console.log('AWARDS removed upfront — old/non-prestigious per rule');
       // Re-check if we now fit
@@ -7126,6 +7218,19 @@ TARGET: ${targetChars} characters maximum, MUST fit on ${analysis.targetPages} p
 REDUCTION NEEDED: approximately ${reductionPct}% — be aggressive
 
 CRITICAL CONSTRAINT: Output MUST fit on exactly ${analysis.targetPages} page(s).
+
+═══════════════════════════════════════════════════════
+STALE ROLE REMOVAL (apply BEFORE trimming bullets)
+═══════════════════════════════════════════════════════
+CURRENT YEAR: ${new Date().getFullYear()}. Modern resume best practice = last 10-15 years
+of relevant experience. For each role, check END date:
+- Ended ≤10 years ago: KEEP
+- Ended 10-15 years ago: KEEP only if same job family as target title
+- Ended >15 years ago: REMOVE the entire role (header + description + bullets) unless
+  it's extremely prestigious or directly relevant
+
+When stale roles exist, removing them is the FIRST trim move — saves more space than
+trimming bullets from kept roles.
 
 AWARDS GUIDANCE: ${awardsGuidance}
 
@@ -7733,6 +7838,29 @@ async function applySelectedFixes(){
       `GOAL: Find the strongest HONEST angle this candidate has on this JD, and amplify it. The goal is NOT to make the resume look like the JD. Bridges to gaps must come from real transferable strengths, never from invented experience.
 
 ═══════════════════════════════════════════════════════
+STALE ROLE REMOVAL (critical thinking required)
+═══════════════════════════════════════════════════════
+Modern resume best practice: show the last 10-15 years of relevant experience.
+Apply critical thinking — older roles should generally be REMOVED unless directly
+relevant to the target title.
+
+CURRENT YEAR: ${new Date().getFullYear()}. For each role, check the END date:
+- Role ended ≤10 years ago: KEEP (recent and relevant)
+- Role ended 10-15 years ago: KEEP only if same job family as target title
+- Role ended >15 years ago: REMOVE unless extremely prestigious or directly relevant
+- Pre-15-year agency/art-direction roles are NOT relevant for product design leadership today
+
+EXAMPLES of stale role removal:
+- Target = "Director of Product Design", role from 2007-2011 as "Art Director" at an agency → REMOVE (different job family, 14+ years old)
+- Target = "Director of Product Design", role from 2011-2013 as "Art Director" at Huge → REMOVE (different job family, 12+ years old)
+- Target = "Director of Product Design", role from 2015 as "Head of Product Design" at startup → KEEP (same family, borderline age)
+
+ROLE HEADER PRESERVATION RULE (UPDATED):
+- NEVER drop role headers for roles ended within last 15 years
+- Roles ended 15+ years ago MAY be removed entirely per Stale Role Removal rule
+- When removing a stale role, remove the ENTIRE role block (header + description + bullets), not just bullets
+
+═══════════════════════════════════════════════════════
 ROLE DESCRIPTION CONSISTENCY (non-negotiable)
 ═══════════════════════════════════════════════════════
 EVERY role must have a 1-sentence description (~80-140 chars) between the role header
@@ -7820,14 +7948,23 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     overlaySub.textContent = 'Limiting bullets to 3 per role';
     const bulletsCapped = capBulletsPerRole(boilerplateCleaned);
 
+    // Phase 4b2: Stale role removal — drop roles ended 15+ years ago (industry best practice).
+    // Programmatic backstop — even if the AI didn't follow the prompt rule, this enforces it.
+    overlaySub.textContent = 'Removing roles older than 15 years';
+    const staleRoles = findStaleRoles(bulletsCapped, 15);
+    const staleRemoved = staleRoles.length > 0 ? removeStaleRoles(bulletsCapped, 15) : bulletsCapped;
+    if (staleRoles.length > 0) {
+      console.log(`Pipeline removed ${staleRoles.length} stale role(s):`, staleRoles.map(r => r.header.substring(0, 60)));
+    }
+
     // Phase 4c: Auto-trim to recommended length based on YOE.
     // Standard guideline: <5y=1pg, 5-10y=1-2pg, 10-15y=2pg, 15-20y=2pg, 20+y=2-3pg
     // ALWAYS call trim — it does its own internal gating (returns input unchanged if
     // both char count AND visual rendering say we fit). This catches edge cases where
     // char count is fine but visually we orphan to next page.
-    const lengthAnalysis = RESUME_LENGTH.analyze(bulletsCapped);
+    const lengthAnalysis = RESUME_LENGTH.analyze(staleRemoved);
     overlaySub.textContent = `Verifying length fits ${lengthAnalysis.recommended.label}`;
-    const lengthAdjusted = await trimToTargetLength(bulletsCapped);
+    const lengthAdjusted = await trimToTargetLength(staleRemoved);
     
     // Phase 4d: Validate role description consistency — every role must have a description.
     // This is informational (logged to console) since the prompts now enforce this; the
@@ -8107,10 +8244,18 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     overlaySub.textContent = 'Limiting bullets to 3 per role';
     const bulletsCapped = capBulletsPerRole(boilerplateCleaned);
 
+    // Stale role removal — drop roles ended 15+ years ago
+    overlaySub.textContent = 'Removing roles older than 15 years';
+    const staleRoles = findStaleRoles(bulletsCapped, 15);
+    const staleRemoved = staleRoles.length > 0 ? removeStaleRoles(bulletsCapped, 15) : bulletsCapped;
+    if (staleRoles.length > 0) {
+      console.log(`autoOptimize removed ${staleRoles.length} stale role(s):`, staleRoles.map(r => r.header.substring(0, 60)));
+    }
+
     // Auto-trim to recommended length based on YOE — always call (has internal gating)
-    const lengthAnalysis = RESUME_LENGTH.analyze(bulletsCapped);
+    const lengthAnalysis = RESUME_LENGTH.analyze(staleRemoved);
     overlaySub.textContent = `Verifying length fits ${lengthAnalysis.recommended.label}`;
-    const lengthAdjusted = await trimToTargetLength(bulletsCapped);
+    const lengthAdjusted = await trimToTargetLength(staleRemoved);
 
     overlaySub.textContent = 'Prioritizing skills for this role';
     const skillsCapped = await capSkillsTo30(lengthAdjusted);
@@ -11586,4 +11731,4 @@ async function autoLoadSystemFonts() {
 </script>
 
 
-</body></html><!-- Force rebuild 1778467127 -->
+</body></html><!-- Force rebuild 1778468503 -->
