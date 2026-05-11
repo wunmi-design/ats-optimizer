@@ -694,7 +694,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.2.0</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.3.0</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -6137,9 +6137,20 @@ ${(proj.appliedFixes||[]).length ? 'ALREADY APPLIED (do NOT re-suggest these):\n
       ['bullet_quality', 'Bullets', score.bullet_quality],
     ].filter(([,, v]) => v && v < 90).sort((a,b) => a[2]-b[2]).map(([,l,v]) => `${l}=${v}%`).join(', ');
 
+    // Detect the candidate's career stage so every suggestion stays stage-appropriate.
+    // Entry-level users shouldn't get "drive strategy" suggestions; executives shouldn't get
+    // "demonstrate ability to learn" suggestions. PDF Prompt #16.
+    const careerStage = CAREER_STAGE.detect(resume);
+    const stageGuidance = CAREER_STAGE.guidance(careerStage);
+
     const deepRaw = await claudeFetch(`Analyze this resume against the job description. Return ONLY valid JSON:
 {"missing_keywords":[{"keyword":"exact JD term","context":"where in JD"}],"weak_phrases":[{"original":"weak phrase","stronger":"better version","reason":"why"}],"impact_issues":[{"bullet":"bullet text up to 80 chars","suggestion":"add outcome"}],"gaps":[{"text":"gap description","suggestion":"how to address"}],"quantification_suggestions":[{"original":"unquantified bullet text up to 80 chars","suggested_metric":"defensible metric phrase","reasoning":"which existing resume fact supports this"}],"skill_audit":{"generic_skills":["Communication","Problem Solving"],"outdated_skills":["FrontPage"],"reorder_hint":"which category should move first based on JD relevance"}}
 ${scoreContext}
+
+${stageGuidance}
+
+ALL SUGGESTIONS BELOW MUST MATCH THE CAREER STAGE GUIDANCE ABOVE. Do not suggest executive-tier language for an entry-level candidate. Do not suggest entry-level "learning velocity" framing for an executive. Match the stage.
+
 TARGET: Generate suggestions that will raise the overall score from ${score.overall||0}% to 90%+. Focus on the lowest-scoring dimensions: ${lowScores||'all areas'}.
 PRIORITY ORDER — address these in order:
 1. TITLE: If title_alignment < 100, the resume title MUST exactly match the JD title. Flag this first.
@@ -7012,6 +7023,94 @@ const RESUME_LENGTH = {
 };
 
 // ═══════════════════════════════════════════════════════
+//  CAREER STAGE DETECTION (PDF Prompt #16 — Level-Appropriate Language)
+// ═══════════════════════════════════════════════════════
+//
+// The app serves people at all career stages. A 23-year-old applying for their first PM role
+// shouldn't get "executive presence" framing; a director shouldn't get "demonstrated ability to
+// learn quickly". This module detects the candidate's career stage from years of experience and
+// title signals, then provides per-stage prompt guidance that gets injected into every content
+// generation prompt (summary, bullets, quantification suggestions, etc).
+//
+// Stages:
+//   entry     0-2 years OR junior/associate/intern title
+//   mid       3-7 years, individual contributor with growing scope
+//   senior    8-14 years OR senior/principal/lead/staff title
+//   executive 15+ years OR VP/Director/Head/Chief title
+//
+// Title signals BEAT years when they conflict — a 30-year career with no leadership titles is
+// senior IC, not executive.
+
+const CAREER_STAGE = {
+  detect: function(resumeText) {
+    if (!resumeText) return 'mid';
+    const yoe = RESUME_LENGTH.calculateYOE(resumeText) || 0;
+
+    // Extract title-bearing lines. Titles in this app live on lines that match the role-header
+    // pattern (Title · Company · Date – Date · Location) or appear after the candidate name.
+    const titleText = (resumeText.match(/^[^·\n]+(?=\s+·\s+[^·\n]+\s+·\s+\d)/gm) || [])
+      .concat(resumeText.split('\n').slice(0, 4))
+      .join(' ')
+      .toLowerCase();
+
+    const hasExec = /\b(vp|vice president|svp|evp|chief|cto|cfo|ceo|cmo|coo|cpo|cdo|president|partner)\b/.test(titleText);
+    const hasDirector = /\b(director|head of|head,)\b/.test(titleText);
+    const hasSeniorIC = /\b(senior|sr\.?|principal|lead|staff|architect|distinguished)\b/.test(titleText);
+    const hasJunior = /\b(junior|jr\.?|associate|intern|trainee|entry|coordinator|assistant|apprentice)\b/.test(titleText);
+
+    // Title signals dominate when present.
+    if (hasExec) return 'executive';
+    if (hasDirector && yoe >= 8) return 'executive';
+    if (hasDirector) return 'senior';
+    if (hasJunior && yoe < 4) return 'entry';
+    if (hasSeniorIC && yoe >= 6) return 'senior';
+
+    // Fall back to years.
+    if (yoe >= 15) return 'executive';
+    if (yoe >= 8) return 'senior';
+    if (yoe < 2.5) return 'entry';
+    return 'mid';
+  },
+
+  // Per-stage prompt fragment. Inject this into ANY prompt that writes resume content so the
+  // voice, claim level, and framing match the candidate's actual career stage. Keeps the app
+  // honest at every level: never overclaims for early-career, never underclaims for executives.
+  guidance: function(stage) {
+    switch (stage) {
+      case 'entry':
+        return `CAREER STAGE: ENTRY-LEVEL (0-2 years of experience)
+- Lead with skills, certifications, education, projects, internships, and demonstrated potential
+- Acceptable language: "developed proficiency in," "contributed to," "supported," "collaborated on," "exposure to," "built foundational expertise in"
+- FORBIDDEN at this stage: "led teams of," "drove strategy for," "scaled organizations," "transformed," "set vision," "executive presence," "X+ years of senior leadership"
+- The summary emphasizes foundation, learning velocity, and target-role readiness, not tenure or executive scope
+- Bullets emphasize tangible contributions and learning, not org-level transformation`;
+      case 'mid':
+        return `CAREER STAGE: MID-CAREER (3-7 years of experience)
+- Lead with concrete contributions and growing scope of ownership
+- Acceptable language: "owned," "drove," "delivered," "partnered with," "shipped," "led the design of," "mentored"
+- FORBIDDEN at this stage: "scaled organizations," "set strategic vision," "transformed the function," "executive leadership"
+- Some leadership signals are appropriate (mentored peers, led specific initiatives) ONLY if documented in the resume
+- Frame contributions at the feature/product/team level, not the org/company level`;
+      case 'senior':
+        return `CAREER STAGE: SENIOR (8-14 years OR senior/principal/lead title)
+- Lead with cross-functional impact, team scope, and strategic thinking
+- Acceptable language: "led teams of," "drove strategy for," "scaled," "established," "mentored designers," "set direction for"
+- Frame contributions at the system/multi-team/org level, not the feature level
+- The summary conveys expertise depth and leadership scope at a tier level, not project execution
+- Reserve "transformed" and "set company vision" for executive-level only — they sound inflated here`;
+      case 'executive':
+        return `CAREER STAGE: EXECUTIVE (15+ years OR VP/Director/Head/Chief title)
+- Lead with organizational impact, vision, board-level communication, and multi-org scope
+- Acceptable language: "set vision for," "transformed the function," "established the discipline of," "scaled organizations from X to Y," "drove company-wide"
+- Frame contributions at the company/multi-org/industry level, not the team or project level
+- The summary conveys strategic leadership and organizational impact, not individual contribution
+- AVOID "demonstrated ability to learn quickly," "growing proficiency in," or any phrase that signals early-career framing`;
+    }
+    return '';
+  }
+};
+
+// ═══════════════════════════════════════════════════════
 //  BULLET CAP
 // ═══════════════════════════════════════════════════════
 // Limit each role's bullets to a maximum of N (default 3). Removes extra bullets after the Nth.
@@ -7719,7 +7818,11 @@ ${text}`;
 // summary sentence so it still reads naturally.
 async function dedupeSummaryVsBullets(text) {
   try {
+    const careerStage = CAREER_STAGE.detect(text);
+    const stageGuidance = CAREER_STAGE.guidance(careerStage);
     const prompt = `Your only job: find any specific metric (percentage, headcount, dollar amount, user/device count, year-over-year figure) that appears BOTH in the professional summary (the lines at the top of the resume, before the first role header) AND anywhere later in the resume (role summaries or bullets). For each duplicate, REMOVE it from the SUMMARY only — never from the bullets — and rewrite that summary sentence so it still reads naturally.
+
+${stageGuidance}
 
 WHAT COUNTS AS A DUPLICATE:
 - Same percentage (e.g. "26% MAU growth" in summary AND "26% MAU growth" in a bullet)
@@ -7728,10 +7831,11 @@ WHAT COUNTS AS A DUPLICATE:
 - Same outcome phrase reusing the same metric (e.g. "drove 26% MAU growth" in summary AND "Drove 26% MAU growth and 90% card activation" in a bullet — the 26% MAU growth is a duplicate)
 
 REPLACEMENT PRINCIPLE — the summary describes WHO the candidate is, not WHAT bullets already say:
-- Replace duplicated metrics with seniority/scope language: years of experience, breadth of sectors, leadership scope at a tier level, expertise areas
+- Replace duplicated metrics with stage-appropriate scope language (match the CAREER STAGE guidance above exactly)
 - Keep the summary at 50-75 words, 3-4 sentences, first person, confident, active voice
 - Do not introduce new metrics — only remove
 - Preserve the target-role value proposition at the end
+- The replacement language MUST match the candidate's actual career stage. Do not write "led teams of" or "drove strategy" if the stage is entry-level. Do not write "growing proficiency" if the stage is executive.
 
 RULES:
 - ONLY rewrite the professional summary. Do NOT touch role headers, role summaries, bullets, skills, education, awards, or any other section.
@@ -8024,10 +8128,13 @@ async function applySelectedFixes(){
     const verifiedFacts = buildVerifiedFacts();
     const verifiedFactsBlock = verifiedFacts ? `\n\nVERIFIED FACTS — the closed world of this candidate's actual experience. You may rephrase, reorder, emphasize, or sharpen anything below. You may NOT introduce anything outside it.\n\n${verifiedFacts}` : '';
     const bulletContextBlock = buildBulletContextBlock();
+    // Detect career stage so the rewrite voice matches the candidate. PDF Prompt #16.
+    const careerStage = CAREER_STAGE.detect(resume);
+    const stageGuidanceBlock = `\n\n═══════════════════════════════════════════════════════\nCAREER STAGE (PDF Prompt #16 — voice, claim level, framing)\n═══════════════════════════════════════════════════════\n${CAREER_STAGE.guidance(careerStage)}\n\nEvery rewritten summary line, bullet, and skill phrase MUST match the career stage above. Do not borrow executive-tier language for an entry-level candidate. Do not use entry-level "learning velocity" framing for an executive. Match the stage exactly.\n`;
 
     const result = await claudeFetch(
       `GOAL: Find the strongest HONEST angle this candidate has on this JD, and amplify it. The goal is NOT to make the resume look like the JD. Bridges to gaps must come from real transferable strengths, never from invented experience.
-
+${stageGuidanceBlock}
 ═══════════════════════════════════════════════════════
 RELEVANCE-BASED BULLET ALLOCATION (critical)
 ═══════════════════════════════════════════════════════
@@ -8127,7 +8234,7 @@ ${TRUTH_GROUNDING_RULES}
 Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT same section structure and order as the original resume${titleRule}\n- SKILLS must stay organized in labeled categories (e.g. Leadership:, Design:, Product:, Engineering:). If the original has categories, keep them. If not, organize skills into logical categories.\n- When adding keywords to skills, place them in the correct category\n- Do NOT merge all skills into one flat list\n- FORMATTING IS SACRED: Output must use IDENTICAL format as input — same line breaks, spacing, bullet characters, section header style.\n- Do NOT reformat, restructure, merge lines, split lines, add/remove blank lines, or change bullet style.\n- Do NOT change the number of roles, reorder roles, or alter dates/companies.\n- ONLY change the specific text content requested. Everything else stays EXACTLY as-is.\n- WHEN A FIX MODIFIES A BULLET: REPLACE the original bullet with the rewritten version. Never keep both the old bullet AND a rewritten variant of it. The output must contain exactly one bullet for each accomplishment, not the original plus a near-duplicate.\n- NEVER ADD NEW BULLETS that describe the same team, product area, or accomplishment as an existing bullet. If a fix would generate a new bullet, check whether an existing bullet already covers that team/scope/metric. If yes, modify the existing bullet instead of appending a new one.
 - CRITICAL: Before returning, check for duplicate job entries. If any company + title + date combination appears more than once, remove the duplicate. Each role must appear exactly once.
 - CRITICAL: NEVER output placeholder metric tokens. Forbidden: "X%", "XX%", "Y%", "Z%", "[number]%", "[percent]%", "[metric]%", "___%", "TBD%", or any bracketed/blank stand-in for a number. If you don't have a real value from the original resume, write the bullet WITHOUT a percentage — a bullet with no metric is acceptable, a bullet with a placeholder metric is NOT.
-- CRITICAL: Within each role, check for repeated metrics or phrases across bullets. If the same metric (e.g. '26% MAU growth') appears in more than one bullet, remove it from the less specific bullet and keep it only in the bullet that explains it most clearly.\n- SUMMARY DEDUPLICATION: The summary must NOT repeat phrases, metrics, or accomplishments that already appear in bullets. Summary should describe WHO the candidate is (seniority tier, expertise areas, leadership style) — not RECAP what bullets already say. If "26% MAU growth" is in a bullet, do NOT repeat it in the summary.\n- NEVER FABRICATE metrics, percentages, revenue figures, outcomes, team members, products, domains, or accomplishments not present in VERIFIED FACTS. If the original says '26% MAU growth', keep that exact number. Never invent '40% user growth' or '$2M revenue' unless those exact figures exist in VERIFIED FACTS.\n- NEVER USE competitor brand names anywhere in the resume. 'Commercial Card', 'Capital One brand', 'Chase', 'Amex', etc. are competitor product names. Replace with generic terms.\n- CRITICAL: Use FIRST PERSON (I/me/my) throughout. NEVER write in third person (he/she/they/name). Remove all third-person pronouns.
+- CRITICAL: Within each role, check for repeated metrics or phrases across bullets. If the same metric (e.g. '26% MAU growth') appears in more than one bullet, remove it from the less specific bullet and keep it only in the bullet that explains it most clearly.\n- SUMMARY DEDUPLICATION: The summary must NOT repeat phrases, metrics, or accomplishments that already appear in bullets. Summary should describe WHO the candidate is at their actual career stage (see CAREER STAGE block above) — not RECAP what bullets already say. If "26% MAU growth" is in a bullet, do NOT repeat it in the summary. Replacement language must match the career stage exactly.\n- NEVER FABRICATE metrics, percentages, revenue figures, outcomes, team members, products, domains, or accomplishments not present in VERIFIED FACTS. If the original says '26% MAU growth', keep that exact number. Never invent '40% user growth' or '$2M revenue' unless those exact figures exist in VERIFIED FACTS.\n- NEVER USE competitor brand names anywhere in the resume. 'Commercial Card', 'Capital One brand', 'Chase', 'Amex', etc. are competitor product names. Replace with generic terms.\n- CRITICAL: Use FIRST PERSON (I/me/my) throughout. NEVER write in third person (he/she/they/name). Remove all third-person pronouns.
 - BEFORE returning the resume, scan every bullet, summary line, and skill for: (1) any metric not in VERIFIED FACTS, (2) any competitor brand name, (3) any domain/product/team-member that does not appear in VERIFIED FACTS, (4) any verbatim JD phrase grafted onto unrelated work, (5) ANY THIRD-PERSON PRONOUNS. Remove or rewrite all five.\n- SKILLS must stay in labeled categories. NEVER merge into one block.\n- Remove non-skills from the skills section: phrases like 'Business Goals', 'portfolio strategy', 'Experience Design organization' are NOT skills.\n- SUMMARY must be 50-75 words. If the current summary exceeds 75 words, trim it. NEVER let it grow beyond 75 words.\n- NEVER repeat the same phrase twice in the summary. Check for duplicates before returning.\n- The job title directly under the candidate's name MUST exactly match the JD title at the same seniority tier. Do not downgrade.\n- BULLET COUNT BY ROLE POSITION: Role 1 (most recent) → 4-5 bullets; Role 2-3 → 3-4 bullets; Roles 4+ → 2-3 bullets. Recent/highly relevant positions get MORE bullets than older/less relevant ones.\n- Bullets target: ~150 characters each (180 hard ceiling). Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n${verifiedFactsBlock}${bulletContextBlock}\n\n${promptBody}RESUME:\n${resume}`,
       4000
     );
@@ -8673,26 +8780,32 @@ JD:\n${jdText.slice(0,2000)}`;
         .flatMap(r => (r.bullets || []).map(b => `• ${b.text || ''}`))
         .filter(s => s.trim().length > 2)
         .join('\n');
+      // Detect career stage from the existing resume so the summary voice matches the candidate's
+      // actual seniority — not a hardcoded "senior" frame that breaks for early-career users.
+      const careerStage = CAREER_STAGE.detect(getResumeText() || '');
+      const stageGuidance = CAREER_STAGE.guidance(careerStage);
       const raw = await claudeFetch(`Rewrite ONLY the professional summary of this resume. ${rules}
 
-SUMMARY RULES (senior-level, ATS-optimized):
+${stageGuidance}
+
+SUMMARY RULES (ATS-optimized, stage-appropriate):
 - 3–4 sentences, 50–75 words, first person, confident and active voice
-- Lead with seniority + years of experience + sector breadth (e.g. "Senior Product Design leader with X years across FinTech and Connected Home")
-- Convey strategic thinking, leadership scope, and expertise areas — describe WHO the candidate is at a tier level, not WHAT each bullet already says
+- Lead with the candidate's title and stage-appropriate scope (see CAREER STAGE guidance above)
+- Describe WHO the candidate is at this stage, not WHAT each bullet already says
 - Weave in exact keywords from the job description where they fit naturally — never stuff
 - End with a clear value proposition tied to the target role
 - No filler words or clichés: "hard worker", "passionate", "dynamic", "results-driven", "proven track record", "synergy", "spearheaded"
 - Banned em dashes — use commas or periods instead
 
 CRITICAL — NO DUPLICATE FACTS:
-The summary must NOT repeat any specific metric (percentage, headcount, dollar amount, user/device/customer count) that already appears in any bullet. The bullet always has more context, so the summary uses scope/tier language instead.
+The summary must NOT repeat any specific metric (percentage, headcount, dollar amount, user/device/customer count) that already appears in any bullet. The bullet always has more context, so the summary uses scope/stage language instead.
 
 EXISTING BULLET METRICS — do NOT reuse any of these in the summary:
 ${bulletDump || '(none)'}
 
-If the current summary contains a metric that appears in a bullet above, replace that metric in the summary with seniority/scope language (years of experience, sector breadth, team scope at a tier level, expertise areas).
+If the current summary contains a metric that appears in a bullet above, replace that metric with stage-appropriate scope language (years of experience, sector breadth, scope at this career stage, expertise areas).
 
-NEVER FABRICATE — use only facts already in the resume.
+NEVER FABRICATE — use only facts already in the resume. NEVER overclaim seniority — match the CAREER STAGE guidance above exactly.
 
 Return ONLY the new summary text. No labels, no quotes, nothing else.
 TARGET ROLE: ${g('jd-title') || proj?.jdTitle || ''}
