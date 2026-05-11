@@ -694,7 +694,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.3.1</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.3.2</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -793,8 +793,11 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
 
       <!-- ── PROJECTS ── -->
       <div class="panel-view active" id="view-projects">
-        <div class="projects-header">
+        <div class="projects-header" style="display:flex;align-items:center;justify-content:space-between;">
           <h2>Your Projects</h2>
+          <button id="sync-now-btn" class="btn btn-ghost" onclick="manualSync()" style="font-size:12px;display:none;" title="Pull the latest projects from the cloud and push any pending deletes/saves">
+            <span id="sync-now-label">↻ Sync now</span>
+          </button>
         </div>
 
         <!-- Loading row for projects upload -->
@@ -2911,7 +2914,36 @@ function handleAuthClick() {
   }
 }
 
+// Force-resync from cloud. Triggered by the "Sync now" button on the Projects
+// view. Useful when (a) you've made changes on another device and want them
+// here, or (b) you've deleted projects on one device and they're stuck in
+// cloud due to a silent write failure — clicking this retries pending writes
+// then re-fetches authoritative state.
+async function manualSync() {
+  const btn = document.getElementById('sync-now-btn');
+  const label = document.getElementById('sync-now-label');
+  if (!window._atsUser || !window._atsToken) { toast('Sign in to sync'); return; }
+  if (btn) btn.disabled = true;
+  if (label) label.textContent = '↻ Syncing...';
+  try {
+    await ProjectStore.syncFromCloud();
+    renderProjGrid();
+    if (label) label.textContent = '✓ Synced';
+    setTimeout(() => { if (label) label.textContent = '↻ Sync now'; }, 1800);
+  } catch(e) {
+    console.error('manualSync error:', e);
+    if (label) label.textContent = '✗ Failed';
+    setTimeout(() => { if (label) label.textContent = '↻ Sync now'; }, 1800);
+    toast('Sync failed. Check console.');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 function setAuthUI() {
+  // Show the Sync now button only when signed in.
+  const syncBtn = document.getElementById('sync-now-btn');
+  if (syncBtn) syncBtn.style.display = window._atsUser ? 'inline-flex' : 'none';
   if (window._atsUser) {
     const profileBtn = document.getElementById('user-profile-btn');
     const avatar = document.getElementById('user-avatar');
@@ -3282,6 +3314,11 @@ const ProjectStore = {
   // path where the auth session ends (token expiry with failed refresh). Prevents
   // a previous user's projects from leaking to whoever opens the app next on the
   // same device.
+  //
+  // We deliberately PRESERVE ats_pending_deletes and ats_pending_saves — those
+  // are unsynced operations that still need to reach cloud on the next sign-in.
+  // If we wiped them, deletes done offline would never propagate to cloud and
+  // would resurrect on other devices.
   clearLocal() {
     this._cache = null;
     try { localStorage.removeItem(this._key); } catch(e) {}
@@ -3345,11 +3382,19 @@ const ProjectStore = {
     const all = this.getAll().filter(p => !isMatch(p));
     this._cache = all;
     try { localStorage.setItem(this._key, JSON.stringify(all)); } catch(e) {}
-    // Track deleted IDs so syncFromCloud doesn't restore them
+    // Track deleted IDs so syncFromCloud doesn't restore them on THIS device
     try {
       const deleted = JSON.parse(localStorage.getItem('ats_deleted_ids') || '[]');
       if (id && !deleted.includes(id)) deleted.push(id);
       localStorage.setItem('ats_deleted_ids', JSON.stringify(deleted.slice(-100)));
+    } catch(e) {}
+    // Queue this delete for cloud — retry on every sync until cloud confirms.
+    // Without this, a transient network failure or 401 leaves the project in
+    // cloud forever and it reappears on every other device after sign-in.
+    try {
+      const pending = JSON.parse(localStorage.getItem('ats_pending_deletes') || '[]');
+      if (id && !pending.includes(id)) pending.push(id);
+      localStorage.setItem('ats_pending_deletes', JSON.stringify(pending.slice(-200)));
     } catch(e) {}
     if (id) this.deleteFromCloud(id);
   },
@@ -3360,11 +3405,16 @@ const ProjectStore = {
   // Uses existing Supabase table: projects(id, user_id, name, resume_content JSONB, ...)
   // Stores full project object in resume_content JSONB column
   async saveToCloud(p) {
-    if (!window._atsUser || !window._atsToken) return;
+    if (!window._atsUser || !window._atsToken) return false;
     try {
       // Use project name + user_id as unique key (table has UNIQUE(user_id, name))
       // First try to find by matching resume_content->id
       const checkRes = await supaFetch('/rest/v1/projects?select=id&user_id=eq.' + window._atsUser.id + '&resume_content->>id=eq.' + encodeURIComponent(p.id));
+      if (!checkRes.ok) {
+        console.error('Cloud save check failed:', checkRes.status, await checkRes.text());
+        this._queueFailedSave(p);
+        return false;
+      }
       const existing = await checkRes.json();
 
       const row = {
@@ -3374,32 +3424,104 @@ const ProjectStore = {
         updated_at: new Date().toISOString()
       };
 
+      let writeRes;
       if (Array.isArray(existing) && existing.length > 0) {
-        await supaFetch('/rest/v1/projects?id=eq.' + existing[0].id, {
+        writeRes = await supaFetch('/rest/v1/projects?id=eq.' + existing[0].id, {
           method: 'PATCH',
           headers: { 'Prefer': 'return=minimal' },
           body: JSON.stringify({ resume_content: p, updated_at: new Date().toISOString() })
         });
       } else {
-        await supaFetch('/rest/v1/projects', {
+        writeRes = await supaFetch('/rest/v1/projects', {
           method: 'POST',
           headers: { 'Prefer': 'return=minimal' },
           body: JSON.stringify(row)
         });
       }
+      if (!writeRes.ok) {
+        console.error('Cloud save failed:', writeRes.status, await writeRes.text());
+        this._queueFailedSave(p);
+        return false;
+      }
+      // Remove from pending_saves queue if it was queued
+      this._dequeueFailedSave(p.id);
       console.log('Cloud save OK:', p.name);
-    } catch(e) { console.error('Cloud save error:', e); }
+      return true;
+    } catch(e) {
+      console.error('Cloud save error:', e);
+      this._queueFailedSave(p);
+      return false;
+    }
+  },
+  // Queue a failed save so the next syncFromCloud can retry. Stores just the
+  // project id — the actual data comes from local on retry. Caps at 50 entries.
+  _queueFailedSave(p) {
+    try {
+      const q = JSON.parse(localStorage.getItem('ats_pending_saves') || '[]');
+      if (p?.id && !q.includes(p.id)) {
+        q.push(p.id);
+        localStorage.setItem('ats_pending_saves', JSON.stringify(q.slice(-50)));
+      }
+    } catch(e) {}
+  },
+  _dequeueFailedSave(id) {
+    try {
+      const q = JSON.parse(localStorage.getItem('ats_pending_saves') || '[]').filter(x => x !== id);
+      localStorage.setItem('ats_pending_saves', JSON.stringify(q));
+    } catch(e) {}
   },
   async deleteFromCloud(projectId) {
-    if (!window._atsUser || !window._atsToken) return;
+    if (!window._atsUser || !window._atsToken) return false;
     try {
-      await supaFetch('/rest/v1/projects?user_id=eq.' + window._atsUser.id + '&resume_content->>id=eq.' + encodeURIComponent(projectId), {
+      const res = await supaFetch('/rest/v1/projects?user_id=eq.' + window._atsUser.id + '&resume_content->>id=eq.' + encodeURIComponent(projectId), {
         method: 'DELETE'
       });
-    } catch(e) { console.error('Cloud delete error:', e); }
+      if (!res.ok) {
+        console.error('Cloud delete failed:', res.status, await res.text());
+        return false;
+      }
+      // Confirmed gone from cloud — clear the pending tombstone for this id.
+      try {
+        const pending = JSON.parse(localStorage.getItem('ats_pending_deletes') || '[]').filter(x => x !== projectId);
+        localStorage.setItem('ats_pending_deletes', JSON.stringify(pending));
+      } catch(e) {}
+      return true;
+    } catch(e) {
+      console.error('Cloud delete error:', e);
+      return false;
+    }
   },
   async syncFromCloud() {
     if (!window._atsUser || !window._atsToken) { console.log('syncFromCloud: skipped - no user/token'); return; }
+
+    // Step 1: retry any deletes that failed to reach cloud on previous attempts.
+    // Without this, a transient failure on one device leaves the project alive
+    // in cloud and it reappears on every other device after sign-in.
+    try {
+      const pendingDeletes = JSON.parse(localStorage.getItem('ats_pending_deletes') || '[]');
+      if (pendingDeletes.length) {
+        console.log('syncFromCloud: retrying', pendingDeletes.length, 'pending deletes');
+        for (const id of pendingDeletes) {
+          await this.deleteFromCloud(id); // deleteFromCloud removes from pending on success
+        }
+      }
+    } catch(e) { console.warn('Pending deletes retry failed:', e); }
+
+    // Step 2: retry any saves that failed to reach cloud on previous attempts.
+    try {
+      const pendingSaves = JSON.parse(localStorage.getItem('ats_pending_saves') || '[]');
+      if (pendingSaves.length) {
+        console.log('syncFromCloud: retrying', pendingSaves.length, 'pending saves');
+        // Read fresh from localStorage so we get the latest content for each project.
+        const raw = JSON.parse(localStorage.getItem(this._key) || '[]');
+        for (const id of pendingSaves) {
+          const p = raw.find(x => x?.id === id);
+          if (p) await this.saveToCloud(p); // saveToCloud removes from pending on success
+        }
+      }
+    } catch(e) { console.warn('Pending saves retry failed:', e); }
+
+    // Step 3: fetch authoritative cloud state.
     try {
       console.log('syncFromCloud: fetching projects for user', window._atsUser.id);
       const res = await supaFetch('/rest/v1/projects?user_id=eq.' + window._atsUser.id + '&order=updated_at.desc&limit=50');
@@ -3415,23 +3537,34 @@ const ProjectStore = {
       }
       const rows = await res.json();
       console.log('syncFromCloud: got', rows.length, 'rows from cloud');
-      if (Array.isArray(rows) && rows.length > 0) {
-        const deletedIds = JSON.parse(localStorage.getItem('ats_deleted_ids') || '[]');
-        const cloudProjects = rows.map(r => r.resume_content).filter(p => p && !deletedIds.includes(p.id));
-        console.log('syncFromCloud: parsed', cloudProjects.length, 'valid projects');
-        // Merge: cloud wins for conflicts
-        const local = this.getAll();
-        const cloudIds = new Set(cloudProjects.map(p => p.id));
-        const merged = [...cloudProjects];
-        local.forEach(lp => {
-          if (!cloudIds.has(lp.id)) merged.push(lp);
-        });
-        this._cache = merged;
-        try { localStorage.setItem(this._key, JSON.stringify(merged.slice(0, 50))); } catch(e) {}
-        console.log('Cloud sync OK:', cloudProjects.length, 'cloud +', (merged.length - cloudProjects.length), 'local-only');
-      } else {
-        console.log('syncFromCloud: no cloud projects found, keeping local only');
-      }
+      // ALWAYS run the merge, even if rows is empty — empty cloud means clear out
+      // local stragglers that weren't tagged as local-only saves.
+      const deletedIds = JSON.parse(localStorage.getItem('ats_deleted_ids') || '[]');
+      const pendingDeletesNow = JSON.parse(localStorage.getItem('ats_pending_deletes') || '[]');
+      // Filter out anything we've tombstoned locally OR anything still queued for
+      // delete (server may still have it because the delete is still retrying).
+      const tombstoned = new Set([...deletedIds, ...pendingDeletesNow]);
+      const cloudProjects = (Array.isArray(rows) ? rows : [])
+        .map(r => r.resume_content)
+        .filter(p => p && !tombstoned.has(p.id));
+      console.log('syncFromCloud: parsed', cloudProjects.length, 'valid projects');
+      // Merge: cloud wins for conflicts. Only keep local-only entries that are
+      // either pending_saves (queued to upload) OR newer than 60 seconds (in-flight saves).
+      const local = this.getAll();
+      const cloudIds = new Set(cloudProjects.map(p => p.id));
+      const stillPendingSave = new Set(JSON.parse(localStorage.getItem('ats_pending_saves') || '[]'));
+      const sixtySecAgo = Date.now() - 60000;
+      const merged = [...cloudProjects];
+      local.forEach(lp => {
+        if (cloudIds.has(lp.id)) return; // cloud has it, cloud wins
+        // Keep local-only projects only if they're queued for save or very recent
+        if (stillPendingSave.has(lp.id) || (lp.updatedAt && lp.updatedAt > sixtySecAgo)) {
+          merged.push(lp);
+        }
+      });
+      this._cache = merged;
+      try { localStorage.setItem(this._key, JSON.stringify(merged.slice(0, 50))); } catch(e) {}
+      console.log('Cloud sync OK:', cloudProjects.length, 'cloud +', (merged.length - cloudProjects.length), 'pending local');
     } catch(e) { console.error('Cloud sync error:', e); }
   }
 };
