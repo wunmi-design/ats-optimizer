@@ -694,7 +694,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.1.3</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.2.0</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -6138,7 +6138,7 @@ ${(proj.appliedFixes||[]).length ? 'ALREADY APPLIED (do NOT re-suggest these):\n
     ].filter(([,, v]) => v && v < 90).sort((a,b) => a[2]-b[2]).map(([,l,v]) => `${l}=${v}%`).join(', ');
 
     const deepRaw = await claudeFetch(`Analyze this resume against the job description. Return ONLY valid JSON:
-{"missing_keywords":[{"keyword":"exact JD term","context":"where in JD"}],"weak_phrases":[{"original":"weak phrase","stronger":"better version","reason":"why"}],"impact_issues":[{"bullet":"bullet text up to 80 chars","suggestion":"add outcome"}],"gaps":[{"text":"gap description","suggestion":"how to address"}]}
+{"missing_keywords":[{"keyword":"exact JD term","context":"where in JD"}],"weak_phrases":[{"original":"weak phrase","stronger":"better version","reason":"why"}],"impact_issues":[{"bullet":"bullet text up to 80 chars","suggestion":"add outcome"}],"gaps":[{"text":"gap description","suggestion":"how to address"}],"quantification_suggestions":[{"original":"unquantified bullet text up to 80 chars","suggested_metric":"defensible metric phrase","reasoning":"which existing resume fact supports this"}],"skill_audit":{"generic_skills":["Communication","Problem Solving"],"outdated_skills":["FrontPage"],"reorder_hint":"which category should move first based on JD relevance"}}
 ${scoreContext}
 TARGET: Generate suggestions that will raise the overall score from ${score.overall||0}% to 90%+. Focus on the lowest-scoring dimensions: ${lowScores||'all areas'}.
 PRIORITY ORDER — address these in order:
@@ -6147,6 +6147,14 @@ PRIORITY ORDER — address these in order:
 3. SUMMARY: If summary_quality < 90, count the words. If >75, provide a specific rewrite under 70 words. If <50, expand it. Rewrite must be in first-person, no filler, metric-led.
 4. BULLETS: If bullet_quality < 90, find every bullet over 180 characters and rewrite it to ~150 characters. If the original bullet has a real metric, lead with it. If it has no real metric, write the rewrite WITHOUT a percentage — do NOT invent metrics and do NOT use placeholders like "X%", "[number]%", "Y%", "TBD%", or "___%". A bullet with no metric is acceptable; a bullet with a placeholder metric is NOT.
 5. SKILLS: If hard_skills or soft_skills < 90, identify missing JD skills to add and non-skills to remove.
+
+QUANTIFICATION_SUGGESTIONS (new): Scan every bullet. For each bullet WITHOUT a number, percentage, scale figure, or time savings, decide whether the rest of the resume contains a fact that would let you defensibly add ONE metric (team size from another role, scope/breadth count, audience scale, time period, before/after improvement). If yes, return the bullet, the suggested metric phrase, and the supporting fact. If no defensible basis exists, do NOT include that bullet in this list. Max 5 entries. NEVER invent. Skip bullets that already have a metric.
+
+SKILL_AUDIT (new): Examine the SKILLS section only.
+- "generic_skills": list any vague filler skill that weakly signals value: Communication, Problem Solving, Teamwork, Leadership (as a standalone word), Analytical Skills, Time Management, Multitasking, Detail Oriented, Hard Worker, Self-Starter. Empty array if none found.
+- "outdated_skills": list any tech/tool from 10+ years ago no longer in active use: FrontPage, Flash, Silverlight, Lotus Notes, jQuery (as a primary skill), Dreamweaver, Adobe Fireworks, Internet Explorer, ColdFusion. Empty array if none found.
+- "reorder_hint": one short sentence recommending which skill category should appear FIRST based on what the JD emphasizes most heavily. Empty string if the current order already matches JD emphasis.
+
 BE EXHAUSTIVE: Do not stop at 3-4 suggestions. Flag EVERY issue that is holding the score below 90. The user will apply all suggestions at once.
 
 GOAL: Find the strongest HONEST angle this candidate has on this JD, and amplify it. The goal is NOT to make the resume look like the JD. Bridges to gaps must come from real transferable strengths, never from invented experience.
@@ -6159,8 +6167,8 @@ TRUTH GROUNDING (highest-priority rule):
 - Do NOT suggest lifting JD marketing phrases ("win-win-win", "talk and hang out", "players and users") into bullets describing unrelated work.
 - A missing keyword is acceptable. A fabricated bullet is not. When in doubt, suggest dropping the keyword rather than forcing it.
 
-Rules: only flag real issues. Never fabricate metrics, skills, brands, domains, team members, or accomplishments. NEVER output placeholder tokens (X%, Y%, [number], [percent], ___, TBD) in any "stronger" or "suggestion" field — if you don't have a real metric from the resume, write the suggestion without a percentage. NEVER use em dashes (—) in any rewrite. Use commas, periods, or restructure the sentence. Em dashes are an AI tell and don't sound human.
-JOB:\n${jdText.slice(0,2000)}\nRESUME:\n${resume.slice(0,2500)}`, 3000);
+Rules: only flag real issues. Never fabricate metrics, skills, brands, domains, team members, or accomplishments. NEVER output placeholder tokens (X%, Y%, [number], [percent], ___, TBD) in any "stronger" or "suggestion" or "suggested_metric" field — if you don't have a real metric from the resume, do not include the suggestion at all. NEVER use em dashes (—) in any rewrite. Use commas, periods, or restructure the sentence. Em dashes are an AI tell and don't sound human.
+JOB:\n${jdText.slice(0,2000)}\nRESUME:\n${resume.slice(0,2500)}`, 3500);
     const auditRaw = await claudeFetch(`Audit this resume for ATS issues. Return ONLY valid JSON:
 {"checks":[{"id":"c1","label":"Check name","status":"pass|fail|warn","issue":"description if fail/warn"}],"overall":"pass|warn|fail","summary":"..."}
 RESUME:\n${resume.slice(0,1500)}`, 1000);
@@ -6260,6 +6268,55 @@ function renderDeepFixItems(deep) {
   (deep.gaps || []).forEach(g => {
     items.push({ idx: idx++, badge: 'badge-gap', label: 'gap', title: g.text, desc: g.suggestion ? `💡 ${g.suggestion}` : '', type: 'gap' });
   });
+
+  // Pass #2 of the PDF playbook — quantify unquantified bullets with defensible metrics.
+  // before/after wired so applySelectedFixes can replace the bullet directly.
+  (deep.quantification_suggestions || []).forEach(q => {
+    if (!q.original || !q.suggested_metric) return;
+    items.push({
+      idx: idx++,
+      badge: 'badge-weak',
+      label: 'quantify',
+      title: q.original.slice(0,70) + (q.original.length > 70 ? '…' : ''),
+      desc: `📊 Add: "${q.suggested_metric}"${q.reasoning ? ' · ' + q.reasoning : ''}`,
+      type: 'quantification',
+      before: q.original,
+      after: q.suggested_metric
+    });
+  });
+
+  // Pass #5 of the PDF playbook — flag generic/outdated skills and reorder hint.
+  const audit = deep.skill_audit || {};
+  (audit.generic_skills || []).forEach(s => {
+    items.push({
+      idx: idx++,
+      badge: 'badge-gap',
+      label: 'skill',
+      title: `Generic skill: "${s}"`,
+      desc: `💡 Vague filler — replace with a specific skill or remove`,
+      type: 'skill-generic'
+    });
+  });
+  (audit.outdated_skills || []).forEach(s => {
+    items.push({
+      idx: idx++,
+      badge: 'badge-gap',
+      label: 'skill',
+      title: `Outdated: "${s}"`,
+      desc: `💡 Tech no longer in active use — remove`,
+      type: 'skill-outdated'
+    });
+  });
+  if (audit.reorder_hint && audit.reorder_hint.trim()) {
+    items.push({
+      idx: idx++,
+      badge: 'badge-gap',
+      label: 'skill',
+      title: 'Reorder skill categories',
+      desc: `💡 ${audit.reorder_hint}`,
+      type: 'skill-reorder'
+    });
+  }
 
   if (!items.length) { container.innerHTML = ''; return; }
 
