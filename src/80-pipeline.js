@@ -53,12 +53,52 @@ async function applySelectedFixes(){
 
     const result = await claudeFetch(
       `GOAL: Find the strongest HONEST angle this candidate has on this JD, and amplify it. The goal is NOT to make the resume look like the JD. Bridges to gaps must come from real transferable strengths, never from invented experience.
+
+═══════════════════════════════════════════════════════
+SENIORITY PRESERVATION RULE (CRITICAL — non-negotiable)
+═══════════════════════════════════════════════════════
+NEVER weaken the candidate's seniority positioning in pursuit of other optimizations.
+- The TITLE under the candidate's name (e.g., "Director, Design", "VP Product", "Head of UX") must remain at its original seniority tier. Never downgrade "Director" to "Senior" or "Lead". Never strip the title entirely.
+- The SUMMARY must lead with seniority-appropriate framing. If the original says "Director of Design who leads design functions through strategic transitions", keep that framing tier. NEVER reframe to junior phrasing like "Design leader with 6+ years experience" or "Senior designer with X years" when the role is Director-level.
+- Years-of-experience framing is JUNIOR. If the candidate has Director-level seniority, lead with the role, not "X years of experience" or "X+ years managing teams". The latter is appropriate for IC/Senior roles, NOT for Director+/VP/Head-of.
+- Bullets describing leadership scope (team size, budget, distributed teams, hiring, mentoring) must NOT be removed — they signal seniority.
+
+═══════════════════════════════════════════════════════
+HIGH-VALUE CONTENT PROTECTION (CRITICAL — must persist)
+═══════════════════════════════════════════════════════
+These specific content categories MUST NOT BE REMOVED during regeneration unless the candidate explicitly requests it:
+
+1. METRIC-HEAVY BULLETS — any bullet with a specific quantified outcome:
+   - "Reduced component update time from 30 days to 30 minutes" (efficiency metric)
+   - "Drove 300% DAU growth" / "26% MAU growth" / "90% activation rate" (business metric)
+   - "Team of 30 designers and engineers" / "342M connected devices" (scale metric)
+   These are the strongest signals in a resume. Removing them weakens the candidate.
+
+2. DIFFERENTIATING PHILOSOPHY / APPROACH LANGUAGE — bullets that describe unique POV:
+   - "Defined human-centered AI design philosophy"
+   - "Founded and scaled design system from scratch"
+   - "Built design practices from the ground up"
+   These differentiate the candidate from generic candidates with similar titles.
+
+3. ROLE CONTEXT DESCRIPTIONS — the 1-line description below each role title:
+   - "Leading design for Verizon's home products and driving the zero-to-one launch of Verizon Home"
+   - "Delivered engagement and retention improvements leading multidisciplinary teams"
+   These give recruiters quick context. Removing them flattens the resume.
+
+4. MENTORING / TEAM-DEVELOPMENT BULLETS — leadership signal beyond just "led team":
+   - "Mentored designers to reach their potential through hands-on collaboration"
+   - "Hired and developed design team from 5 to 9 designers"
+   - "Fostered inclusive team culture and culture of belonging"
+   These signal senior leadership maturity.
+
+When trimming for length, drop generic process bullets BEFORE these protected categories.
+
 ${TRUTH_GROUNDING_RULES}
 Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT same section structure and order as the original resume${titleRule}\n- SKILLS must stay organized in labeled categories (e.g. Leadership:, Design:, Product:, Engineering:). If the original has categories, keep them. If not, organize skills into logical categories.\n- When adding keywords to skills, place them in the correct category\n- Do NOT merge all skills into one flat list\n- FORMATTING IS SACRED: Output must use IDENTICAL format as input — same line breaks, spacing, bullet characters, section header style.\n- Do NOT reformat, restructure, merge lines, split lines, add/remove blank lines, or change bullet style.\n- Do NOT change the number of roles, reorder roles, or alter dates/companies.\n- ONLY change the specific text content requested. Everything else stays EXACTLY as-is.\n- WHEN A FIX MODIFIES A BULLET: REPLACE the original bullet with the rewritten version. Never keep both the old bullet AND a rewritten variant of it. The output must contain exactly one bullet for each accomplishment, not the original plus a near-duplicate.\n- NEVER ADD NEW BULLETS that describe the same team, product area, or accomplishment as an existing bullet. If a fix would generate a new bullet, check whether an existing bullet already covers that team/scope/metric. If yes, modify the existing bullet instead of appending a new one.
 - CRITICAL: Before returning, check for duplicate job entries. If any company + title + date combination appears more than once, remove the duplicate. Each role must appear exactly once.
 - CRITICAL: NEVER output placeholder metric tokens. Forbidden: "X%", "XX%", "Y%", "Z%", "[number]%", "[percent]%", "[metric]%", "___%", "TBD%", or any bracketed/blank stand-in for a number. If you don't have a real value from the original resume, write the bullet WITHOUT a percentage — a bullet with no metric is acceptable, a bullet with a placeholder metric is NOT.
-- CRITICAL: Within each role, check for repeated metrics or phrases across bullets. If the same metric (e.g. '26% MAU growth') appears in more than one bullet, remove it from the less specific bullet and keep it only in the bullet that explains it most clearly.\n- NEVER FABRICATE metrics, percentages, revenue figures, outcomes, team members, products, domains, or accomplishments not present in VERIFIED FACTS. If the original says '26% MAU growth', keep that exact number. Never invent '40% user growth' or '$2M revenue' unless those exact figures exist in VERIFIED FACTS.\n- NEVER USE competitor brand names anywhere in the resume. 'Commercial Card', 'Capital One brand', 'Chase', 'Amex', etc. are competitor product names. Replace with generic terms.\n- CRITICAL: Use FIRST PERSON (I/me/my) throughout. NEVER write in third person (he/she/they/name). Remove all third-person pronouns.
-- BEFORE returning the resume, scan every bullet, summary line, and skill for: (1) any metric not in VERIFIED FACTS, (2) any competitor brand name, (3) any domain/product/team-member that does not appear in VERIFIED FACTS, (4) any verbatim JD phrase grafted onto unrelated work, (5) ANY THIRD-PERSON PRONOUNS. Remove or rewrite all five.\n- SKILLS must stay in labeled categories. NEVER merge into one block.\n- Remove non-skills from the skills section: phrases like 'Business Goals', 'portfolio strategy', 'Experience Design organization' are NOT skills.\n- SUMMARY must be 50-75 words. If the current summary exceeds 75 words, trim it. NEVER let it grow beyond 75 words.\n- NEVER repeat the same phrase twice in the summary. Check for duplicates before returning.\n- The job title directly under the candidate's name MUST exactly match the JD title. Do not revert it.\n- Bullets target: ~150 characters each (180 hard ceiling). Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n${verifiedFactsBlock}${bulletContextBlock}\n\n${promptBody}RESUME:\n${resume}`,
+- CRITICAL: Within each role, check for repeated metrics or phrases across bullets. If the same metric (e.g. '26% MAU growth') appears in more than one bullet, remove it from the less specific bullet and keep it only in the bullet that explains it most clearly.\n- SUMMARY DEDUPLICATION: The summary must NOT repeat phrases, metrics, or accomplishments that already appear in bullets. Summary should describe WHO the candidate is (seniority tier, expertise areas, leadership style) — not RECAP what bullets already say. If "26% MAU growth" is in a bullet, do NOT repeat it in the summary.\n- NEVER FABRICATE metrics, percentages, revenue figures, outcomes, team members, products, domains, or accomplishments not present in VERIFIED FACTS. If the original says '26% MAU growth', keep that exact number. Never invent '40% user growth' or '$2M revenue' unless those exact figures exist in VERIFIED FACTS.\n- NEVER USE competitor brand names anywhere in the resume. 'Commercial Card', 'Capital One brand', 'Chase', 'Amex', etc. are competitor product names. Replace with generic terms.\n- CRITICAL: Use FIRST PERSON (I/me/my) throughout. NEVER write in third person (he/she/they/name). Remove all third-person pronouns.
+- BEFORE returning the resume, scan every bullet, summary line, and skill for: (1) any metric not in VERIFIED FACTS, (2) any competitor brand name, (3) any domain/product/team-member that does not appear in VERIFIED FACTS, (4) any verbatim JD phrase grafted onto unrelated work, (5) ANY THIRD-PERSON PRONOUNS. Remove or rewrite all five.\n- SKILLS must stay in labeled categories. NEVER merge into one block.\n- Remove non-skills from the skills section: phrases like 'Business Goals', 'portfolio strategy', 'Experience Design organization' are NOT skills.\n- SUMMARY must be 50-75 words. If the current summary exceeds 75 words, trim it. NEVER let it grow beyond 75 words.\n- NEVER repeat the same phrase twice in the summary. Check for duplicates before returning.\n- The job title directly under the candidate's name MUST exactly match the JD title at the same seniority tier. Do not downgrade.\n- BULLET COUNT BY ROLE POSITION: Role 1 (most recent) → 4-5 bullets; Role 2-3 → 3-4 bullets; Roles 4+ → 2-3 bullets. Recent/highly relevant positions get MORE bullets than older/less relevant ones.\n- Bullets target: ~150 characters each (180 hard ceiling). Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n${verifiedFactsBlock}${bulletContextBlock}\n\n${promptBody}RESUME:\n${resume}`,
       4000
     );
     const firstPass = deduplicateResume(result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim());
@@ -664,13 +704,29 @@ async function saveDocx(){
   toast('Generating .docx...');
   if(!window.docx){await new Promise((r,j)=>{const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js';sc.onload=r;sc.onerror=j;document.head.appendChild(sc);});}
   const{Document,Packer,Paragraph,TextRun,AlignmentType,BorderStyle,LevelFormat}=window.docx;
-  const FONT='Arial';const lines=t.split('\n');
+  const FONT='Arial';
+  
+  // Inject the candidate's title (e.g., "Director, Design") between name and contact info.
+  // The title is stored separately in proj.ce.contact.title and not in the raw resume text
+  // (see buildResumeTextFromCE comment). For docx export we need to add it back.
+  let lines = t.split('\n');
+  const titleFromCE = proj?.ce?.contact?.title?.trim();
+  if (titleFromCE && lines.length > 0) {
+    // Check if line 2 already has the title (avoid duplicating)
+    const line2 = (lines[1] || '').trim();
+    if (line2 !== titleFromCE) {
+      lines = [lines[0], titleFromCE, ...lines.slice(1)];
+    }
+  }
+  
   const isH=l=>l.trim().length>2&&l.trim()===l.trim().toUpperCase()&&/[A-Z]/.test(l.trim())&&!l.trim().startsWith('•');
   const isB=l=>l.trim().startsWith('•')||l.trim().startsWith('-');
   const isJ=l=>/\d{2}\/\d{2}/.test(l)&&l.trim().length<120&&!l.trim().startsWith('•');
   const ch=[];let hD=false;
   for(let i=0;i<lines.length;i++){const l=lines[i],t2=l.trim();if(!hD&&isH(t2)&&i>0)hD=true;if(!t2){if(hD)ch.push(new Paragraph({spacing:{after:60}}));continue;}
     if(!hD&&i===0)ch.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:40},children:[new TextRun({text:t2,font:FONT,size:56,bold:true})]}));
+    // Line index 1 = title (if injected). Render as larger, semi-bold to distinguish from contact info.
+    else if(!hD&&i===1&&titleFromCE&&t2===titleFromCE)ch.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:30},children:[new TextRun({text:t2,font:FONT,size:42,color:'444444'})]}));
     else if(!hD)ch.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:20},children:[new TextRun({text:t2,font:FONT,size:36,color:'555555'})]}));
     else if(isH(t2))ch.push(new Paragraph({spacing:{before:160,after:60},border:{bottom:{style:BorderStyle.SINGLE,size:4,color:'CCCCCC',space:1}},children:[new TextRun({text:t2,font:FONT,size:40,bold:true,allCaps:true})]}));
     else if(isB(t2))ch.push(new Paragraph({numbering:{reference:'b',level:0},spacing:{before:30,after:30},children:[new TextRun({text:t2.replace(/^[•\-]\s*/,''),font:FONT,size:38})]}));

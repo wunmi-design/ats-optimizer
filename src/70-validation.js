@@ -96,31 +96,48 @@ const RESUME_LENGTH = {
 // ═══════════════════════════════════════════════════════
 // Limit each role's bullets to a maximum of N (default 3). Removes extra bullets after the Nth.
 // Keeps role headers, descriptions, and maintains formatting.
-function capBulletsPerRole(text, maxBullets) {
-  const cap = maxBullets || 3;
+// Bullet cap with sliding scale based on role recency/position:
+//   Role 1 (most recent):  5 bullets (key positioning)
+//   Role 2 (recent):       4 bullets
+//   Role 3 (recent):       4 bullets
+//   Role 4 (older):        3 bullets
+//   Role 5+ (much older):  2 bullets (career history only)
+// Industry guideline: recent/highly relevant positions get 4-6 bullets,
+// older/less relevant get 2-3.
+function capBulletsPerRole(text) {
   const lines = text.split('\n');
   const result = [];
   let bulletCount = 0;
-  let inRole = false;
+  let roleIndex = 0;       // 0 = before first role, 1 = first role, 2 = second, etc.
+  let currentCap = 5;      // Default for the first role
+  
+  // Helper to determine bullet cap for a given role index (1-based)
+  function capForRole(idx) {
+    if (idx === 1) return 5;
+    if (idx === 2 || idx === 3) return 4;
+    if (idx === 4) return 3;
+    return 2; // 5+ — career history, minimal bullets
+  }
   
   for (const line of lines) {
     const trimmed = line.trim();
     
     // Detect role header (has dates like 01/16 – 06/17 or 09/25 – Present)
     if (trimmed.match(/\d{1,2}\/\d{2}\s*[–-]\s*(?:\d{1,2}\/\d{2}|Present|Current)/)) {
-      inRole = true;
+      roleIndex++;
       bulletCount = 0;
+      currentCap = capForRole(roleIndex);
       result.push(line);
       continue;
     }
     
     // Check if this is a bullet (starts with • or -)
     if (trimmed.startsWith('•') || trimmed.startsWith('-')) {
-      if (bulletCount < cap) {
+      if (bulletCount < currentCap) {
         result.push(line);
         bulletCount++;
       }
-      // Skip bullets beyond the cap
+      // Skip bullets beyond the cap for this role's position
       continue;
     }
     
@@ -343,22 +360,45 @@ CRITICAL CONSTRAINT: Output MUST fit on exactly ${analysis.targetPages} page(s).
 
 AWARDS GUIDANCE: ${awardsGuidance}
 
+═══════════════════════════════════════════════════════
+SENIORITY PRESERVATION (non-negotiable)
+═══════════════════════════════════════════════════════
+- NEVER weaken the candidate's title or seniority framing
+- NEVER reframe summary from Director-level to junior phrasing
+- NEVER strip leadership-scope bullets (team size, distributed teams, hiring, mentoring)
+
+═══════════════════════════════════════════════════════
+PROTECTED CONTENT (must persist unless absolutely necessary)
+═══════════════════════════════════════════════════════
+KEEP these even when trimming:
+- Bullets with specific dramatic metrics (e.g., "30 days to 30 minutes", "300% DAU", "342M devices")
+- Differentiating philosophy bullets (e.g., "Defined human-centered AI design philosophy")
+- Role context descriptions (1-line description below role title) for RECENT roles
+- Mentoring/team-development bullets (e.g., "Mentored designers", "Hired and developed team")
+- The candidate's title under their name
+
+DROP these first when trimming (less essential):
+- Generic process bullets without metrics
+- Verbose phrasing (tighten don't drop)
+- Older role context descriptions (5+ years ago)
+- Redundant bullets covering same ground as another bullet
+- Stale awards (per the AWARDS GUIDANCE above)
+
 TRIMMING RULES (in priority order):
 1. Drop weakest bullets first — those without specific metrics, outcomes, or differentiated value
 2. If two bullets cover similar ground, keep the one with stronger metric/specificity
 3. Tighten verbose bullets to ~120 characters each (drop filler words, redundant phrases)
-4. Remove role context/description lines (the 1-line text between role header and bullets) for older roles
-5. Trim role context lines to ~80 chars if kept
-6. Older roles (5+ years ago) should have 1-2 bullets max, not 3
-7. NEVER drop role headers, dates, or company names
-8. NEVER drop the entire SUMMARY, SKILLS, or EDUCATION sections (just trim within them)
-9. Keep at least 1 bullet per role (preserves work history)
-10. PRESERVE EXACT FORMATTING: section structure, line breaks, bullet character (•), date format
+4. Remove role context/description lines for OLDER roles (5+ years ago), keep for recent
+5. BULLET COUNT BY POSITION: Role 1 (most recent) keeps 4-5, Role 2-3 keeps 3-4, Roles 4+ keeps 2-3
+6. NEVER drop role headers, dates, or company names
+7. NEVER drop the entire SUMMARY, SKILLS, or EDUCATION sections (just trim within them)
+8. PRESERVE EXACT FORMATTING: section structure, line breaks, bullet character (•), date format
 
 CRITICAL:
 - Use FIRST PERSON (I/me/my) — never third person
 - NEVER fabricate metrics or outcomes
 - NEVER add new bullets or content
+- NEVER weaken seniority framing in summary or title
 - BE AGGRESSIVE — the resume MUST fit in ${targetChars} chars
 - Output the COMPLETE trimmed resume, no commentary
 
