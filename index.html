@@ -650,7 +650,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 3.9.9</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.0.0</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -6676,6 +6676,51 @@ function deduplicateResume(text) {
 // If JD context isn't available or the resume already has <=30 skills, returns input unchanged.
 // Limit each role's bullets to a maximum of 3. Removes extra bullets after the 3rd.
 // Keeps role headers, descriptions, and maintains formatting.
+// Validates that every role in the resume has a description (1-line context below role title).
+// Consistency is critical: partial descriptions look unfinished and confuse ATS parsers.
+// Returns { valid: bool, missing: [{role, idx}] } — list of roles missing descriptions.
+function validateRoleDescriptions(text) {
+  const lines = text.split('\n');
+  const missing = [];
+  let roleIdx = 0;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    
+    // Detect role header (contains MM/YY – MM/YY or MM/YY – Present)
+    if (trimmed.match(/\d{1,2}\/\d{2}\s*[–-]\s*(?:\d{1,2}\/\d{2}|Present|Current)/)) {
+      roleIdx++;
+      // Look at the next 1-3 non-empty lines to see if there's a description
+      // (description is a non-bullet, non-header line between role header and first bullet)
+      let foundDesc = false;
+      let foundBullet = false;
+      for (let j = i + 1; j < Math.min(i + 4, lines.length); j++) {
+        const next = lines[j].trim();
+        if (!next) continue;
+        if (next.startsWith('•') || next.startsWith('-')) {
+          foundBullet = true;
+          break;
+        }
+        // It's not a bullet — could be a description or company line
+        // Company line typically contains '·' separator (e.g. "Verizon · New York, NY")
+        // A description is typically longer prose without ' · '
+        // But the parsed text might combine company/location on same line as role header
+        // Skip lines that look like company/location only
+        if (next.length > 30 && !/^[\w.&\s]+\s·\s[\w\s,]+$/.test(next)) {
+          foundDesc = true;
+          break;
+        }
+      }
+      if (!foundDesc && foundBullet) {
+        missing.push({ role: trimmed.substring(0, 60), idx: roleIdx, lineNum: i });
+      }
+    }
+  }
+  
+  return { valid: missing.length === 0, missing };
+}
+
 // ═══════════════════════════════════════════════════════
 //  RESUME LENGTH ANALYZER
 // ═══════════════════════════════════════════════════════
@@ -7039,6 +7084,20 @@ CRITICAL CONSTRAINT: Output MUST fit on exactly ${analysis.targetPages} page(s).
 AWARDS GUIDANCE: ${awardsGuidance}
 
 ═══════════════════════════════════════════════════════
+ROLE DESCRIPTION CONSISTENCY (NON-NEGOTIABLE)
+═══════════════════════════════════════════════════════
+EVERY role must have a 1-sentence description (~80-140 chars) between the role header line
+and its bullets. This is a CONSISTENCY rule — partial descriptions across some roles but
+not others is a major formatting red flag for Director-level resumes. Recruiters can't
+quickly understand role scope, ATS parsers may misclassify roles, and the resume looks
+poorly maintained.
+
+- NEVER strip a role description from any role, even older roles
+- If a role is missing a description, ADD a 1-sentence one summarizing the role's scope
+- Older roles may have SHORTER descriptions (~60-80 chars) but must still have one
+- Recent roles may have longer descriptions (~120-140 chars)
+
+═══════════════════════════════════════════════════════
 SENIORITY PRESERVATION (non-negotiable)
 ═══════════════════════════════════════════════════════
 - NEVER weaken the candidate's title or seniority framing
@@ -7049,16 +7108,16 @@ SENIORITY PRESERVATION (non-negotiable)
 PROTECTED CONTENT (must persist unless absolutely necessary)
 ═══════════════════════════════════════════════════════
 KEEP these even when trimming:
+- Role descriptions (1-line below each role title) — ALL roles, no exceptions
 - Bullets with specific dramatic metrics (e.g., "30 days to 30 minutes", "300% DAU", "342M devices")
 - Differentiating philosophy bullets (e.g., "Defined human-centered AI design philosophy")
-- Role context descriptions (1-line description below role title) for RECENT roles
 - Mentoring/team-development bullets (e.g., "Mentored designers", "Hired and developed team")
 - The candidate's title under their name
 
 DROP these first when trimming (less essential):
+- Excess BULLETS in older roles (drop to 2 if needed)
 - Generic process bullets without metrics
 - Verbose phrasing (tighten don't drop)
-- Older role context descriptions (5+ years ago)
 - Redundant bullets covering same ground as another bullet
 - Stale awards (per the AWARDS GUIDANCE above)
 
@@ -7066,9 +7125,9 @@ TRIMMING RULES (in priority order):
 1. Drop weakest bullets first — those without specific metrics, outcomes, or differentiated value
 2. If two bullets cover similar ground, keep the one with stronger metric/specificity
 3. Tighten verbose bullets to ~120 characters each (drop filler words, redundant phrases)
-4. Remove role context/description lines for OLDER roles (5+ years ago), keep for recent
+4. Tighten older role descriptions to ~60-80 chars (but keep ALL of them)
 5. BULLET COUNT BY POSITION: Role 1 (most recent) keeps 4-5, Role 2-3 keeps 3-4, Roles 4+ keeps 2-3
-6. NEVER drop role headers, dates, or company names
+6. NEVER drop role headers, dates, company names, OR role descriptions
 7. NEVER drop the entire SUMMARY, SKILLS, or EDUCATION sections (just trim within them)
 8. PRESERVE EXACT FORMATTING: section structure, line breaks, bullet character (•), date format
 
@@ -7077,7 +7136,8 @@ CRITICAL:
 - NEVER fabricate metrics or outcomes
 - NEVER add new bullets or content
 - NEVER weaken seniority framing in summary or title
-- BE AGGRESSIVE — the resume MUST fit in ${targetChars} chars
+- ALWAYS keep a role description on EVERY role (consistency is critical)
+- BE AGGRESSIVE on bullets — the resume MUST fit in ${targetChars} chars
 - Output the COMPLETE trimmed resume, no commentary
 
 RESUME:
@@ -7627,6 +7687,18 @@ async function applySelectedFixes(){
       `GOAL: Find the strongest HONEST angle this candidate has on this JD, and amplify it. The goal is NOT to make the resume look like the JD. Bridges to gaps must come from real transferable strengths, never from invented experience.
 
 ═══════════════════════════════════════════════════════
+ROLE DESCRIPTION CONSISTENCY (non-negotiable)
+═══════════════════════════════════════════════════════
+EVERY role must have a 1-sentence description (~80-140 chars) between the role header
+and its bullets. Partial descriptions on some roles but not others is a major red flag
+for Director-level resumes — looks poorly maintained and confuses ATS parsers.
+
+- NEVER strip role descriptions, even from older roles
+- If a role is missing a description in the original, ADD a concise 1-sentence summary of role scope
+- Older roles may have shorter descriptions (~60-80 chars), recent roles can be longer (~120-140)
+- This is a STRUCTURAL CONSISTENCY rule — applies whether or not the JD requires it
+
+═══════════════════════════════════════════════════════
 SENIORITY PRESERVATION RULE (CRITICAL — non-negotiable)
 ═══════════════════════════════════════════════════════
 NEVER weaken the candidate's seniority positioning in pursuit of other optimizations.
@@ -7710,6 +7782,15 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     const lengthAnalysis = RESUME_LENGTH.analyze(bulletsCapped);
     overlaySub.textContent = `Verifying length fits ${lengthAnalysis.recommended.label}`;
     const lengthAdjusted = await trimToTargetLength(bulletsCapped);
+    
+    // Phase 4d: Validate role description consistency — every role must have a description.
+    // This is informational (logged to console) since the prompts now enforce this; the
+    // check catches edge cases where the AI didn't follow instructions.
+    const descCheck = validateRoleDescriptions(lengthAdjusted);
+    if (!descCheck.valid) {
+      console.warn(`Role description consistency: ${descCheck.missing.length} role(s) missing descriptions:`,
+        descCheck.missing.map(m => `Role ${m.idx}: ${m.role}`).join(', '));
+    }
 
     // Phase 5: Cap skills at 24, prioritizing JD-relevant ones.
     overlaySub.textContent = 'Prioritizing skills for this role';
@@ -11432,4 +11513,4 @@ async function autoLoadSystemFonts() {
 </script>
 
 
-</body></html><!-- Force rebuild 1778462338 -->
+</body></html><!-- Force rebuild 1778465586 -->

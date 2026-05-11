@@ -1,3 +1,48 @@
+// Validates that every role in the resume has a description (1-line context below role title).
+// Consistency is critical: partial descriptions look unfinished and confuse ATS parsers.
+// Returns { valid: bool, missing: [{role, idx}] } — list of roles missing descriptions.
+function validateRoleDescriptions(text) {
+  const lines = text.split('\n');
+  const missing = [];
+  let roleIdx = 0;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    
+    // Detect role header (contains MM/YY – MM/YY or MM/YY – Present)
+    if (trimmed.match(/\d{1,2}\/\d{2}\s*[–-]\s*(?:\d{1,2}\/\d{2}|Present|Current)/)) {
+      roleIdx++;
+      // Look at the next 1-3 non-empty lines to see if there's a description
+      // (description is a non-bullet, non-header line between role header and first bullet)
+      let foundDesc = false;
+      let foundBullet = false;
+      for (let j = i + 1; j < Math.min(i + 4, lines.length); j++) {
+        const next = lines[j].trim();
+        if (!next) continue;
+        if (next.startsWith('•') || next.startsWith('-')) {
+          foundBullet = true;
+          break;
+        }
+        // It's not a bullet — could be a description or company line
+        // Company line typically contains '·' separator (e.g. "Verizon · New York, NY")
+        // A description is typically longer prose without ' · '
+        // But the parsed text might combine company/location on same line as role header
+        // Skip lines that look like company/location only
+        if (next.length > 30 && !/^[\w.&\s]+\s·\s[\w\s,]+$/.test(next)) {
+          foundDesc = true;
+          break;
+        }
+      }
+      if (!foundDesc && foundBullet) {
+        missing.push({ role: trimmed.substring(0, 60), idx: roleIdx, lineNum: i });
+      }
+    }
+  }
+  
+  return { valid: missing.length === 0, missing };
+}
+
 // ═══════════════════════════════════════════════════════
 //  RESUME LENGTH ANALYZER
 // ═══════════════════════════════════════════════════════
@@ -361,6 +406,20 @@ CRITICAL CONSTRAINT: Output MUST fit on exactly ${analysis.targetPages} page(s).
 AWARDS GUIDANCE: ${awardsGuidance}
 
 ═══════════════════════════════════════════════════════
+ROLE DESCRIPTION CONSISTENCY (NON-NEGOTIABLE)
+═══════════════════════════════════════════════════════
+EVERY role must have a 1-sentence description (~80-140 chars) between the role header line
+and its bullets. This is a CONSISTENCY rule — partial descriptions across some roles but
+not others is a major formatting red flag for Director-level resumes. Recruiters can't
+quickly understand role scope, ATS parsers may misclassify roles, and the resume looks
+poorly maintained.
+
+- NEVER strip a role description from any role, even older roles
+- If a role is missing a description, ADD a 1-sentence one summarizing the role's scope
+- Older roles may have SHORTER descriptions (~60-80 chars) but must still have one
+- Recent roles may have longer descriptions (~120-140 chars)
+
+═══════════════════════════════════════════════════════
 SENIORITY PRESERVATION (non-negotiable)
 ═══════════════════════════════════════════════════════
 - NEVER weaken the candidate's title or seniority framing
@@ -371,16 +430,16 @@ SENIORITY PRESERVATION (non-negotiable)
 PROTECTED CONTENT (must persist unless absolutely necessary)
 ═══════════════════════════════════════════════════════
 KEEP these even when trimming:
+- Role descriptions (1-line below each role title) — ALL roles, no exceptions
 - Bullets with specific dramatic metrics (e.g., "30 days to 30 minutes", "300% DAU", "342M devices")
 - Differentiating philosophy bullets (e.g., "Defined human-centered AI design philosophy")
-- Role context descriptions (1-line description below role title) for RECENT roles
 - Mentoring/team-development bullets (e.g., "Mentored designers", "Hired and developed team")
 - The candidate's title under their name
 
 DROP these first when trimming (less essential):
+- Excess BULLETS in older roles (drop to 2 if needed)
 - Generic process bullets without metrics
 - Verbose phrasing (tighten don't drop)
-- Older role context descriptions (5+ years ago)
 - Redundant bullets covering same ground as another bullet
 - Stale awards (per the AWARDS GUIDANCE above)
 
@@ -388,9 +447,9 @@ TRIMMING RULES (in priority order):
 1. Drop weakest bullets first — those without specific metrics, outcomes, or differentiated value
 2. If two bullets cover similar ground, keep the one with stronger metric/specificity
 3. Tighten verbose bullets to ~120 characters each (drop filler words, redundant phrases)
-4. Remove role context/description lines for OLDER roles (5+ years ago), keep for recent
+4. Tighten older role descriptions to ~60-80 chars (but keep ALL of them)
 5. BULLET COUNT BY POSITION: Role 1 (most recent) keeps 4-5, Role 2-3 keeps 3-4, Roles 4+ keeps 2-3
-6. NEVER drop role headers, dates, or company names
+6. NEVER drop role headers, dates, company names, OR role descriptions
 7. NEVER drop the entire SUMMARY, SKILLS, or EDUCATION sections (just trim within them)
 8. PRESERVE EXACT FORMATTING: section structure, line breaks, bullet character (•), date format
 
@@ -399,7 +458,8 @@ CRITICAL:
 - NEVER fabricate metrics or outcomes
 - NEVER add new bullets or content
 - NEVER weaken seniority framing in summary or title
-- BE AGGRESSIVE — the resume MUST fit in ${targetChars} chars
+- ALWAYS keep a role description on EVERY role (consistency is critical)
+- BE AGGRESSIVE on bullets — the resume MUST fit in ${targetChars} chars
 - Output the COMPLETE trimmed resume, no commentary
 
 RESUME:

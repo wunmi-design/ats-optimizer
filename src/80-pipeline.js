@@ -55,6 +55,18 @@ async function applySelectedFixes(){
       `GOAL: Find the strongest HONEST angle this candidate has on this JD, and amplify it. The goal is NOT to make the resume look like the JD. Bridges to gaps must come from real transferable strengths, never from invented experience.
 
 ═══════════════════════════════════════════════════════
+ROLE DESCRIPTION CONSISTENCY (non-negotiable)
+═══════════════════════════════════════════════════════
+EVERY role must have a 1-sentence description (~80-140 chars) between the role header
+and its bullets. Partial descriptions on some roles but not others is a major red flag
+for Director-level resumes — looks poorly maintained and confuses ATS parsers.
+
+- NEVER strip role descriptions, even from older roles
+- If a role is missing a description in the original, ADD a concise 1-sentence summary of role scope
+- Older roles may have shorter descriptions (~60-80 chars), recent roles can be longer (~120-140)
+- This is a STRUCTURAL CONSISTENCY rule — applies whether or not the JD requires it
+
+═══════════════════════════════════════════════════════
 SENIORITY PRESERVATION RULE (CRITICAL — non-negotiable)
 ═══════════════════════════════════════════════════════
 NEVER weaken the candidate's seniority positioning in pursuit of other optimizations.
@@ -138,6 +150,15 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     const lengthAnalysis = RESUME_LENGTH.analyze(bulletsCapped);
     overlaySub.textContent = `Verifying length fits ${lengthAnalysis.recommended.label}`;
     const lengthAdjusted = await trimToTargetLength(bulletsCapped);
+    
+    // Phase 4d: Validate role description consistency — every role must have a description.
+    // This is informational (logged to console) since the prompts now enforce this; the
+    // check catches edge cases where the AI didn't follow instructions.
+    const descCheck = validateRoleDescriptions(lengthAdjusted);
+    if (!descCheck.valid) {
+      console.warn(`Role description consistency: ${descCheck.missing.length} role(s) missing descriptions:`,
+        descCheck.missing.map(m => `Role ${m.idx}: ${m.role}`).join(', '));
+    }
 
     // Phase 5: Cap skills at 24, prioritizing JD-relevant ones.
     overlaySub.textContent = 'Prioritizing skills for this role';
