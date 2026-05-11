@@ -919,14 +919,15 @@ function drawPageBreakLinesOnPage(pageEl) {
   const PAGE_HEIGHT_PX = PAGE_HEIGHT_IN * 96;
   const totalHeight = pageEl.scrollHeight;
   
-  // Parse margin (e.g., "0.5in" → 48px at 96 DPI)
-  const marginStr = _fmt.margin || '0.5in';
-  const marginPx = parseFloat(marginStr) * 96;
-  // Each page's content area = PAGE_HEIGHT - top margin - bottom margin
-  const contentAreaPx = PAGE_HEIGHT_PX - (2 * marginPx);
+  // Preview's pageEl has 0.5in padding INSIDE it, so content actually starts marginPx below
+  // the top edge. We need to offset all page break indicators by marginPx so they line up
+  // with where content actually breaks visually.
+  const marginPx = 0.5 * 96; // 48px — matches the hardcoded preview padding
+  const contentAreaPx = PAGE_HEIGHT_PX - (2 * marginPx); // 960px usable per page
   
-  // First page break appears at content boundary (end of page 1 content)
-  let y = contentAreaPx;
+  // First page break appears at: top padding + 1 page of content area = end of page 1 content
+  // Subsequent breaks step by contentAreaPx (in continuous flow, pages have no inter-page gaps)
+  let y = marginPx + contentAreaPx; // e.g., 48 + 960 = 1008
   let pageNum = 2;
   while (y < totalHeight) {
     const line = document.createElement('div');
@@ -937,15 +938,14 @@ function drawPageBreakLinesOnPage(pageEl) {
     label.textContent = `Page ${pageNum}`;
     line.appendChild(label);
     pageEl.appendChild(line);
-    // Each subsequent break is content-area apart (continuous flow, no margins between)
     y += contentAreaPx;
     pageNum++;
   }
 
-  // Max-length indicator: red dashed line at the recommended page limit.
+  // Max-length indicator at top padding + maxPages of content area
   const maxPages = recommendedMaxPages();
   if (maxPages > 0) {
-    const maxY = maxPages * contentAreaPx;
+    const maxY = marginPx + (maxPages * contentAreaPx); // e.g., 48 + 2*960 = 1968
     const line = document.createElement('div');
     line.className = 'max-length-line';
     line.style.cssText = `position:absolute;left:0;right:0;top:${maxY}px;height:0;border-top:2px dashed #dc2626;pointer-events:none;z-index:6;`;
