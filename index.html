@@ -638,6 +638,50 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
 .kw-apply-btn:hover{background:var(--teal-dark);}
 .kw-apply-btn:disabled{background:var(--border);color:var(--muted);cursor:not-allowed;}
 .kw-all-covered{font-size:12px;color:var(--green);text-align:center;padding:16px 0;font-weight:500;}
+
+/* Full-screen blocking modal — blocks ALL interaction during long async operations */
+.blocking-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  z-index: 10000;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+.blocking-modal.show { display: flex; }
+.blocking-modal-content {
+  background: white;
+  padding: 32px 40px;
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+  text-align: center;
+  min-width: 300px;
+  max-width: 420px;
+}
+.blocking-modal .spin-lg {
+  width: 36px;
+  height: 36px;
+  border-width: 3px;
+  margin: 0 auto 16px;
+  border: 3px solid #e5e7eb;
+  border-top-color: var(--teal, #0d9488);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+.blocking-modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111;
+  margin-bottom: 6px;
+}
+.blocking-modal-sub {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.5;
+}
 </style>
 </head>
 <body>
@@ -650,7 +694,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.1.1</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.1.2</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -2577,6 +2621,16 @@ NY Top Creative Winner · WIx and Vitamin T · 2014</div>
       <span id="upload-modal-msg" style="font-size:16px;font-weight:500;">Reading resume...</span>
     </div>
     <div style="font-size:13px;color:var(--muted);">This may take a moment</div>
+  </div>
+</div>
+
+<!-- Reusable blocking modal — used for JD analysis and other long async operations.
+     Full-screen overlay blocks ALL interaction until operation completes. -->
+<div id="blocking-modal" class="blocking-modal" role="dialog" aria-modal="true" aria-live="polite">
+  <div class="blocking-modal-content">
+    <div class="spin-lg"></div>
+    <div class="blocking-modal-title">Working...</div>
+    <div class="blocking-modal-sub">This may take a few seconds</div>
   </div>
 </div>
 
@@ -5406,14 +5460,47 @@ QUESTIONS:\n${questionList}`, 2500);
   if (btn) btn.disabled = false;
 }
 
+// Blocking modal helpers — full-screen overlay that prevents all interaction
+// during long async operations like JD analysis. Use showBlockingModal(title, sub)
+// to open and hideBlockingModal() to close. Always wrap in try/finally so the
+// modal closes even on error.
+function showBlockingModal(title, sub) {
+  const modal = document.getElementById('blocking-modal');
+  if (!modal) return;
+  const titleEl = modal.querySelector('.blocking-modal-title');
+  const subEl = modal.querySelector('.blocking-modal-sub');
+  if (titleEl) titleEl.textContent = title || 'Working...';
+  if (subEl) subEl.textContent = sub || 'This may take a few seconds';
+  modal.classList.add('show');
+}
+function hideBlockingModal() {
+  const modal = document.getElementById('blocking-modal');
+  if (modal) modal.classList.remove('show');
+}
+function updateBlockingModal(title, sub) {
+  const modal = document.getElementById('blocking-modal');
+  if (!modal || !modal.classList.contains('show')) return;
+  const titleEl = modal.querySelector('.blocking-modal-title');
+  const subEl = modal.querySelector('.blocking-modal-sub');
+  if (titleEl && title) titleEl.textContent = title;
+  if (subEl && sub) subEl.textContent = sub;
+}
+
 async function analyzeJD() {
   const jdText=g('jd-text');if(!jdText.trim()){toast('Paste a job description first');return;}
   if(!proj){toast('Create a project first');return;}
   // Re-running Analyze should restore the suggestions panel — the post-Optimize view is stale.
   try { exitPostOptimizeView(); } catch(e) {}
+  
+  // Show blocking modal — prevents user from clicking anything during analysis
+  showBlockingModal('Analyzing job description', 'Reading the role and extracting key signals...');
+  
+  // Keep the inline loader visible too for the in-context indicator
   const loading=document.getElementById('jd-loading');
-  loading.querySelector('span').textContent='Studying job description...';
-  loading.classList.add('show');
+  if (loading) {
+    loading.querySelector('span').textContent='Studying job description...';
+    loading.classList.add('show');
+  }
   try {
     const raw=await claudeFetch(`Analyze this job description. Return ONLY valid JSON:
 {"title":"exact job title","company":"hiring company name — the organization, never a team or department","seniority":"entry|mid|senior|executive","yoe_min":8,"yoe_max":15,"hard_skills":["..."],"soft_skills":["..."],"tools":["..."],"key_themes":["..."],"required":["..."],"preferred":["..."],"leadership_expected":true,"people_mgmt_expected":true,"signals":["..."]}
@@ -5432,9 +5519,12 @@ JOB DESCRIPTION:\n${jdText}`,2000);
     }
     s('jd-title',proj.jdTitle);
     renderJDAnalysis(analysis);
+    
+    updateBlockingModal('Generating screening questions', 'Finding the questions a recruiter would ask...');
     await generateQuestions(analysis);
     autoSave();
-    loading.classList.remove('show');
+    if (loading) loading.classList.remove('show');
+    hideBlockingModal();
     
     // Score the resume against the JD now so user sees the original score immediately.
     // This runs only if a resume is present — otherwise we just stop after JD analysis.
@@ -5445,7 +5535,11 @@ JOB DESCRIPTION:\n${jdText}`,2000);
       // Brief delay so the tab transition completes before the analysis overlay opens.
       setTimeout(() => { try { runFullAnalysis(); } catch(e) { console.warn('Initial scoring failed:', e); } }, 150);
     }
-  } catch(e){toast('Error: '+e.message); loading.classList.remove('show');}
+  } catch(e){
+    if (loading) loading.classList.remove('show');
+    hideBlockingModal();
+    toast('Error: '+e.message);
+  }
 }
 
 function renderJDAnalysis(a) {
@@ -11753,4 +11847,4 @@ async function autoLoadSystemFonts() {
 </script>
 
 
-</body></html><!-- Force rebuild 1778469512 -->
+</body></html><!-- Force rebuild 1778471292 -->

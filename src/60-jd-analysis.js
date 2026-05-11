@@ -1,11 +1,44 @@
+// Blocking modal helpers — full-screen overlay that prevents all interaction
+// during long async operations like JD analysis. Use showBlockingModal(title, sub)
+// to open and hideBlockingModal() to close. Always wrap in try/finally so the
+// modal closes even on error.
+function showBlockingModal(title, sub) {
+  const modal = document.getElementById('blocking-modal');
+  if (!modal) return;
+  const titleEl = modal.querySelector('.blocking-modal-title');
+  const subEl = modal.querySelector('.blocking-modal-sub');
+  if (titleEl) titleEl.textContent = title || 'Working...';
+  if (subEl) subEl.textContent = sub || 'This may take a few seconds';
+  modal.classList.add('show');
+}
+function hideBlockingModal() {
+  const modal = document.getElementById('blocking-modal');
+  if (modal) modal.classList.remove('show');
+}
+function updateBlockingModal(title, sub) {
+  const modal = document.getElementById('blocking-modal');
+  if (!modal || !modal.classList.contains('show')) return;
+  const titleEl = modal.querySelector('.blocking-modal-title');
+  const subEl = modal.querySelector('.blocking-modal-sub');
+  if (titleEl && title) titleEl.textContent = title;
+  if (subEl && sub) subEl.textContent = sub;
+}
+
 async function analyzeJD() {
   const jdText=g('jd-text');if(!jdText.trim()){toast('Paste a job description first');return;}
   if(!proj){toast('Create a project first');return;}
   // Re-running Analyze should restore the suggestions panel — the post-Optimize view is stale.
   try { exitPostOptimizeView(); } catch(e) {}
+  
+  // Show blocking modal — prevents user from clicking anything during analysis
+  showBlockingModal('Analyzing job description', 'Reading the role and extracting key signals...');
+  
+  // Keep the inline loader visible too for the in-context indicator
   const loading=document.getElementById('jd-loading');
-  loading.querySelector('span').textContent='Studying job description...';
-  loading.classList.add('show');
+  if (loading) {
+    loading.querySelector('span').textContent='Studying job description...';
+    loading.classList.add('show');
+  }
   try {
     const raw=await claudeFetch(`Analyze this job description. Return ONLY valid JSON:
 {"title":"exact job title","company":"hiring company name — the organization, never a team or department","seniority":"entry|mid|senior|executive","yoe_min":8,"yoe_max":15,"hard_skills":["..."],"soft_skills":["..."],"tools":["..."],"key_themes":["..."],"required":["..."],"preferred":["..."],"leadership_expected":true,"people_mgmt_expected":true,"signals":["..."]}
@@ -24,9 +57,12 @@ JOB DESCRIPTION:\n${jdText}`,2000);
     }
     s('jd-title',proj.jdTitle);
     renderJDAnalysis(analysis);
+    
+    updateBlockingModal('Generating screening questions', 'Finding the questions a recruiter would ask...');
     await generateQuestions(analysis);
     autoSave();
-    loading.classList.remove('show');
+    if (loading) loading.classList.remove('show');
+    hideBlockingModal();
     
     // Score the resume against the JD now so user sees the original score immediately.
     // This runs only if a resume is present — otherwise we just stop after JD analysis.
@@ -37,7 +73,11 @@ JOB DESCRIPTION:\n${jdText}`,2000);
       // Brief delay so the tab transition completes before the analysis overlay opens.
       setTimeout(() => { try { runFullAnalysis(); } catch(e) { console.warn('Initial scoring failed:', e); } }, 150);
     }
-  } catch(e){toast('Error: '+e.message); loading.classList.remove('show');}
+  } catch(e){
+    if (loading) loading.classList.remove('show');
+    hideBlockingModal();
+    toast('Error: '+e.message);
+  }
 }
 
 function renderJDAnalysis(a) {
