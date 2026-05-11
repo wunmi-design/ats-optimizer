@@ -1399,12 +1399,32 @@ async function processFile(file, suppressTabSwitch) {
   loading.classList.add('show'); msg.textContent = 'Reading file...';
   try {
     let text = '';
-    if (ext === 'txt' || ext === 'rtf') { text = await file.text(); }
-    else {
+    if (ext === 'txt' || ext === 'rtf') {
+      text = await file.text();
+    } else if (ext === 'docx') {
+      // DOCX: use mammoth.js (Claude API's document type only supports PDF, not DOCX).
+      // Lazy-load mammoth on first DOCX upload and extract text entirely client-side.
+      msg.textContent = 'Extracting text from Word doc...';
+      if (!window.mammoth) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js';
+          script.onload = resolve;
+          script.onerror = () => reject(new Error('Could not load mammoth.js library'));
+          document.head.appendChild(script);
+        });
+      }
+      const arrayBuffer = await file.arrayBuffer();
+      const result = await window.mammoth.extractRawText({ arrayBuffer });
+      text = (result?.value || '').trim();
+      if (!text) throw new Error('Word doc appears empty — no text extracted by parser');
+    } else {
+      // PDF and legacy DOC: use Claude API (which DOES support PDF)
       msg.textContent = 'Parsing with AI...';
       const base64 = await fileToBase64(file);
-      const mt = ext==='pdf'?'application/pdf':ext==='docx'?'application/vnd.openxmlformats-officedocument.wordprocessingml.document':'application/msword';
+      const mt = ext === 'pdf' ? 'application/pdf' : 'application/msword';
       const key = getKey();
+      if (!key) throw new Error('API key not configured');
       const resp = await fetch('https://api.anthropic.com/v1/messages', {
         method:'POST', headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
         body: JSON.stringify({model:'claude-opus-4-5',max_tokens:4000,messages:[{role:'user',content:[{type:'document',source:{type:'base64',media_type:mt,data:base64}},{type:'text',text:'Extract all text from this resume. Return only plain text. Preserve line structure, section headers, bullet points, and all content. No commentary.'}]}]})
@@ -1413,6 +1433,13 @@ async function processFile(file, suppressTabSwitch) {
     }
     if (!text.trim()) throw new Error('No text extracted');
     proj.parsedText = text;
+    
+    // Populate proj.drafts so getResumeText() returns the resume immediately and the
+    // live preview shows content while parseToCE runs in background.
+    if (!proj.drafts || proj.drafts.length === 0) {
+      proj.drafts = [text];
+    }
+    
     await parseToCE(text, suppressTabSwitch);
   } catch(e) { loading.classList.remove('show'); toast('Error: ' + e.message); }
 }

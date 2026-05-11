@@ -650,7 +650,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.0.2</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.0.3</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -11351,12 +11351,32 @@ async function processFile(file, suppressTabSwitch) {
   loading.classList.add('show'); msg.textContent = 'Reading file...';
   try {
     let text = '';
-    if (ext === 'txt' || ext === 'rtf') { text = await file.text(); }
-    else {
+    if (ext === 'txt' || ext === 'rtf') {
+      text = await file.text();
+    } else if (ext === 'docx') {
+      // DOCX: use mammoth.js (Claude API's document type only supports PDF, not DOCX).
+      // Lazy-load mammoth on first DOCX upload and extract text entirely client-side.
+      msg.textContent = 'Extracting text from Word doc...';
+      if (!window.mammoth) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js';
+          script.onload = resolve;
+          script.onerror = () => reject(new Error('Could not load mammoth.js library'));
+          document.head.appendChild(script);
+        });
+      }
+      const arrayBuffer = await file.arrayBuffer();
+      const result = await window.mammoth.extractRawText({ arrayBuffer });
+      text = (result?.value || '').trim();
+      if (!text) throw new Error('Word doc appears empty — no text extracted by parser');
+    } else {
+      // PDF and legacy DOC: use Claude API (which DOES support PDF)
       msg.textContent = 'Parsing with AI...';
       const base64 = await fileToBase64(file);
-      const mt = ext==='pdf'?'application/pdf':ext==='docx'?'application/vnd.openxmlformats-officedocument.wordprocessingml.document':'application/msword';
+      const mt = ext === 'pdf' ? 'application/pdf' : 'application/msword';
       const key = getKey();
+      if (!key) throw new Error('API key not configured');
       const resp = await fetch('https://api.anthropic.com/v1/messages', {
         method:'POST', headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
         body: JSON.stringify({model:'claude-opus-4-5',max_tokens:4000,messages:[{role:'user',content:[{type:'document',source:{type:'base64',media_type:mt,data:base64}},{type:'text',text:'Extract all text from this resume. Return only plain text. Preserve line structure, section headers, bullet points, and all content. No commentary.'}]}]})
@@ -11365,6 +11385,13 @@ async function processFile(file, suppressTabSwitch) {
     }
     if (!text.trim()) throw new Error('No text extracted');
     proj.parsedText = text;
+    
+    // Populate proj.drafts so getResumeText() returns the resume immediately and the
+    // live preview shows content while parseToCE runs in background.
+    if (!proj.drafts || proj.drafts.length === 0) {
+      proj.drafts = [text];
+    }
+    
     await parseToCE(text, suppressTabSwitch);
   } catch(e) { loading.classList.remove('show'); toast('Error: ' + e.message); }
 }
@@ -11559,4 +11586,4 @@ async function autoLoadSystemFonts() {
 </script>
 
 
-</body></html><!-- Force rebuild 1778466965 -->
+</body></html><!-- Force rebuild 1778467127 -->
