@@ -6364,6 +6364,15 @@ RESUME:\n${resume.slice(0,1500)}`, 1000);
     try { audit = parseJson(auditRaw); } catch(e) {}
 
     proj.scores.push(score);
+    // Per-version score map. proj.scores gets wiped on every apply (so cached
+    // scores can't go stale), but the pill row needs to show one score per
+    // draft (V1 62%, V2 76%, V3 88%). versionScores is parallel to proj.drafts
+    // by index, only-grows, and survives the scores wipe. Pill row reads this.
+    proj.versionScores = proj.versionScores || [];
+    if (typeof score?.overall === 'number') {
+      const draftIdx = Math.max(0, (proj.drafts?.length || 1) - 1);
+      proj.versionScores[draftIdx] = score.overall;
+    }
     // Cache score + hash so same content = same score
     proj._cachedScore = score;
     proj._analysisHash = contentHash;
@@ -6545,7 +6554,14 @@ ${(proj.appliedFixes||[]).length ? 'ALREADY APPLIED (do NOT re-suggest):\n' + (p
 QUALITY RULES: Do not invent metrics. Only use real documented accomplishments.
 JOB:\n${jdText.slice(0,3000)}\nRESUME:\n${resume.slice(0,3000)}`,3000,undefined,undefined,CONFIG.models.sonnet);
     const score=parseJson(raw);
-    proj.scores.push(score); autoSave();
+    proj.scores.push(score); 
+    // Same per-version score stamping as runFullAnalysis — see comment there.
+    proj.versionScores = proj.versionScores || [];
+    if (typeof score?.overall === 'number') {
+      const draftIdx = Math.max(0, (proj.drafts?.length || 1) - 1);
+      proj.versionScores[draftIdx] = score.overall;
+    }
+    autoSave();
     renderDashboard(score);
     loading.classList.remove('show');
     document.getElementById('analyzer-content').style.display='block';
@@ -9968,13 +9984,15 @@ function updateLivePreview() {
 }
 
 // Renders the V1/V2/V3 pill row above the resume preview. One pill per draft,
-// with the score from the parallel slot in proj.scores (when available).
-// Active pill (currently rendered in the preview) is highlighted teal.
-// Hidden entirely when there's only one draft or none.
+// with the score from proj.versionScores (an index-aligned, never-wiped map
+// of draft index → overall score). Falls back to proj.scores for legacy
+// projects that pre-date versionScores. Active pill (currently rendered in
+// the preview) is highlighted teal. Hidden entirely when there's <2 drafts.
 function renderVersionPills() {
   const row = document.getElementById('version-pill-row');
   if (!row) return;
   const drafts = proj?.drafts || [];
+  const versionScores = proj?.versionScores || [];
   const scores = proj?.scores || [];
   if (drafts.length < 2) { row.style.display = 'none'; row.innerHTML = ''; return; }
   const activeIdx = (proj?._activeVersionIdx !== undefined &&
@@ -9984,7 +10002,13 @@ function renderVersionPills() {
     : drafts.length - 1;
   let html = '<span class="version-pill-row-label">Resume</span>';
   for (let i = 0; i < drafts.length; i++) {
-    const s = scores[i]?.overall;
+    // Prefer per-version map. Fall back to proj.scores by parallel index
+    // (works for the latest draft on legacy projects that have one score
+    // entry mapped to drafts[length-1]).
+    let s = versionScores[i];
+    if (typeof s !== 'number' && i === drafts.length - 1) {
+      s = scores[scores.length - 1]?.overall;
+    }
     const scoreHtml = (typeof s === 'number') ? `<span class="version-pill-score">${Math.round(s)}%</span>` : '';
     const cls = i === activeIdx ? 'version-pill active' : 'version-pill';
     html += `<div class="${cls}" onclick="selectVersion(${i})" title="View V${i+1}">V${i+1}${scoreHtml ? ' ' + scoreHtml : ''}</div>`;
