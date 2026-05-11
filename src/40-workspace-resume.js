@@ -525,11 +525,42 @@ async function processFile(file) {
       } catch(e) {
         throw new Error('Could not read text file: ' + e.message);
       }
+    } else if(ext==='docx'){
+      // DOCX: use mammoth.js for in-browser text extraction.
+      // Claude API's 'document' content type only supports PDF, NOT DOCX — so we can't
+      // send DOCX as a document attachment. mammoth.js parses DOCX entirely client-side
+      // (no API call needed for text extraction).
+      msg.textContent='Extracting text from Word doc...';
+      if(uploadMsg) uploadMsg.textContent='Extracting text from Word doc...';
+      if(!window.mammoth){
+        try {
+          await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js';
+            script.onload = resolve;
+            script.onerror = () => reject(new Error('Could not load mammoth.js library'));
+            document.head.appendChild(script);
+          });
+        } catch(e) {
+          throw new Error('Failed to load DOCX parser: ' + e.message);
+        }
+      }
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await window.mammoth.extractRawText({ arrayBuffer });
+        text = (result?.value || '').trim();
+        if(!text){
+          throw new Error('Word doc appears empty — no text extracted by parser');
+        }
+      } catch(e) {
+        throw new Error('Could not parse Word doc: ' + (e.message || 'unknown error'));
+      }
     } else {
+      // PDF and legacy DOC: use Claude API document type
       msg.textContent='Parsing with AI...';
       if(uploadMsg) uploadMsg.textContent='Parsing with AI...';
       const base64=await fileToBase64(file);
-      const mt=ext==='pdf'?'application/pdf':ext==='docx'?'application/vnd.openxmlformats-officedocument.wordprocessingml.document':'application/msword';
+      const mt=ext==='pdf'?'application/pdf':'application/msword';
       const key=getKey();
       if(!key) throw new Error('API key not configured');
       const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-opus-4-5',max_tokens:3000,messages:[{role:'user',content:[{type:'document',source:{type:'base64',media_type:mt,data:base64}},{type:'text',text:'Extract all text from this resume. Return only plain text. Preserve line breaks and section structure. No commentary.'}]}]})});
