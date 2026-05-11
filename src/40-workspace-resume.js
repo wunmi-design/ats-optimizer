@@ -547,6 +547,21 @@ async function processFile(file) {
     }
     if(!text.trim())throw new Error('No text extracted');
     proj.parsedText=text;
+    
+    // CRITICAL: Populate proj.drafts and trigger CE parse so the resume actually shows up
+    // in the Content Editor and live preview. Without this, upload sets proj.parsedText but
+    // nothing renders because the Content Editor reads proj.ce, and the live preview reads
+    // proj.drafts via getResumeText(). The parseToCE() call populates proj.ce in the background.
+    if (!proj.drafts || proj.drafts.length === 0) {
+      proj.drafts = [text];
+    }
+    if (typeof parseToCE === 'function') {
+      // Run in background — don't await, let workspace parse finish first
+      setTimeout(() => {
+        parseToCE(text, true).catch(e => console.warn('parseToCE failed:', e));
+      }, 100);
+    }
+    
     msg.textContent='Analyzing structure...';
     await parseResumeText(text);
   } catch(e){ 
