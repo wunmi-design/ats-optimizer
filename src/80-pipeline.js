@@ -55,6 +55,27 @@ async function applySelectedFixes(){
       `GOAL: Find the strongest HONEST angle this candidate has on this JD, and amplify it. The goal is NOT to make the resume look like the JD. Bridges to gaps must come from real transferable strengths, never from invented experience.
 
 ═══════════════════════════════════════════════════════
+RELEVANCE-BASED BULLET ALLOCATION (critical)
+═══════════════════════════════════════════════════════
+Identify the MOST-RELEVANT role(s) in the candidate's history for this specific JD.
+Relevance is based on JOB FAMILY MATCH (Design Systems Manager applying to a Design Systems
+role at Loop = highly relevant) and SKILL OVERLAP with the JD, not just recency.
+
+ALLOCATE BULLETS BY RELEVANCE × RECENCY:
+- Most recent role + most relevant role(s): 4-5 bullets each (FULL detail) — these are
+  the strongest signal for the recruiter
+- Other recent roles (≤10 years old): 3 bullets each
+- Older roles (10-12 years old): 1-2 bullets, condensed
+- Roles >12 years old will be REMOVED programmatically before this prompt runs — do
+  not write bullets for them; if you see one, omit it entirely
+
+IMPORTANT: Recent ≠ Relevant. A role 4 positions down can still be the MOST relevant
+for the target JD — in that case, develop it FULLY (4-5 bullets) even though it's
+not the most recent. Example: if applying to a Design Systems role, the candidate's
+2017-2020 Web.com role focused on design systems is HIGHLY relevant and should get
+4-5 bullets, more than their most recent role if that role is unrelated.
+
+═══════════════════════════════════════════════════════
 STALE ROLE REMOVAL (critical thinking required)
 ═══════════════════════════════════════════════════════
 Modern resume best practice: show the last 10-15 years of relevant experience.
@@ -168,8 +189,8 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     // Phase 4b2: Stale role removal — drop roles ended 15+ years ago (industry best practice).
     // Programmatic backstop — even if the AI didn't follow the prompt rule, this enforces it.
     overlaySub.textContent = 'Removing roles older than 15 years';
-    const staleRoles = findStaleRoles(bulletsCapped, 15);
-    const staleRemoved = staleRoles.length > 0 ? removeStaleRoles(bulletsCapped, 15) : bulletsCapped;
+    const staleRoles = findStaleRoles(bulletsCapped, 12);
+    const staleRemoved = staleRoles.length > 0 ? removeStaleRoles(bulletsCapped, 12) : bulletsCapped;
     if (staleRoles.length > 0) {
       console.log(`Pipeline removed ${staleRoles.length} stale role(s):`, staleRoles.map(r => r.header.substring(0, 60)));
     }
@@ -463,8 +484,8 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
 
     // Stale role removal — drop roles ended 15+ years ago
     overlaySub.textContent = 'Removing roles older than 15 years';
-    const staleRoles = findStaleRoles(bulletsCapped, 15);
-    const staleRemoved = staleRoles.length > 0 ? removeStaleRoles(bulletsCapped, 15) : bulletsCapped;
+    const staleRoles = findStaleRoles(bulletsCapped, 12);
+    const staleRemoved = staleRoles.length > 0 ? removeStaleRoles(bulletsCapped, 12) : bulletsCapped;
     if (staleRoles.length > 0) {
       console.log(`autoOptimize removed ${staleRoles.length} stale role(s):`, staleRoles.map(r => r.header.substring(0, 60)));
     }

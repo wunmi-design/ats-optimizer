@@ -141,48 +141,34 @@ const RESUME_LENGTH = {
 // ═══════════════════════════════════════════════════════
 // Limit each role's bullets to a maximum of N (default 3). Removes extra bullets after the Nth.
 // Keeps role headers, descriptions, and maintains formatting.
-// Bullet cap with sliding scale based on role recency/position:
-//   Role 1 (most recent):  5 bullets (key positioning)
-//   Role 2 (recent):       4 bullets
-//   Role 3 (recent):       4 bullets
-//   Role 4 (older):        3 bullets
-//   Role 5+ (much older):  2 bullets (career history only)
-// Industry guideline: recent/highly relevant positions get 4-6 bullets,
-// older/less relevant get 2-3.
+// Bullet cap — uniform 5 max per role, AI controls actual allocation per relevance.
+// The cap is a safety net, not a rule. The AI prompt drives relevance-based bullet allocation:
+// most recent + most relevant role gets 4-5 bullets (FULL detail), other recent roles get 3-4,
+// older roles get 1-2. Recent != Relevant — a role 4 positions down can still be highly relevant
+// to the target JD, in which case it should get FULL detail.
 function capBulletsPerRole(text) {
+  const MAX_BULLETS = 5;
   const lines = text.split('\n');
   const result = [];
   let bulletCount = 0;
-  let roleIndex = 0;       // 0 = before first role, 1 = first role, 2 = second, etc.
-  let currentCap = 5;      // Default for the first role
-  
-  // Helper to determine bullet cap for a given role index (1-based)
-  function capForRole(idx) {
-    if (idx === 1) return 5;
-    if (idx === 2 || idx === 3) return 4;
-    if (idx === 4) return 3;
-    return 2; // 5+ — career history, minimal bullets
-  }
   
   for (const line of lines) {
     const trimmed = line.trim();
     
     // Detect role header (has dates like 01/16 – 06/17 or 09/25 – Present)
     if (trimmed.match(/\d{1,2}\/\d{2}\s*[–-]\s*(?:\d{1,2}\/\d{2}|Present|Current)/)) {
-      roleIndex++;
       bulletCount = 0;
-      currentCap = capForRole(roleIndex);
       result.push(line);
       continue;
     }
     
     // Check if this is a bullet (starts with • or -)
     if (trimmed.startsWith('•') || trimmed.startsWith('-')) {
-      if (bulletCount < currentCap) {
+      if (bulletCount < MAX_BULLETS) {
         result.push(line);
         bulletCount++;
       }
-      // Skip bullets beyond the cap for this role's position
+      // Skip bullets beyond the cap
       continue;
     }
     
@@ -432,9 +418,9 @@ async function trimToTargetLength(text) {
   // STALE ROLE REMOVAL — drop roles ended 15+ years ago (industry best practice).
   // Apply BEFORE other trimming since it saves more space than bullet trimming.
   let workingText = text;
-  const staleRoles = findStaleRoles(text, 15);
+  const staleRoles = findStaleRoles(text, 12);
   if (staleRoles.length > 0) {
-    workingText = removeStaleRoles(text, 15);
+    workingText = removeStaleRoles(text, 12);
     console.log(`Removed ${staleRoles.length} stale role(s) (>15 years old): ${staleRoles.map(r => r.header.substring(0, 50)).join(' | ')}`);
     // Re-check if we now fit
     const newPages = measureRenderedPages(workingText);
@@ -494,6 +480,21 @@ TARGET: ${targetChars} characters maximum, MUST fit on ${analysis.targetPages} p
 REDUCTION NEEDED: approximately ${reductionPct}% — be aggressive
 
 CRITICAL CONSTRAINT: Output MUST fit on exactly ${analysis.targetPages} page(s).
+
+═══════════════════════════════════════════════════════
+RELEVANCE-AWARE TRIMMING (critical)
+═══════════════════════════════════════════════════════
+When trimming bullets, do NOT trim uniformly across roles. Apply this priority:
+
+1. The role with the MOST EXISTING BULLETS is the candidate's most-developed/most-relevant
+   role — PRESERVE all its bullets (or trim only 1, never to fewer than 4).
+2. The MOST RECENT role — keep 3-4 bullets minimum (it's their current positioning).
+3. Older roles with fewer bullets — trim these FIRST. A role with 2 bullets can drop to 1.
+4. Empty older role descriptions can be tightened to 1 sentence.
+
+THE GOAL: Recent and most-relevant roles must remain FULL and impressive. Older or
+less-relevant roles get condensed. Never make the resume look "evenly thin" by
+trimming each role uniformly — that flattens the signal.
 
 ═══════════════════════════════════════════════════════
 STALE ROLE REMOVAL (apply BEFORE trimming bullets)
