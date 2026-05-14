@@ -698,13 +698,13 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
 <div class="app-shell">
 
   <!-- ═══ TOP BAR ═══ -->
-  <div class="topbar" style="height:auto;min-height:64px;padding:10px 20px;gap:16px;justify-content:space-between;">
+  <div class="topbar" style="height:auto;min-height:64px;padding:10px 20px;gap:16px;">
     <div style="display:flex;align-items:center;gap:6px;flex:0 1 auto;white-space:nowrap;min-width:0;overflow:hidden;">
       <div class="topbar-brand" style="gap:4px;font-size:13px;flex-shrink:0;">
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.4.0</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.4.1</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -712,8 +712,10 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       </div>
     </div>
     
-    <!-- Center: Save button + Download Resume button -->
-    <div style="display:flex;align-items:center;gap:14px;flex:0 0 auto;">
+    <!-- Save button + Download Resume button — pushed to the right edge via
+         margin-left:auto so they sit 16px (the topbar's flex gap) from the
+         user avatar to their right. -->
+    <div style="display:flex;align-items:center;gap:14px;flex:0 0 auto;margin-left:auto;">
       <button id="save-btn" onclick="if(!window._atsUser){handleAuthClick();return;}if(!proj){toast('No project open');return;}saveProject();toast('Saved to cloud')" title="Save to cloud" style="display:flex;align-items:center;gap:8px;padding:10px 28px;font-size:14px;font-weight:500;color:var(--ink);background:var(--white);border:1.5px solid var(--border);border-radius:999px;cursor:pointer;transition:all 0.2s;white-space:nowrap;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='var(--white)'">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4"></path></svg>
         Save
@@ -762,8 +764,10 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <button type="button" onclick="openApiHelp()" title="How to set up your API key" aria-label="API key help" style="flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:11px;font-weight:600;padding:0;line-height:1;">?</button>
     </div>
     
-    <!-- Daily / Monthly counter pills -->
-    <div style="display:flex;align-items:center;gap:8px;margin-right:10px;">
+    <!-- Daily / Monthly counter pills — hidden in 4.4.1 since the app is
+         now BYOK-only and the user manages spend via their own Anthropic
+         Console. Kept in DOM (display:none) in case we re-enable later. -->
+    <div style="display:none;align-items:center;gap:8px;margin-right:10px;">
       <div style="display:flex;align-items:center;gap:8px;padding:0 14px;background:var(--surface);border-radius:999px;font-size:12px;font-weight:500;height:36px;">
         <span style="color:var(--ink);">Daily:</span>
         <span id="daily-usage" style="color:var(--ink);font-weight:600;">0/50,000</span>
