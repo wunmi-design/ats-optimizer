@@ -704,7 +704,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.3.9</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.4.0</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -759,6 +759,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;color:var(--muted);flex-shrink:0;"><circle cx="9" cy="15" r="4"></circle><path d="M21 4l-9.5 9.5M17 8l3 3"></path></svg>
       <input type="password" id="api-in" placeholder="Api Key" oninput="onApiKey(this.value)" style="border:none;outline:none;background:transparent;width:140px;font-size:13px;color:var(--ink);height:34px;line-height:34px;padding:0;">
       <span id="api-saved" style="display:inline;flex-shrink:0;font-size:14px;color:var(--teal);">✓</span>
+      <button type="button" onclick="openApiHelp()" title="How to set up your API key" aria-label="API key help" style="flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:11px;font-weight:600;padding:0;line-height:1;">?</button>
     </div>
     
     <!-- Daily / Monthly counter pills -->
@@ -12389,7 +12390,53 @@ async function autoLoadSystemFonts() {
     if (e.name !== 'NotAllowedError') populateFontDropdowns(GOOGLE_FONTS);
   }
 }
+
+// ─── API KEY ONBOARDING ──────────────────────────────────────────────────────
+// First-time visitors with no saved key see this modal automatically. Returning
+// visitors can re-open it anytime via the "?" button next to the API key field.
+// localStorage flag 'ats_api_help_seen' suppresses the auto-open once dismissed.
+function openApiHelp() {
+  const m = document.getElementById('api-help-modal');
+  if (m) m.style.display = 'flex';
+}
+function closeApiHelp() {
+  const m = document.getElementById('api-help-modal');
+  if (m) m.style.display = 'none';
+  try { localStorage.setItem('ats_api_help_seen', '1'); } catch(e) {}
+}
+// Auto-show on first visit if no API key is set and the user hasn't dismissed
+// the modal before. Runs after DOMContentLoaded so the modal exists.
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    try {
+      const hasKey = !!localStorage.getItem('ats_key');
+      const seenHelp = localStorage.getItem('ats_api_help_seen') === '1';
+      if (!hasKey && !seenHelp) openApiHelp();
+    } catch(e) {}
+  }, 400);
+});
 </script>
 
+<!-- API key onboarding modal — auto-shown to first-time visitors with no key,
+     re-openable any time via the "?" button next to the API key field. -->
+<div id="api-help-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:99998;align-items:center;justify-content:center;padding:24px;">
+  <div style="background:#fff;border-radius:14px;max-width:480px;width:100%;padding:28px 28px 22px;box-shadow:0 20px 60px rgba(0,0,0,0.25);font-family:Inter,system-ui,-apple-system,sans-serif;color:#111;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#0d8a72" stroke-width="2" style="width:22px;height:22px;flex-shrink:0;"><circle cx="9" cy="15" r="4"></circle><path d="M21 4l-9.5 9.5M17 8l3 3"></path></svg>
+      <div style="font-size:18px;font-weight:700;">Set up your Anthropic API key</div>
+    </div>
+    <div style="font-size:13.5px;line-height:1.55;color:#444;margin-bottom:18px;">This app calls Claude using <strong>your own</strong> Anthropic API key. The key stays in your browser — it never touches any server I run.</div>
+    <ol style="margin:0 0 18px;padding-left:22px;font-size:13.5px;line-height:1.7;color:#222;">
+      <li style="margin-bottom:6px;">Go to <a href="https://console.anthropic.com" target="_blank" rel="noopener" style="color:#0d8a72;font-weight:600;">console.anthropic.com</a></li>
+      <li style="margin-bottom:6px;">Sign up (Google sign-in is fastest), then add a phone number to claim <strong>$5 free credit</strong> — enough for roughly 50–100 tailored resumes</li>
+      <li style="margin-bottom:6px;">Navigate to <strong>API Keys → Create Key</strong>, copy the value (starts with <code style="font-family:monospace;font-size:12.5px;background:#f0f0f0;padding:1px 5px;border-radius:4px;">sk-ant-...</code>)</li>
+      <li>Paste it into the <strong>Api Key</strong> field at the top of this page</li>
+    </ol>
+    <div style="font-size:12.5px;line-height:1.55;color:#666;background:#f7f7f5;border-radius:8px;padding:10px 12px;margin-bottom:18px;">A green ✓ confirms it saved. The pills next to the key show your daily and monthly usage so you can keep an eye on spend (most full job searches stay under $2).</div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;">
+      <button type="button" onclick="closeApiHelp()" style="background:#0d8a72;color:#fff;border:0;border-radius:999px;padding:10px 22px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Got it</button>
+    </div>
+  </div>
+</div>
 
 </body></html><!-- Force rebuild 1778471292 -->
