@@ -732,7 +732,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.4.8</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.4.9</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -806,9 +806,9 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
     <!-- API Key with key icon (rounded pill) -->
     <div style="display:flex;align-items:center;gap:8px;padding:0 16px;background:var(--white);border:1px solid var(--border);border-radius:999px;height:36px;margin-right:10px;">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;color:var(--muted);flex-shrink:0;"><circle cx="9" cy="15" r="4"></circle><path d="M21 4l-9.5 9.5M17 8l3 3"></path></svg>
-      <input type="password" id="api-in" placeholder="Api Key" oninput="onApiKey(this.value)" style="border:none;outline:none;background:transparent;width:140px;font-size:13px;color:var(--ink);height:34px;line-height:34px;padding:0;">
+      <input type="password" id="api-in" placeholder="Claude API Key" oninput="onApiKey(this.value)" style="border:none;outline:none;background:transparent;width:140px;font-size:13px;color:var(--ink);height:34px;line-height:34px;padding:0;">
       <span id="api-saved" style="display:inline;flex-shrink:0;font-size:14px;color:var(--teal);">✓</span>
-      <button type="button" onclick="openApiHelp()" title="How to set up your API key" aria-label="API key help" style="flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:11px;font-weight:600;padding:0;line-height:1;">?</button>
+      <button type="button" onclick="openApiHelp()" title="How to set up your Claude API key" aria-label="Claude API key help" style="flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:11px;font-weight:600;padding:0;line-height:1;">?</button>
     </div>
     
     <!-- Daily / Monthly counter pills — hidden in 4.4.1 since the app is
@@ -12573,8 +12573,8 @@ document.addEventListener('DOMContentLoaded', () => {
       <div style="display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;margin-bottom:16px;border-radius:50%;background:#f5f5f5;">
         <svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" style="width:32px;height:32px;"><circle cx="9" cy="15" r="4"></circle><path d="M21 4l-9.5 9.5M17 8l3 3"></path></svg>
       </div>
-      <div style="font-size:26px;font-weight:700;letter-spacing:-0.02em;margin-bottom:8px;">Add your Anthropic API key</div>
-      <div style="font-size:14px;line-height:1.55;color:#555;max-width:480px;margin:0 auto;">This app uses Claude to tailor your resume. Bring your own API key — new accounts get a small starter credit that covers roughly 5–10 tailored resumes.</div>
+      <div style="font-size:26px;font-weight:700;letter-spacing:-0.02em;margin-bottom:8px;">Add your Claude API key</div>
+      <div style="font-size:14px;line-height:1.55;color:#555;max-width:480px;margin:0 auto;">This app uses Claude to tailor your resume. Bring your own key from Anthropic — new accounts get a small starter credit that covers roughly 5–10 tailored resumes.</div>
     </div>
 
     <!-- 4 step cards -->
@@ -12596,8 +12596,8 @@ document.addEventListener('DOMContentLoaded', () => {
           </svg>
         </div>
         <div>
-          <div style="font-size:14px;font-weight:600;margin-bottom:4px;">Go to the console</div>
-          <div style="font-size:13px;line-height:1.5;color:#666;">Open <a href="https://console.anthropic.com" target="_blank" rel="noopener" style="color:#111111;font-weight:600;text-decoration:none;">console.anthropic.com</a> and sign up (Google login is fastest).</div>
+          <div style="font-size:14px;font-weight:600;margin-bottom:4px;">Create a developer account</div>
+          <div style="font-size:13px;line-height:1.5;color:#666;">Go to <a href="https://console.anthropic.com" target="_blank" rel="noopener" style="color:#111111;font-weight:600;text-decoration:underline;">console.anthropic.com</a> and sign up (Google login is fastest).</div>
         </div>
       </div>
 
@@ -12635,8 +12635,8 @@ document.addEventListener('DOMContentLoaded', () => {
           </svg>
         </div>
         <div>
-          <div style="font-size:14px;font-weight:600;margin-bottom:4px;">Create an API key</div>
-          <div style="font-size:13px;line-height:1.5;color:#666;">Go to <strong>API Keys → Create Key</strong> and copy the value. It starts with <code style="font-family:monospace;font-size:12px;background:#eee;padding:1px 5px;border-radius:4px;">sk-ant-</code>.</div>
+          <div style="font-size:14px;font-weight:600;margin-bottom:4px;">Create your Claude API key</div>
+          <div style="font-size:13px;line-height:1.5;color:#666;">Open <strong>API Keys</strong> from the side nav (or your profile menu), click <strong>+ Create Key</strong>, name it something memorable like <em>Resume Optimizer</em>, then copy the value immediately. It starts with <code style="font-family:monospace;font-size:12px;background:#eee;padding:1px 5px;border-radius:4px;">sk-ant-</code> and won't be shown again.</div>
         </div>
       </div>
 
@@ -12652,8 +12652,8 @@ document.addEventListener('DOMContentLoaded', () => {
           </svg>
         </div>
         <div>
-          <div style="font-size:14px;font-weight:600;margin-bottom:4px;">Paste it below</div>
-          <div style="font-size:13px;line-height:1.5;color:#666;">Drop your key into the field at the bottom of this modal. It saves automatically.</div>
+          <div style="font-size:14px;font-weight:600;margin-bottom:4px;">Paste your Claude key below</div>
+          <div style="font-size:13px;line-height:1.5;color:#666;">Drop the key into the field at the bottom of this modal and click Save. It saves to your browser only.</div>
         </div>
       </div>
 
@@ -12662,7 +12662,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <!-- Inline API key entry — saves on Save click or Enter -->
     <div style="background:#fff;border:1.5px solid #111111;border-radius:12px;padding:6px 6px 6px 16px;display:flex;align-items:center;gap:8px;margin-bottom:10px;">
       <svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" style="width:18px;height:18px;flex-shrink:0;"><circle cx="9" cy="15" r="4"></circle><path d="M21 4l-9.5 9.5M17 8l3 3"></path></svg>
-      <input type="password" id="api-help-input" placeholder="Paste your API key (sk-ant-...)" style="flex:1;border:none;outline:none;background:transparent;font-size:14px;color:#111;padding:10px 0;font-family:inherit;" onkeydown="if(event.key==='Enter')saveApiKeyFromHelp()">
+      <input type="password" id="api-help-input" placeholder="Paste your Claude API key (sk-ant-...)" style="flex:1;border:none;outline:none;background:transparent;font-size:14px;color:#111;padding:10px 0;font-family:inherit;" onkeydown="if(event.key==='Enter')saveApiKeyFromHelp()">
       <button type="button" onclick="saveApiKeyFromHelp()" style="background:#111111;color:#fff;border:0;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;flex-shrink:0;transition:background 0.15s;" onmouseover="this.style.background='#000000'" onmouseout="this.style.background='#111111'">Save</button>
     </div>
     <!-- Caveat: not all countries support phone verification, and the
