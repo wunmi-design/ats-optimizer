@@ -704,7 +704,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.4.3</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.4.4</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -761,7 +761,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
           <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
           <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
         </svg>
-        <span>Continue with Google</span>
+        <span>Log in with Google</span>
       </div>
     </div>
   </div>
@@ -2983,11 +2983,14 @@ function setAuthUI() {
   const profileBtn = document.getElementById('user-profile-btn');
   const signedIn = document.getElementById('user-signed-in');
   const signedOut = document.getElementById('user-signed-out');
+  const loginGate = document.getElementById('login-gate-modal');
   // The wrapper is always visible — its two children flip based on auth state.
   if (profileBtn) profileBtn.style.display = 'flex';
   if (window._atsUser) {
     if (signedIn) signedIn.style.display = 'flex';
     if (signedOut) signedOut.style.display = 'none';
+    // Login complete — dismiss the gate modal if it was up.
+    if (loginGate) loginGate.style.display = 'none';
     const avatar = document.getElementById('user-avatar');
     const firstName = document.getElementById('user-first-name');
     // Set user's first name
@@ -3007,10 +3010,20 @@ function setAuthUI() {
     }
     // Update token usage display
     TokenTracker.updateUI(window._atsUser.id);
+    // Now that the user is in, the API key onboarding can run if they need it.
+    // (Login gate takes priority over API help — we don't double-modal.)
+    try {
+      const hasKey = !!localStorage.getItem('ats_key');
+      const seenHelp = localStorage.getItem('ats_api_help_seen') === '1';
+      if (!hasKey && !seenHelp) openApiHelp();
+    } catch(e) {}
   } else {
-    // Logged-out: hide the avatar/name group, show the Continue with Google button.
+    // Logged-out: hide the avatar/name group, show the Continue with Google
+    // button in the header, AND raise the full-screen login gate. The app
+    // is unusable until the user signs in.
     if (signedIn) signedIn.style.display = 'none';
     if (signedOut) signedOut.style.display = 'flex';
+    if (loginGate) loginGate.style.display = 'flex';
   }
 }
 
@@ -12453,10 +12466,13 @@ function closeApiHelp() {
   try { localStorage.setItem('ats_api_help_seen', '1'); } catch(e) {}
 }
 // Auto-show on first visit if no API key is set and the user hasn't dismissed
-// the modal before. Runs after DOMContentLoaded so the modal exists.
+// the modal before. Runs after DOMContentLoaded so the modal exists. Skipped
+// if the user isn't logged in — the login gate takes priority and setAuthUI
+// will call openApiHelp itself once the user signs in.
 document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
     try {
+      if (!window._atsUser) return; // login gate has priority
       const hasKey = !!localStorage.getItem('ats_key');
       const seenHelp = localStorage.getItem('ats_api_help_seen') === '1';
       if (!hasKey && !seenHelp) openApiHelp();
@@ -12486,5 +12502,44 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
 </div>
+
+<!-- LOGIN GATE — full-screen, non-dismissible modal that blocks the app until
+     the user signs in with Google. Shown by setAuthUI() whenever
+     window._atsUser is null. The Log in button triggers handleAuthClick(),
+     which redirects to the Supabase Google OAuth endpoint. -->
+<div id="login-gate-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.72);z-index:99999;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);">
+  <div style="background:#fff;border-radius:18px;max-width:440px;width:100%;padding:40px 36px 32px;box-shadow:0 24px 80px rgba(0,0,0,0.35);font-family:Inter,system-ui,-apple-system,sans-serif;color:#111;text-align:center;">
+    <div style="display:flex;align-items:center;justify-content:center;width:56px;height:56px;margin:0 auto 18px;border-radius:50%;background:#e6f5f2;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#0d8a72" stroke-width="2" style="width:28px;height:28px;"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"></path></svg>
+    </div>
+    <div style="font-size:22px;font-weight:700;letter-spacing:-0.01em;margin-bottom:8px;">Log in to continue</div>
+    <div style="font-size:14px;line-height:1.55;color:#555;margin-bottom:28px;">This app uses Google to sign you in and sync your resumes across devices. Your projects are stored privately under your account.</div>
+    <button type="button" onclick="handleAuthClick()" style="display:inline-flex;align-items:center;justify-content:center;gap:12px;padding:13px 28px;width:100%;background:#fff;border:1px solid #d4d4d4;border-radius:999px;font-size:15px;font-weight:500;color:#111;cursor:pointer;font-family:inherit;transition:background 0.15s;" onmouseover="this.style.background='#f7f7f5'" onmouseout="this.style.background='#fff'">
+      <svg viewBox="0 0 48 48" style="width:20px;height:20px;flex-shrink:0;" aria-hidden="true">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      </svg>
+      <span>Log in with Google</span>
+    </button>
+    <div style="font-size:12px;color:#888;margin-top:18px;line-height:1.5;">We only request your name, email, and avatar to identify your account. Nothing is shared with third parties.</div>
+  </div>
+</div>
+
+<script>
+// Fallback: if the auth init flow doesn't reach setAuthUI within ~600ms
+// (e.g., no stored session at all, no OAuth code in the URL), raise the
+// login gate so an unauthenticated visitor isn't left looking at the
+// half-loaded app. setAuthUI handles dismissal once a user is set.
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    if (!window._atsUser) {
+      const m = document.getElementById('login-gate-modal');
+      if (m && m.style.display !== 'flex') m.style.display = 'flex';
+    }
+  }, 600);
+});
+</script>
 
 </body></html><!-- Force rebuild 1778471292 -->
