@@ -732,7 +732,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.5.0</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.5.1</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -2969,6 +2969,74 @@ async function supaFetch(path, opts = {}) {
   return res;
 }
 
+// ── ANALYTICS ─────────────────────────────────────────────────────────────
+// Lightweight event tracker. Writes one row to the public.events table per
+// call. NEVER throws, NEVER blocks the UI — analytics failures must not
+// affect product behavior. Schema:
+//   events ( id uuid, user_id uuid, event_name text, properties jsonb,
+//            created_at timestamptz )
+// Drops events when the user isn't logged in (the login gate prevents this
+// in practice, but defense in depth). To query results, use the Supabase
+// SQL editor or any Postgres-compatible client.
+async function trackEvent(name, properties = {}) {
+  try {
+    if (!window._atsUser || !window._atsToken) return;
+    // Strip any large values defensively — analytics should never carry
+    // resume bodies or job description text. Cap string properties at 200
+    // chars so a misuse can't blow up the row size.
+    const safe = {};
+    for (const k in properties) {
+      const v = properties[k];
+      if (typeof v === 'string') safe[k] = v.slice(0, 200);
+      else if (typeof v === 'number' || typeof v === 'boolean' || v === null) safe[k] = v;
+      else safe[k] = String(v).slice(0, 200);
+    }
+    await fetch(SUPABASE_URL + '/rest/v1/events', {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + window._atsToken,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        user_id: window._atsUser.id,
+        event_name: name,
+        properties: safe
+      })
+    });
+  } catch (e) { /* swallow — analytics must never throw */ }
+}
+// Debounce timer used for jd_pasted so we don't fire on every keystroke.
+let _jdPastedTimer = null;
+
+// Called from the two proj.scores.push sites whenever a new analyzer score
+// has been computed. Detects whether this score follows an apply (the
+// signal: there's a previous versionScore to compare against) and fires
+// apply_completed when it does, plus score_drop if the new score is lower.
+function trackPostScore() {
+  try {
+    const vs = proj?.versionScores || [];
+    if (vs.length < 2) return; // initial analysis, no prior score to compare
+    const after = vs[vs.length - 1];
+    const before = vs[vs.length - 2];
+    if (typeof after !== 'number' || typeof before !== 'number') return;
+    trackEvent('apply_completed', {
+      score_before: before,
+      score_after: after,
+      delta: after - before,
+      version: vs.length
+    });
+    if (after < before) {
+      trackEvent('score_drop', {
+        score_before: before,
+        score_after: after,
+        delta: after - before
+      });
+    }
+  } catch (e) { /* swallow */ }
+}
+
 function handleAuthClick() {
   if (window._atsUser) {
     // Sign out
@@ -3361,6 +3429,7 @@ async function claudeFetch(prompt, maxTokens, att, temperature, model, cacheable
     // Sanitize the error message — strip API URLs and long technical details
     const raw = e?.error?.message || `HTTP ${resp.status}`;
     const clean = raw.split('.')[0].slice(0, 100);
+    trackEvent('api_error', { status: resp.status, model: useModel, message: clean });
     throw new Error(clean);
   }
   const d=await resp.json();
@@ -3371,6 +3440,14 @@ async function claudeFetch(prompt, maxTokens, att, temperature, model, cacheable
     if (totalTokens > 0) {
       TokenTracker.addTokens(window._atsUser.id, totalTokens);
     }
+    // Analytics: one row per successful API call so we can correlate cost
+    // with workflow steps. Tokens are numbers, not text, so privacy is fine.
+    trackEvent('claude_call', {
+      model: useModel,
+      input_tokens: d.usage.input_tokens || 0,
+      output_tokens: d.usage.output_tokens || 0,
+      max_tokens: maxTokens || 3000
+    });
   }
   
   const result = d.content?.map(b=>b.text||'').join('')||'';
@@ -4610,7 +4687,10 @@ function onDropProjects(e) {
 
 function onFileSelectProjects(e) {
   const f = e.target.files[0];
-  if (f) processFileFromProjects(f);
+  if (f) {
+    trackEvent('resume_uploaded', { source: 'projects_tile', ext: (f.name.split('.').pop() || '').toLowerCase(), size_kb: Math.round(f.size / 1024) });
+    processFileFromProjects(f);
+  }
 }
 
 async function processFileFromProjects(file) {
@@ -4672,7 +4752,7 @@ async function processFileFromProjects(file) {
     if (uploadModal) uploadModal.style.display = 'none';
   }
 }
-function onFileSelect(e){const f=e.target.files[0];if(f)processFile(f);}
+function onFileSelect(e){const f=e.target.files[0];if(f){trackEvent('resume_uploaded',{source:'in_project',ext:(f.name.split('.').pop()||'').toLowerCase(),size_kb:Math.round(f.size/1024)});processFile(f);}}
 
 async function processFile(file) {
   if (!proj){toast('Create a project first');return;}
@@ -4888,6 +4968,14 @@ function syncJDToWorkspace() {
   proj.jdText = g('jd-text');
   proj.jdUrl = g('jd-url');
   autoSave();
+  // Fire jd_pasted at most once every 2.5s of typing inactivity. We don't
+  // want to log every keystroke — what we care about is "the user added a
+  // job description" as a discrete funnel event.
+  if (_jdPastedTimer) clearTimeout(_jdPastedTimer);
+  _jdPastedTimer = setTimeout(() => {
+    const len = (proj.jdText || '').trim().length;
+    if (len > 50) trackEvent('jd_pasted', { jd_len: len });
+  }, 2500);
 }
 
 // Show/hide the "Open ↗" link next to the URL field based on whether a URL is present.
@@ -6363,6 +6451,7 @@ async function runFullAnalysis(skipOverlay) {
   const jdText = g('jd-text') || proj?.jdText || '';
   if (!resume) { toast('Add resume content first'); return; }
   if (!jdText) { toast('Paste a job description in the Job Description tab first'); return; }
+  trackEvent('analyzer_run', { resume_len: resume.length, jd_len: jdText.length });
   // Show blocking analyze overlay (unless called from applySelectedFixes which has its own)
   const analyzeOverlay = document.getElementById('analyze-overlay');
   if (!skipOverlay && analyzeOverlay) analyzeOverlay.style.display = 'flex';
@@ -6495,6 +6584,7 @@ RESUME:\n${resume.slice(0,1500)}`, 1000);
     if (typeof score?.overall === 'number') {
       const draftIdx = Math.max(0, (proj.drafts?.length || 1) - 1);
       proj.versionScores[draftIdx] = score.overall;
+      trackPostScore();
     }
     // Cache score + hash so same content = same score
     proj._cachedScore = score;
@@ -6683,6 +6773,7 @@ JOB:\n${jdText.slice(0,3000)}\nRESUME:\n${resume.slice(0,3000)}`,3000,undefined,
     if (typeof score?.overall === 'number') {
       const draftIdx = Math.max(0, (proj.drafts?.length || 1) - 1);
       proj.versionScores[draftIdx] = score.overall;
+      trackPostScore();
     }
     autoSave();
     renderDashboard(score);
@@ -8392,6 +8483,7 @@ function buildBulletContextBlock() {
 }
 
 async function applySelectedFixes(){
+  trackEvent('optimize_clicked', { kind: 'apply_selected' });
   // Check token limits before proceeding (only if using app's key, not user's own)
   if (window._atsUser && !hasOwnApiKey()) {
     if (!TokenTracker.canUseTokens(window._atsUser.id, CONFIG.tokens.estimatedPerOptimization)) {
@@ -8740,6 +8832,7 @@ async function autoOptimize(opts) {
   opts = opts || {};
   const suppressPostView = !!opts.suppressPostView;
   const passLabel = opts.passLabel || '';
+  if (!opts._fromLoop) trackEvent('optimize_clicked', { kind: 'auto_optimize' });
   const resume = getResumeText();
   const jdText = g('jd-text') || proj?.jdText || '';
   if (!resume) { toast('Add resume content first'); return; }
@@ -10814,7 +10907,7 @@ function fmtGetHtml(fp) {
   </style></head><body>${body}</body></html>`;
 }
 
-async function fmtSaveDocx(){await saveDocx();}
+async function fmtSaveDocx(){trackEvent('resume_downloaded',{format:'docx',template:_fmt?.template||'standard'});await saveDocx();}
 
 // Print-to-PDF the resume by rendering it into a sandboxed iframe and printing only that.
 // Previous version (3.1.5 and earlier) tried to hide the rest of the app via @media print
@@ -10827,6 +10920,7 @@ async function fmtSavePdf() {
     toast('Open the Template tab first so the preview renders');
     return;
   }
+  trackEvent('resume_downloaded', { format: 'pdf', template: _fmt?.template || 'standard' });
   
   updateLivePreview();
   await new Promise(r => setTimeout(r, 150));
@@ -12250,11 +12344,17 @@ ${skillsSource}`, 2000, undefined, undefined, 'claude-sonnet-4-6');
     renderLivePreview();
     toast(`Imported ${proj.ce.roles?.length||0} roles · ${proj.ce.skillGroups?.reduce((a,sg)=>a+sg.skills.length,0)||0} skills`);
     if (!suppressTabSwitch) switchTab('content');
+    trackEvent('parse_completed', {
+      roles: proj.ce.roles?.length || 0,
+      skills: proj.ce.skillGroups?.reduce((a, sg) => a + sg.skills.length, 0) || 0,
+      edu: proj.ce.edu?.length || 0
+    });
 
   } catch(e) {
     document.getElementById('upload-loading').classList.remove('show');
     console.error('parseToCE error:', e);
     toast('Import error: ' + e.message);
+    trackEvent('parse_failed', { message: String(e.message || e).slice(0, 200) });
   }
 }
 
