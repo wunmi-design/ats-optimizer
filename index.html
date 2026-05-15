@@ -3,6 +3,22 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ATS Resume</title>
+<!-- LOGIN GATE FLASH SUPPRESSION (added 4.5.9).
+     Runs synchronously before any DOM paints. If a Supabase token is in
+     localStorage, mark the document with .has-auth so the gate stays
+     hidden on reload. setAuthUI() later validates the token and re-shows
+     the gate if it turns out to be invalid/expired. The previous default
+     was to render the gate immediately (display:flex inline) and hide it
+     after JS booted — that produced a visible flash for logged-in users
+     every page load. -->
+<script>
+  try {
+    if (localStorage.getItem('ats_token')) {
+      document.documentElement.classList.add('has-auth');
+    }
+  } catch (e) { /* localStorage unavailable — fall through, gate shows */ }
+</script>
+<style>html.has-auth #login-gate-modal{display:none!important;}</style>
 <link href="./ATS Resume_files/css2" rel="stylesheet">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -321,6 +337,14 @@ select option{background:var(--white);}
 .score-ring-num .n{font-size:1.8rem;font-weight:700;line-height:1;}
 .score-ring-num .l{font-size:10px;color:var(--muted);}
 .score-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 0;}
+/* ANALYZER MINIMAL VIEW (4.5.9) — hide everything except score ring,
+   Strengths, Weaknesses, and the Optimize button. CSS class rules with
+   !important beat JS-set inline `style.display = 'block'` from the
+   render functions, so these stay hidden even when score / audit data
+   would otherwise trigger them to appear. */
+#score-grid,
+#score-summary,
+#ats-audit-card { display: none !important; }
 .score-cell{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;text-align:center;}
 .score-cell-val{font-size:1.2rem;font-weight:700;line-height:1;margin-bottom:2px;}
 .score-cell-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
@@ -736,7 +760,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.5.8</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.5.9</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -2204,9 +2228,9 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <!-- ── ANALYZER ── -->
       <div class="panel-view" id="view-analyzer">
         <div class="flex-between mb-3">
-          <div><div class="bold" style="font-size:15px;">Analyzer</div><div class="text-xs text-muted mt-1">Score, gaps, and suggested fixes against the job description</div></div>
+          <div><div class="bold" style="font-size:15px;">Analyzer</div><div class="text-xs text-muted mt-1">Score, strengths, and weaknesses against the job description</div></div>
           <div class="flex-c gap-2">
-            <button class="btn btn-secondary" onclick="autoOptimize()" id="auto-opt-btn" title="Apply all suggestions from one analysis pass">⚡ Optimize</button>
+            <button class="btn btn-secondary" onclick="autoOptimize()" id="auto-opt-btn" title="Apply all suggestions from one analysis pass">⚡ Optimize Now</button>
             <button class="btn btn-primary" onclick="runFullAnalysis()">🔍 Analyze Resume →</button>
           </div>
         </div>
@@ -2253,8 +2277,12 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
                 </div>
               </div>
               <div style="flex:1;">
-                <div class="score-grid" id="score-grid"></div>
-                <p class="text-xs text-muted mt-2" id="score-summary" style="display:none;">Strong alignment with role requirements. Candidate has 7+ years product design experience and 2+ years management experience leading distributed teams. Proven track record of driving measurable business impact (26% MAU growth, 90% card activation rate, 40% velocity improvement). Excellent leadership and mentoring skills with cross-functional collaboration experience. Has required Figma proficiency and design systems expertise. Missing specific healthcare/consumer product experience and some technical skills mentioned in job description.</p>
+                <!-- Sub-score grid hidden in 4.5.9 — Wunmi wants the analyzer
+                     view to show only the overall score + Strengths +
+                     Weaknesses + the Optimize button. Score-summary stays
+                     hidden too. -->
+                <div class="score-grid" id="score-grid" style="display:none !important;"></div>
+                <p class="text-xs text-muted mt-2" id="score-summary" style="display:none !important;">Strong alignment with role requirements. Candidate has 7+ years product design experience and 2+ years management experience leading distributed teams. Proven track record of driving measurable business impact (26% MAU growth, 90% card activation rate, 40% velocity improvement). Excellent leadership and mentoring skills with cross-functional collaboration experience. Has required Figma proficiency and design systems expertise. Missing specific healthcare/consumer product experience and some technical skills mentioned in job description.</p>
               </div>
             </div>
           </div>
@@ -2564,14 +2592,16 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
             </div>
           </div>
 
-          <!-- Strengths / Gaps -->
+          <!-- Strengths / Weaknesses -->
           <div class="two mt-3">
             <div class="card"><div class="card-title mb-2">Strengths</div><div id="score-strengths"></div></div>
-            <div class="card"><div class="card-title mb-2">Gaps</div><div id="score-gaps"></div></div>
+            <div class="card"><div class="card-title mb-2">Weaknesses</div><div id="score-gaps"></div></div>
           </div>
 
-          <!-- ATS audit -->
-          <div class="card mt-3" id="ats-audit-card" style="display:none;">
+          <!-- ATS audit (kept in DOM so existing JS references don't break,
+               but force-hidden in 4.5.9 — Wunmi wants the analyzer view to
+               show only score + strengths + weaknesses + Optimize button. -->
+          <div class="card mt-3" id="ats-audit-card" style="display:none !important;">
             <div class="card-head"><span class="card-title">ATS Format Audit</span></div>
             <div id="ats-checks"></div>
           </div>
