@@ -736,7 +736,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.5.6</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.5.7</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -2137,17 +2137,12 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <div class="bold mb-3" style="font-size:15px;">Job Description</div>
 
         <div class="card mb-3">
-          <div class="two">
-            <div class="field"><label class="fl">Job title</label><input type="text" id="jd-title" oninput="syncJDToWorkspace()"></div>
-            <div class="field"><label class="fl">Company</label><input type="text" id="jd-company" oninput="syncJDToWorkspace()"></div>
-          </div>
-          <div class="field">
-            <label class="fl">Job posting URL <span style="color:var(--muted);font-weight:400;">(for reference — paste the description below)</span></label>
-            <div style="display:flex;gap:8px;align-items:center;">
-              <input type="url" id="jd-url" style="flex:1;" placeholder="https://..." oninput="syncJDToWorkspace();updateJdUrlLink()">
-              <a id="jd-url-open" href="#" target="_blank" rel="noopener" onclick="return openJdUrl(event)" style="display:none;font-size:12px;color:var(--teal);text-decoration:none;white-space:nowrap;padding:6px 10px;border:1px solid var(--border);border-radius:6px;">Open ↗</a>
-            </div>
-          </div>
+          <div class="field"><label class="fl">Job title</label><input type="text" id="jd-title" oninput="syncJDToWorkspace()"></div>
+          <!-- Company + URL fields removed in 4.5.7. The company name is now
+               auto-extracted from the pasted job description via a small Haiku
+               call (extractCompanyFromJD, triggered from the debounce in
+               syncJDToWorkspace). The URL-fetch flow (Lever / Greenhouse / Workday
+               et al.) is gone — users now paste the JD text directly. -->
           <div class="field"><label class="fl">Full job description</label><textarea id="jd-text" oninput="syncJDToWorkspace()" style="min-height:240px;" placeholder="Paste the full job description here..."></textarea></div>
         </div>
 
@@ -3059,6 +3054,41 @@ async function trackEvent(name, properties = {}) {
 }
 // Debounce timer used for jd_pasted so we don't fire on every keystroke.
 let _jdPastedTimer = null;
+
+// ── COMPANY AUTO-EXTRACT ──────────────────────────────────────────────
+// Wunmi removed the Company input field from the JD tab in 4.5.7 to
+// simplify the form. The downstream consumers of proj.jdCompany still
+// exist — project-card logos, prompt context, filename generation — so
+// we need to populate the value some other way. This function runs a
+// small Haiku call on the pasted JD text and writes the extracted name
+// to proj.jdCompany. Triggered from the debounced jd_pasted handler in
+// syncJDToWorkspace() so it only fires once typing settles, never on
+// every keystroke. Failures are silent — the field is optional.
+async function extractCompanyFromJD(text) {
+  if (!text || text.trim().length < 80) return;
+  if (!proj) return;
+  // Skip if we already have a non-empty company for this exact text
+  // (so reopening a project doesn't re-bill an extraction).
+  if (proj.jdCompany && proj._jdCompanyExtractedFrom === text) return;
+  try {
+    const prompt = `Extract the hiring company name from this job description. Return ONLY the company name as plain text — no quotes, no labels, no extra words, no explanation. If the company can't be confidently identified, return exactly: UNKNOWN
+
+JOB DESCRIPTION:
+${text.slice(0, 2500)}`;
+    const raw = await claudeFetch(prompt, 50, undefined, 0, 'claude-haiku-4-5');
+    const company = (raw || '').trim().replace(/^["'`]|["'`]$/g, '').slice(0, 80);
+    if (!company || /^unknown$/i.test(company)) return;
+    proj.jdCompany = company;
+    proj._jdCompanyExtractedFrom = text;
+    autoSave();
+    // Re-render the project grid so the logo + meta line update with the new company name.
+    if (typeof renderProjGrid === 'function') {
+      try { renderProjGrid(); } catch(e) {}
+    }
+  } catch (e) {
+    // Silent — extraction is best-effort; the rest of the workflow still works.
+  }
+}
 
 // Called from the two proj.scores.push sites whenever a new analyzer score
 // has been computed. Detects whether this score follows an apply (the
@@ -4142,7 +4172,7 @@ function loadProject(id) {
   if (strengths) strengths.innerHTML = '';
   const gaps = document.getElementById('score-gaps');
   if (gaps) gaps.innerHTML = '';
-  try { s('jd-title', proj.jdTitle||''); s('jd-company', proj.jdCompany||''); s('jd-text', proj.jdText||''); s('jd-url', proj.jdUrl||''); updateJdUrlLink(); } catch(e) {}
+  try { s('jd-title', proj.jdTitle||''); s('jd-text', proj.jdText||''); } catch(e) {}
   try { if (proj.jdAnalysis) renderJDAnalysis(proj.jdAnalysis); } catch(e) {}
   try { if (proj.questions?.length) renderQuestions(proj.questions); } catch(e) {}
   try { if (proj.outcomeQuestions?.length) renderOutcomeQuestions(); } catch(e) {}
@@ -5033,9 +5063,7 @@ function syncJDToWorkspace() {
   // Keep proj in sync so prompts always use latest JD title/company/url/text
   if (!proj) return;
   proj.jdTitle = g('jd-title');
-  proj.jdCompany = g('jd-company');
   proj.jdText = g('jd-text');
-  proj.jdUrl = g('jd-url');
   autoSave();
   // Fire jd_pasted at most once every 2.5s of typing inactivity. We don't
   // want to log every keystroke — what we care about is "the user added a
@@ -5043,324 +5071,22 @@ function syncJDToWorkspace() {
   if (_jdPastedTimer) clearTimeout(_jdPastedTimer);
   _jdPastedTimer = setTimeout(() => {
     const len = (proj.jdText || '').trim().length;
-    if (len > 50) trackEvent('jd_pasted', { jd_len: len });
+    if (len > 50) {
+      trackEvent('jd_pasted', { jd_len: len });
+      // Auto-extract the company from the JD text (replaces the removed Company field).
+      extractCompanyFromJD(proj.jdText);
+    }
   }, 2500);
 }
 
 // Show/hide the "Open ↗" link next to the URL field based on whether a URL is present.
 // Called on input events and after loading a project so the link reflects current state.
-function updateJdUrlLink() {
-  const url = (document.getElementById('jd-url')?.value || '').trim();
-  const link = document.getElementById('jd-url-open');
-  if (!link) return;
-  if (url && /^https?:\/\//i.test(url)) {
-    link.style.display = 'inline-block';
-    link.href = url;
-  } else {
-    link.style.display = 'none';
-    link.removeAttribute('href');
-  }
-}
+// ─── URL FETCH FUNCTIONS REMOVED IN 4.5.7 ─────────────────
+// updateJdUrlLink(), openJdUrl(), htmlToText(), and fetchJobFromUrl()
+// used to live here. Wunmi removed the URL field from the JD tab — users
+// now paste the JD text directly. The Lever / Greenhouse / Ashby /
+// Workday parsers + the htmlToText helper are gone with them.
 
-// Open the URL in a new tab. Works even if the field has whitespace or http schemes that the
-// browser would otherwise misinterpret. Returns false to suppress the default anchor click
-// behavior since we open via window.open() for full control.
-function openJdUrl(e) {
-  if (e) e.preventDefault();
-  const url = (document.getElementById('jd-url')?.value || '').trim();
-  if (!url) { toast('No URL entered'); return false; }
-  const safe = /^https?:\/\//i.test(url) ? url : 'https://' + url;
-  window.open(safe, '_blank', 'noopener,noreferrer');
-  return false;
-}
-
-// Converts HTML (often double-encoded — entities embedded in JSON, then literal HTML inside) to
-// clean plaintext suitable for the JD textarea. Decodes entities, parses as DOM, and walks block
-// elements emitting newlines so headings and lists don't run together. Used by the Ashby/Lever/
-// Greenhouse handlers.
-function htmlToText(htmlOrEncoded) {
-  if (!htmlOrEncoded) return '';
-  // Decode HTML entities once. If the source is already raw HTML, this is a no-op.
-  const ta = document.createElement('textarea');
-  ta.innerHTML = String(htmlOrEncoded);
-  const decoded = ta.value;
-  // Now parse decoded HTML and walk it.
-  const doc = new DOMParser().parseFromString(decoded, 'text/html');
-  if (!doc.body) return decoded.replace(/\s+/g, ' ').trim();
-
-  const blockTags = new Set(['DIV','P','BR','H1','H2','H3','H4','H5','H6','LI','UL','OL','TR','TD','TH','SECTION','ARTICLE','HEADER','FOOTER','BLOCKQUOTE','PRE']);
-  const out = [];
-  const walk = (node) => {
-    if (node.nodeType === 3) { // text node
-      out.push(node.nodeValue);
-      return;
-    }
-    if (node.nodeType !== 1) return;
-    const tag = node.tagName;
-    const isBlock = blockTags.has(tag);
-    if (isBlock) out.push('\n');
-    if (tag === 'LI') out.push('- ');
-    for (const child of node.childNodes) walk(child);
-    if (isBlock) out.push('\n');
-  };
-  walk(doc.body);
-  return out.join('')
-    .replace(/[ \t]+\n/g, '\n')      // trim trailing spaces on each line
-    .replace(/\n{3,}/g, '\n\n')      // collapse 3+ newlines to 2
-    .replace(/^[\s\n]+|[\s\n]+$/g, '') // trim outer whitespace
-    .replace(/[ \t]{2,}/g, ' ');     // collapse runs of spaces
-}
-
-// ─────────────────────────────────────────────────────────
-//  URL FETCH
-// ─────────────────────────────────────────────────────────
-async function fetchJobFromUrl() {
-  const url = (document.getElementById('jd-url')?.value || '').trim();
-  if (!url) { toast('Paste a job URL first'); return; }
-  if (!url.startsWith('http')) { toast('Please include https://'); return; }
-
-  const loading = document.getElementById('jd-url-loading');
-  const errEl = document.getElementById('jd-url-error');
-  const msgEl = document.getElementById('jd-url-msg');
-  loading?.classList.add('show');
-  if (errEl) errEl.style.display = 'none';
-  if (msgEl) msgEl.textContent = 'Fetching job posting...';
-
-  try {
-    // Try multiple methods to fetch the job posting
-    let html = '';
-    const encodedUrl = encodeURIComponent(url);
-
-    // Special handler for Ashby job boards (JS-rendered, proxies won't work)
-    const ashbyMatch = url.match(/jobs\.ashbyhq\.com\/([^\/]+)\/([a-f0-9-]+)/);
-    if (ashbyMatch) {
-      try {
-        if (msgEl) msgEl.textContent = 'Fetching from Ashby API...';
-        const ashbyGqlResp = await fetch('https://jobs.ashbyhq.com/api/non-user-graphql', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            operationName: 'apiJobPosting',
-            variables: { organizationHostedJobsPageName: ashbyMatch[1], jobPostingId: ashbyMatch[2] },
-            query: 'query apiJobPosting($organizationHostedJobsPageName: String!, $jobPostingId: String!) { jobPosting(organizationHostedJobsPageName: $organizationHostedJobsPageName, jobPostingId: $jobPostingId) { id title departmentName locationName descriptionHtml teamNames } }'
-          })
-        });
-        if (ashbyGqlResp.ok) {
-          const ashbyGql = await ashbyGqlResp.json();
-          const info = ashbyGql?.data?.jobPosting;
-          if (!info) throw new Error('Job not found');
-          const title = info.title || '';
-          const descText = htmlToText(info.descriptionHtml || '');
-          
-          if (title) { s('jd-title', title); if (proj) proj.jdTitle = title; }
-          const company = ashbyMatch[1].charAt(0).toUpperCase() + ashbyMatch[1].slice(1);
-          s('jd-company', company); if (proj) proj.jdCompany = company;
-          if (descText) { s('jd-text', descText); if (proj) proj.jdText = descText; }
-          loading?.classList.remove('show');
-          toast('Job details extracted — review and click Analyze');
-          if (proj) autoSave();
-          return;
-        }
-      } catch(ashbyErr) { console.warn('Ashby API error:', ashbyErr); }
-    }
-
-    // Special handler for Lever job boards
-    const leverMatch = url.match(/jobs\.lever\.co\/([^\/]+)\/([a-f0-9-]+)/);
-    if (leverMatch) {
-      try {
-        if (msgEl) msgEl.textContent = 'Fetching from Lever API...';
-        const leverResp = await fetch('https://api.lever.co/v0/postings/' + leverMatch[1] + '/' + leverMatch[2]);
-        if (leverResp.ok) {
-          const leverData = await leverResp.json();
-          if (leverData.text) { s('jd-title', leverData.text); if (proj) proj.jdTitle = leverData.text; }
-          if (leverData.categories?.team) { s('jd-company', leverData.categories.team); if (proj) proj.jdCompany = leverData.categories.team; }
-          const descHtml = leverData.descriptionPlain || (leverData.description || '').replace(/<[^>]+>/g, ' ');
-          if (descHtml) { s('jd-text', descHtml); if (proj) proj.jdText = descHtml; }
-          loading?.classList.remove('show');
-          toast('Job details extracted — review and click Analyze');
-          if (proj) autoSave();
-          return;
-        }
-      } catch(leverErr) { console.warn('Lever API error:', leverErr); }
-    }
-
-    // Special handler for Greenhouse job boards
-    const ghMatch = url.match(/boards\.greenhouse\.io\/([^\/]+)\/jobs\/(\d+)/);
-    if (ghMatch) {
-      try {
-        if (msgEl) msgEl.textContent = 'Fetching from Greenhouse API...';
-        const ghResp = await fetch('https://boards-api.greenhouse.io/v1/boards/' + ghMatch[1] + '/jobs/' + ghMatch[2]);
-        if (ghResp.ok) {
-          const ghData = await ghResp.json();
-          if (ghData.title) { s('jd-title', ghData.title); if (proj) proj.jdTitle = ghData.title; }
-          s('jd-company', ghMatch[1].charAt(0).toUpperCase() + ghMatch[1].slice(1));
-          if (proj) proj.jdCompany = ghMatch[1].charAt(0).toUpperCase() + ghMatch[1].slice(1);
-          const descText = htmlToText(ghData.content || '');
-          if (descText) { s('jd-text', descText); if (proj) proj.jdText = descText; }
-          loading?.classList.remove('show');
-          toast('Job details extracted — review and click Analyze');
-          if (proj) autoSave();
-          return;
-        }
-      } catch(ghErr) { console.warn('Greenhouse API error:', ghErr); }
-    }
-
-    // Greenhouse-proxied company careers pages: company.com/careers/jobs/{id}/?gh_jid={id}
-    // The job ID is in gh_jid; the company slug isn't in the URL but is usually inferrable from
-    // the host (e.g. circleci.com → "circleci"). We try a few likely slugs against the API.
-    const ghJidMatch = url.match(/[?&]gh_jid=(\d+)/);
-    if (ghJidMatch) {
-      try {
-        const ghJobId = ghJidMatch[1];
-        const host = new URL(url).hostname.replace(/^www\./, '');
-        // Build candidate company slugs. Greenhouse slugs are lowercase alphanum, no dots.
-        // From circleci.com → ['circleci']. From foo.bar.com → ['foo', 'foobar', 'bar'].
-        const parts = host.split('.').filter(p => p && p !== 'com' && p !== 'careers' && p !== 'jobs');
-        const candidates = Array.from(new Set([
-          parts[0],
-          parts.join(''),
-          parts.slice(-1)[0],
-        ].filter(Boolean).map(s => s.replace(/[^a-z0-9]/gi, '').toLowerCase())));
-
-        if (msgEl) msgEl.textContent = 'Fetching from Greenhouse API...';
-        let ghData = null;
-        let resolvedSlug = '';
-        for (const slug of candidates) {
-          try {
-            const r = await fetch('https://boards-api.greenhouse.io/v1/boards/' + slug + '/jobs/' + ghJobId);
-            if (r.ok) {
-              const d = await r.json();
-              if (d?.title) { ghData = d; resolvedSlug = slug; break; }
-            }
-          } catch(e) {}
-        }
-        if (ghData) {
-          if (ghData.title) { s('jd-title', ghData.title); if (proj) proj.jdTitle = ghData.title; }
-          const companyName = resolvedSlug.charAt(0).toUpperCase() + resolvedSlug.slice(1);
-          s('jd-company', companyName); if (proj) proj.jdCompany = companyName;
-          const descText = htmlToText(ghData.content || '');
-          if (descText) { s('jd-text', descText); if (proj) proj.jdText = descText; }
-          loading?.classList.remove('show');
-          toast('Job details extracted — review and click Analyze');
-          if (proj) autoSave();
-          return;
-        }
-      } catch(ghJidErr) { console.warn('Greenhouse-by-jid error:', ghJidErr); }
-    }
-    const proxies = [
-      { url: `https://api.allorigins.win/get?url=${encodedUrl}`, parse: d => d.contents },
-      { url: `https://api.codetabs.com/v1/proxy?quest=${encodedUrl}`, parse: d => d },
-      { url: `https://corsproxy.io/?${encodedUrl}`, parse: d => d },
-    ];
-
-    // Detect JS-rendered job boards that can't be fetched via proxy
-    const jsRenderedBoards = [
-      { pattern: /myjobs\.adp\.com/, name: 'ADP' },
-      { pattern: /myworkdayjobs\.com|workday\.com\/.*\/job/, name: 'Workday' },
-      { pattern: /icims\.com/, name: 'iCIMS' },
-      { pattern: /taleo\.(net|com)/, name: 'Taleo' },
-      { pattern: /successfactors\.com|successfactors\.eu/, name: 'SuccessFactors' },
-      { pattern: /smartrecruiters\.com/, name: 'SmartRecruiters' },
-      { pattern: /jobvite\.com/, name: 'Jobvite' },
-      { pattern: /ultipro\.com|ukg\.com/, name: 'UKG' },
-    ];
-    const jsBoard = jsRenderedBoards.find(b => b.pattern.test(url));
-    if (jsBoard) {
-      loading?.classList.remove('show');
-      if (errEl) {
-        errEl.style.display = 'block';
-        errEl.textContent = `${jsBoard.name} job pages are app-rendered and can't be fetched automatically. Please copy and paste the job title, company, and full description from the posting.`;
-      }
-      return;
-    }
-
-    // Try direct fetch first
-    try {
-      const resp = await fetch(url, { mode: 'cors' });
-      if (resp.ok) html = await resp.text();
-    } catch(e) {}
-
-    // Try proxies in sequence
-    if (!html) {
-      for (const proxy of proxies) {
-        try {
-          if (msgEl) msgEl.textContent = 'Trying alternate fetch...';
-          const resp = await fetch(proxy.url);
-          if (resp.ok) {
-            const contentType = resp.headers.get('content-type') || '';
-            if (contentType.includes('json')) {
-              const data = await resp.json();
-              html = typeof proxy.parse(data) === 'string' ? proxy.parse(data) : '';
-            } else {
-              html = await resp.text();
-            }
-            if (html && html.length > 100) break;
-            html = '';
-          }
-        } catch(e) { html = ''; }
-      }
-    }
-
-    // No AI fallback here — Claude has no real web access via the API, so asking it to "fetch"
-    // a URL just produces hallucinated content (made-up JDs that look plausible but are wrong).
-    // We'd rather fail loudly and let the user paste the JD text manually.
-    if (!html) {
-      loading?.classList.remove('show');
-      throw new Error('Could not fetch this page automatically. Please copy the job description and paste it into the description field below.');
-    }
-
-    // Extract text content from HTML
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-
-    // Remove nav, footer, scripts, styles
-    ['nav','footer','header','script','style','aside','.nav','.footer','.header'].forEach(sel => {
-      try { doc.querySelectorAll(sel).forEach(el => el.remove()); } catch(e) {}
-    });
-
-    const bodyText = (doc.body?.innerText || doc.body?.textContent || '').trim();
-    if (!bodyText || bodyText.length < 100) throw new Error('Page content too short. Try pasting the description manually.');
-
-    // Use Claude to extract structured job info from the raw text
-    if (msgEl) msgEl.textContent = 'Extracting job details...';
-    const raw = await claudeFetch(`Extract the job posting from the page text below. ALL THREE FIELDS ARE REQUIRED — do not skip any.
-
-Return ONLY valid JSON with no other text:
-{"title":"the exact job title from the posting","company":"the company name","description":"the COMPLETE job description text"}
-
-Rules:
-- Title must be the actual job title (e.g. "Senior Product Designer"). Never return a department, page header, or page title.
-- Company must be the hiring ORGANIZATION name (e.g. "Loop", "Verizon", "Netflix"). Look for patterns like "At [Company]," or "[Company]'s" or "join [Company]" — the company name is usually a proper noun that owns the role. NEVER return a team name, department, or function (e.g. "Design Team", "Design", "Engineering", "Product", "Brand"). If the description says "The Design Team at Loop..." then the company is "Loop", not "Design" or "Design Team".
-- Description MUST be complete and include ALL sections: intro, what you'll do, responsibilities, requirements/qualifications, experience, compensation, benefits, and any company story or footer. Do NOT stop early. Do NOT summarize. Copy the full posting body verbatim. If the page has multiple sections (Overview, What You'll Do, Requirements, etc.), include ALL of them concatenated with line breaks. Missing any section is a failure.
-- Strip navigation menus, cookie banners, application form UI, and repeated headers/footers — keep only the actual job posting text.
-- Escape any double quotes inside the description field.
-
-PAGE TEXT:
-${bodyText.slice(0, 25000)}`, 6000);
-
-    const parsed = parseJson(raw);
-    if (parsed.title) { s('jd-title', parsed.title); if (proj) proj.jdTitle = parsed.title; }
-    if (parsed.company) { s('jd-company', parsed.company); if (proj) proj.jdCompany = parsed.company; }
-    if (parsed.description) { s('jd-text', parsed.description); if (proj) proj.jdText = parsed.description; }
-    if (proj) autoSave();
-
-    // Diagnostic so missing fields are visible to the user instead of silently failing.
-    const missing = [];
-    if (!parsed.title) missing.push('title');
-    if (!parsed.company) missing.push('company');
-    if (!parsed.description) missing.push('description');
-    loading?.classList.remove('show');
-    if (missing.length) {
-      toast(`Extracted partial data — missing: ${missing.join(', ')}. Fill them in manually.`);
-    } else {
-      toast('Job details extracted — review and click Analyze');
-    }
-  } catch(e) {
-    loading?.classList.remove('show');
-    if (errEl) { errEl.textContent = e.message; errEl.style.display = 'block'; }
-    toast('Could not fetch URL — paste the description manually');
-  }
-}
 
 // ─────────────────────────────────────────────────────────
 //  ANSWER WITH AI MODAL
@@ -7705,7 +7431,13 @@ function measureRenderedPages(text) {
     const height = container.getBoundingClientRect().height;
     document.body.removeChild(container);
     
-    return height / contentHeightPx;
+    // Reported page count includes a 5% safety buffer. The browser print
+    // engine renders content slightly more conservatively than DOM
+    // measurement does (default print header/footer space, font metric
+    // differences, page-break-inside rules forcing earlier breaks). The
+    // buffer prevents the "preview said 2 pages but PDF made 3" trust
+    // failure that Wunmi flagged.
+    return (height / contentHeightPx) * 1.05;
   } catch (e) {
     console.warn('measureRenderedPages failed:', e);
     return null;
@@ -8847,6 +8579,23 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
       }
     }
 
+    // PAGE FIT GUARD — same backstop as autoOptimize. See note there.
+    try {
+      if (typeof RESUME_LENGTH !== 'undefined' && typeof measureRenderedPages === 'function') {
+        const lenAnalysis = RESUME_LENGTH.analyze(finalText);
+        let measured = measureRenderedPages(finalText);
+        let attempt = 0;
+        const loadingMsg = document.getElementById('apply-loading-msg');
+        while (measured !== null && measured > lenAnalysis.targetPages + 0.05 && attempt < 2) {
+          console.log(`[page-fit] over target (${measured.toFixed(2)} vs ${lenAnalysis.targetPages}). retrim attempt ${attempt + 1}.`);
+          if (loadingMsg) loadingMsg.textContent = `Trimming to fit ${lenAnalysis.targetPages} page${lenAnalysis.targetPages === 1 ? '' : 's'}...`;
+          finalText = await trimToTargetLength(finalText);
+          measured = measureRenderedPages(finalText);
+          attempt++;
+        }
+      }
+    } catch (fitErr) { console.warn('Page fit guard (applySelectedFixes):', fitErr); }
+
     // Push as a new draft so each Apply Selected click increments the version (v1 → v2 → v3...)
     proj.drafts.push(finalText);
     proj._redoStack = [];
@@ -9122,6 +8871,28 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
       // In auto-optimize, warn but don't block — user can review and edit
       toast(`⚠️ Warning: Found third-person pronouns. Review and use first person.`);
     }
+
+    // PAGE FIT GUARD — make sure the new draft actually fits within the
+    // target page count. measureRenderedPages already includes a 5% safety
+    // buffer (browser print is slightly more conservative than DOM
+    // measurement), but a few borderline cases still spill — especially
+    // when content lands right at a page break. If we're still over, run
+    // another trim pass with the same target. Capped at 2 extra passes
+    // so a worst-case content set can't loop forever.
+    try {
+      if (typeof RESUME_LENGTH !== 'undefined' && typeof measureRenderedPages === 'function') {
+        const lenAnalysis = RESUME_LENGTH.analyze(finalText);
+        let measured = measureRenderedPages(finalText);
+        let attempt = 0;
+        while (measured !== null && measured > lenAnalysis.targetPages + 0.05 && attempt < 2) {
+          console.log(`[page-fit] over target (${measured.toFixed(2)} vs ${lenAnalysis.targetPages}). retrim attempt ${attempt + 1}.`);
+          overlayMsg.textContent = `Trimming to fit ${lenAnalysis.targetPages} page${lenAnalysis.targetPages === 1 ? '' : 's'}...`;
+          finalText = await trimToTargetLength(finalText);
+          measured = measureRenderedPages(finalText);
+          attempt++;
+        }
+      }
+    } catch (fitErr) { console.warn('Page fit guard (autoOptimize):', fitErr); }
 
     // Push as a new draft so the version increments by exactly one
     proj.drafts.push(finalText);
