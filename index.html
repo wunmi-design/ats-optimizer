@@ -761,7 +761,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.4</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.5</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -4200,9 +4200,29 @@ function loadProject(id) {
   proj._currentFixes = [];
   proj._missingKeywords = [];
   proj._deepKeywords = [];
-  // Restore cached score from stored scores so analysis renders without re-running
-  const latestStoredScore = (proj.scores && proj.scores.length > 0) ? proj.scores[proj.scores.length - 1] : null;
-  proj._cachedScore = latestStoredScore || null;
+  // 4.6.5: per-version data arrays — must be initialized so the pill-tab
+  // workflow can read/write without crashes. Legacy projects without these
+  // get empty arrays; new score/optimize ops populate them going forward.
+  proj.versionScoreData = proj.versionScoreData || [];
+  proj.versionDiffs = proj.versionDiffs || [];
+  proj.versionSources = proj.versionSources || [];
+  // 4.6.5: preserve _activeVersionIdx across project reopen (Wunmi's B
+  // choice — respect the version the user was last viewing instead of
+  // always snapping back to latest). Validate it's a real index, fall back
+  // to latest if not.
+  if (typeof proj._activeVersionIdx !== 'number' ||
+      proj._activeVersionIdx < 0 ||
+      proj._activeVersionIdx >= (proj.drafts?.length || 0)) {
+    proj._activeVersionIdx = Math.max(0, (proj.drafts?.length || 1) - 1);
+  }
+  // Restore cached score from THIS VERSION's stored data if we have it.
+  // Falls back to the last entry of proj.scores for legacy projects.
+  if (proj.versionScoreData[proj._activeVersionIdx]) {
+    proj._cachedScore = JSON.parse(JSON.stringify(proj.versionScoreData[proj._activeVersionIdx]));
+  } else {
+    const latestStoredScore = (proj.scores && proj.scores.length > 0) ? proj.scores[proj.scores.length - 1] : null;
+    proj._cachedScore = latestStoredScore || null;
+  }
   proj._analysisHash = null; // will be set fresh on next analysis
   // Set _aiApplied based on whether there are drafts (AI has modified the resume)
   proj._aiApplied = (proj.drafts && proj.drafts.length > 0);
@@ -4316,19 +4336,38 @@ function loadProject(id) {
   // Re-render grid so the active-project border moves to the newly loaded tile.
   try { renderProjGrid(); } catch(e) {}
   
-  // If this project has been optimized before, restore the What Has Changed view.
-  // We persisted blocks (with AI titles) on proj.lastOptimize, so this renders without
-  // any API calls — instant restore, no token cost.
-  if (proj.lastOptimize?.blocks?.length) {
+  // If this project has version-specific diff data for the active version,
+  // restore the What Has Changed view from it (4.6.5). Falls back to the
+  // legacy proj.lastOptimize for projects that pre-date per-version storage.
+  const activeIdxForRestore = proj._activeVersionIdx;
+  const activeDiff = proj.versionDiffs?.[activeIdxForRestore];
+  const restoreDiff = activeDiff || (proj.lastOptimize?.blocks?.length ? proj.lastOptimize : null);
+  if (restoreDiff?.blocks?.length) {
     setTimeout(() => {
       try {
         renderWhatHasChangedView(
-          proj.lastOptimize.blocks,
-          proj.lastOptimize.scoreBefore || 0,
-          proj.lastOptimize.scoreAfter || 0
+          restoreDiff.blocks,
+          restoreDiff.scoreBefore || 0,
+          restoreDiff.scoreAfter || 0
         );
       } catch(e) { console.warn('Failed to restore What Has Changed view:', e); }
     }, 150);
+  } else if (activeIdxForRestore === 0) {
+    // V1 active and no diff data — show the empty state.
+    setTimeout(() => {
+      try { applyVersionToView(0); } catch(e) {}
+    }, 150);
+  }
+
+  // 4.6.5: if the active version has stored full score data AND it's not
+  // already on screen (e.g. user reopened the project on V1 but the
+  // legacy restore above used V2's score), apply the version-specific
+  // view so the dashboard matches the active pill.
+  if (proj.versionScoreData?.[activeIdxForRestore]) {
+    setTimeout(() => {
+      try { applyVersionToView(activeIdxForRestore); } catch(e) { console.warn('applyVersionToView on load:', e); }
+      try { if (typeof renderVersionPills === 'function') renderVersionPills(); } catch(e) {}
+    }, 200);
   }
   
   toast('Loaded: ' + proj.name);
@@ -4655,6 +4694,24 @@ async function getResumeFilenameSmart(ext) {
   const titlePart = sanitizeForFilename(cleanTitle);
   const core = [namePart, titlePart].filter(Boolean).join('_');
   return core + '_Resume.' + ext;
+}
+
+// ── ACTIVE-VERSION HELPERS (added 4.6.5) ──────────────────────────
+// When the user clicks a version pill in the analyzer, _activeVersionIdx
+// is set to that pill's index. These helpers return the resume text and
+// the index for the CURRENTLY-ACTIVE version, falling back to the latest
+// draft when no version is explicitly selected. Used by runFullAnalysis,
+// autoOptimize, and applySelectedFixes so those operations act on the
+// version the user is looking at, not always the latest.
+function getActiveVersionIdx() {
+  if (!proj?.drafts?.length) return -1;
+  const i = proj._activeVersionIdx;
+  return (typeof i === 'number' && i >= 0 && i < proj.drafts.length) ? i : (proj.drafts.length - 1);
+}
+function getActiveResumeText() {
+  if (!proj?.drafts?.length) return getResumeText();
+  const i = getActiveVersionIdx();
+  return proj.drafts[i] || '';
 }
 
 function getResumeText() {
@@ -6324,7 +6381,10 @@ function simpleHash(str) {
 }
 
 async function runFullAnalysis(skipOverlay) {
-  const resume = getResumeText();
+  // Score the resume version the user is currently looking at (active pill),
+  // not always the latest draft. Lets the user click V1 then Score Resume
+  // and get V1's score back, not V2's.
+  const resume = getActiveResumeText();
   const jdText = g('jd-text') || proj?.jdText || '';
   if (!resume) { toast('Add resume content first'); return; }
   if (!jdText) { toast('Paste a job description in the Job Description tab first'); return; }
@@ -6459,7 +6519,9 @@ RESUME:\n${resume.slice(0,1500)}`, 1000);
     // by index, only-grows, and survives the scores wipe. Pill row reads this.
     proj.versionScores = proj.versionScores || [];
     if (typeof score?.overall === 'number') {
-      const draftIdx = Math.max(0, (proj.drafts?.length || 1) - 1);
+      // Store overall % under the ACTIVE version's slot, not always latest.
+      // If user is viewing V1 and clicks Score Resume, the score belongs in V1's slot.
+      const draftIdx = getActiveVersionIdx() >= 0 ? getActiveVersionIdx() : Math.max(0, (proj.drafts?.length || 1) - 1);
       proj.versionScores[draftIdx] = score.overall;
       trackPostScore();
     }
@@ -6468,6 +6530,13 @@ RESUME:\n${resume.slice(0,1500)}`, 1000);
     proj._analysisHash = contentHash;
     // Persist the hash in saved data so we can detect stale scores on project reload
     proj._savedAnalysisHash = contentHash;
+    // Per-version full score storage (added 4.6.5) — every version pill click
+    // pulls strengths/gaps/sub-scores from here without re-evaluating.
+    proj.versionScoreData = proj.versionScoreData || [];
+    const activeIdx = getActiveVersionIdx();
+    if (activeIdx >= 0) {
+      proj.versionScoreData[activeIdx] = JSON.parse(JSON.stringify(score));
+    }
     if (audit) proj.atsAudit = audit;
     proj._lastDeep = deep; // persist deep analysis
     autoSave();
@@ -8894,7 +8963,13 @@ async function autoOptimize(opts) {
   const suppressPostView = !!opts.suppressPostView;
   const passLabel = opts.passLabel || '';
   if (!opts._fromLoop) trackEvent('optimize_clicked', { kind: 'auto_optimize' });
-  const resume = getResumeText();
+  // 4.6.5: Optimize sources its input from the CURRENTLY-ACTIVE version
+  // pill, not always the latest draft. If user clicks V1 then Optimize, the
+  // rewrite is based on V1 — and the new version V3 is appended to history
+  // (V2 is preserved). Lets the user branch off any earlier version when
+  // a recent Optimize wasn't an improvement.
+  const resume = getActiveResumeText();
+  const sourceVersionIdx = getActiveVersionIdx();
   const jdText = g('jd-text') || proj?.jdText || '';
   if (!resume) { toast('Add resume content first'); return; }
   if (!jdText) { toast('Paste a job description in the Job Description tab first'); return; }
@@ -9016,7 +9091,7 @@ async function autoOptimize(opts) {
       promptBody += `KEYWORDS TO INSERT (weave naturally into existing sentences or skill lists — no fabricated accomplishments):\n${unappliedKws.map(k => '• ' + k).join('\n')}\n\n`;
     }
 
-    const currentResume = getResumeText();
+    const currentResume = getActiveResumeText();
     const jdTitle = g('jd-title') || proj?.jdTitle || '';
     const titleRule = jdTitle ? `\\n- The person's job title line (directly under their name) MUST be exactly: "${jdTitle}"` : '';
     const verifiedFacts = buildVerifiedFacts();
@@ -9114,9 +9189,17 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
 
     // Push as a new draft so the version increments by exactly one
     proj.drafts.push(finalText);
+    const newVersionIdx = proj.drafts.length - 1;
     proj._redoStack = [];
     proj._aiApplied = true;
-    proj._activeVersionIdx = undefined; // new draft — auto-show latest in pill row
+    // 4.6.5: the new draft becomes the active version (was: undefined, which
+    // snapped to latest). Tracking it explicitly lets selectVersion() work
+    // even when the user just optimized and the new version is "latest."
+    proj._activeVersionIdx = newVersionIdx;
+    // Track which version this was made from, so the diff view + UI can show
+    // the correct "V[sourceIdx] → V[newVersionIdx]" relationship.
+    proj.versionSources = proj.versionSources || [];
+    proj.versionSources[newVersionIdx] = sourceVersionIdx;
     proj._cachedScore = null; proj._analysisHash = null; proj.scores = [];
     autoSave();
     showResume(finalText, proj.drafts.length);
@@ -9150,31 +9233,40 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     await runFullAnalysis(true);
     const scoreAfter = proj._cachedScore?.overall || 0;
 
-    // SCORE REGRESSION GUARD (added 4.6.3) — if Optimize made the score
-    // worse, revert the new draft. The LLM pipeline can occasionally
-    // strip JD-matched keywords or replace them with weaker variants,
-    // dropping the score 10-20 points (Wunmi reported 72 → 52). Reverting
-    // protects the user from shipping a worse resume than they started
-    // with. Threshold of 3 points ignores natural ±1-2 point variance.
+    // 4.6.5: persist the full score blob for the new version so future
+    // pill-tab clicks can restore strengths/gaps/sub-scores without
+    // re-evaluating. runFullAnalysis already wrote to versionScoreData
+    // for activeIdx (which is newVersionIdx now), so this is a no-op
+    // most of the time — but explicit to survive edge cases where
+    // runFullAnalysis didn't populate it.
+    proj.versionScoreData = proj.versionScoreData || [];
+    if (proj._cachedScore) {
+      proj.versionScoreData[newVersionIdx] = JSON.parse(JSON.stringify(proj._cachedScore));
+    }
+
+    // SCORE REGRESSION GUARD (added 4.6.3, updated 4.6.5) — if Optimize
+    // made the score worse, revert the new draft.
     if (scoreBefore > 0 && scoreAfter < scoreBefore - 3) {
       console.warn(`[score-guard] regression detected: ${scoreBefore} → ${scoreAfter}. Reverting.`);
-      // Pop the worse draft + its score
+      // Pop the worse draft + its parallel arrays
       proj.drafts.pop();
       if (proj.versionScores) proj.versionScores.pop();
-      proj._activeVersionIdx = undefined;
+      if (proj.versionScoreData) proj.versionScoreData.pop();
+      if (proj.versionSources) proj.versionSources.pop();
+      // Restore the active version to whatever the user had been viewing
+      // before they hit Optimize.
+      proj._activeVersionIdx = sourceVersionIdx;
       proj._aiApplied = false;
-      // Restore the pre-optimize cached score so the UI shows the original
-      // strengths/gaps + sub-scores, not the regressed run's data.
+      // Restore the pre-optimize cached score so the UI shows the source
+      // version's strengths/gaps + sub-scores, not the regressed data.
       proj._cachedScore = cachedScoreSnapshot;
       proj._analysisHash = analysisHashSnapshot;
-      // Forget the post-optimize diff data — there's nothing to compare
-      // against now.
       proj.lastOptimize = null;
       autoSave();
 
-      // Re-render the previous draft as active + restore the dashboard
+      // Re-render the source draft as active + restore the dashboard
       try {
-        const restoredText = getResumeText();
+        const restoredText = getActiveResumeText();
         showResume(restoredText, proj.drafts.length);
         if (typeof renderVersionPills === 'function') renderVersionPills();
         if (cachedScoreSnapshot && typeof renderDashboard === 'function') {
@@ -9182,7 +9274,7 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
         }
       } catch(e) { console.warn('Restore UI after regression:', e); }
 
-      toast(`Optimize couldn't improve this round (${scoreBefore}% → ${scoreAfter}%). Kept V${proj.drafts.length}.`);
+      toast(`Optimize couldn't improve this round (${scoreBefore}% → ${scoreAfter}%). Kept V${sourceVersionIdx + 1}.`);
       // Skip the post-optimize diff view since we reverted
     } else {
       toast(`${passLabel ? passLabel + ': ' : 'Optimize complete. '}Score: ${scoreBefore} → ${scoreAfter}`);
@@ -9190,6 +9282,20 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
       if (!suppressPostView) {
         try { await showPostOptimizeView(beforeDraft, cleaned, scoreBefore, scoreAfter); }
         catch(viewErr) { console.warn('Post-optimize view:', viewErr); }
+      }
+      // 4.6.5: persist the diff blocks per version so clicking V[newVersionIdx]
+      // pill later restores the "What Has Changed" view without recomputing.
+      if (proj.lastOptimize) {
+        proj.versionDiffs = proj.versionDiffs || [];
+        proj.versionDiffs[newVersionIdx] = {
+          beforeText: proj.lastOptimize.beforeText,
+          afterText: proj.lastOptimize.afterText,
+          scoreBefore: proj.lastOptimize.scoreBefore,
+          scoreAfter: proj.lastOptimize.scoreAfter,
+          blocks: proj.lastOptimize.blocks,
+          sourceIdx: sourceVersionIdx,
+        };
+        autoSave();
       }
     }
   } catch(e) {
@@ -10386,12 +10492,76 @@ function renderVersionPills() {
   row.style.display = 'flex';
 }
 
-// Switch the preview to a specific draft. View-only — does not modify
-// proj.drafts or affect downstream operations.
+// Switch to a specific draft. Acts as a TAB in the analyzer (4.6.5) —
+// updates the resume preview AND the analyzer dashboard (score ring,
+// sub-scores, strengths, gaps) AND the "What Has Changed" panel, all
+// from data stored on the version. No re-evaluation, no API call.
 function selectVersion(idx) {
   if (!proj?.drafts || !proj.drafts[idx]) return;
   proj._activeVersionIdx = idx;
+  autoSave();
   updateLivePreview();
+  applyVersionToView(idx);
+  if (typeof renderVersionPills === 'function') renderVersionPills();
+}
+
+// Render the analyzer dashboard from a specific version's stored score
+// data, and the What Has Changed panel from that version's diff data.
+// Used by selectVersion() and by loadProject() to restore the previously-
+// active version's view on project reopen.
+function applyVersionToView(idx) {
+  if (!proj || typeof idx !== 'number' || idx < 0) return;
+
+  const scoreData = proj.versionScoreData?.[idx];
+  const diff = proj.versionDiffs?.[idx];
+
+  // Make sure the analyzer content card is visible (it may be hidden
+  // by exitPostOptimizeView or by a fresh project load).
+  const ac = document.getElementById('analyzer-content');
+  if (ac) ac.style.display = 'block';
+  const dashLoading = document.getElementById('dash-loading');
+  if (dashLoading) dashLoading.style.display = 'none';
+
+  // 1. Dashboard (score ring, sub-scores, strengths, gaps)
+  if (scoreData) {
+    // Restore _cachedScore so any code that reads it sees this version's data.
+    proj._cachedScore = JSON.parse(JSON.stringify(scoreData));
+    try { renderDashboard(scoreData); } catch(e) { console.warn('renderDashboard(version):', e); }
+  } else {
+    // Legacy version without stored full score data. Use the overall %
+    // from versionScores if available, otherwise leave it blank.
+    const overall = proj.versionScores?.[idx];
+    if (typeof overall === 'number') {
+      try {
+        renderDashboard({
+          overall: overall,
+          keyword_coverage: [], strengths: [], gaps: [],
+          hard_skills: 0, soft_skills: 0, summary_quality: 0,
+          bullet_quality: 0, title_alignment: 0, yoe_alignment: 0,
+        });
+      } catch(e) { console.warn('renderDashboard(legacy version):', e); }
+    }
+  }
+
+  // 2. What Has Changed panel
+  const whatChangedCard = document.getElementById('what-changed-card');
+  const list = document.getElementById('what-changed-list');
+  const countEl = document.getElementById('what-changed-count');
+  const scoreLine = document.getElementById('what-changed-score-line');
+  if (diff && Array.isArray(diff.blocks) && diff.blocks.length) {
+    try { renderWhatHasChangedView(diff.blocks, diff.scoreBefore, diff.scoreAfter); }
+    catch(e) { console.warn('renderWhatHasChangedView(version):', e); }
+  } else if (whatChangedCard && list) {
+    // V1 — original version, nothing to compare against. Per Wunmi's spec,
+    // show an explicit empty state instead of hiding the panel.
+    whatChangedCard.style.display = 'block';
+    const msg = idx === 0
+      ? 'Original version — nothing changed yet.'
+      : 'No change data stored for this version.';
+    list.innerHTML = `<div class="text-xs text-muted" style="padding:20px 0;text-align:center;">${msg}</div>`;
+    if (countEl) countEl.textContent = '';
+    if (scoreLine) scoreLine.innerHTML = '';
+  }
 }
 
 // In-page units. CSS uses physical inches at 96 CSS DPI.
