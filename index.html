@@ -761,7 +761,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.15</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.16</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -826,7 +826,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
   <!-- ═══ TAB BAR ═══ -->
   <div class="tabbar">
     <div class="tab active" id="tab-projects" onclick="switchTab(&#39;projects&#39;)">Projects</div>
-    <div class="tab" id="tab-jd" onclick="switchTab('jd')">Job &amp; Questions</div>
+    <div class="tab" id="tab-jd" onclick="switchTab('jd')">Job</div>
     <div class="tab" id="tab-content" onclick="switchTab(&#39;content&#39;)">Content Editor</div>
     <div class="tab" id="tab-format" onclick="switchTab('format')">Template</div>
     <div class="tab" id="tab-analyzer" onclick="switchTab(&#39;analyzer&#39;)">Optimizer <span id="tab-analyzer-score" class="score-pill" style="font-size: 10px; padding: 1px 5px; margin-left: 4px;">82%</span></div>
@@ -2164,7 +2164,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         </div>
 
         <div class="flex-c gap-2">
-          <button class="btn btn-primary" onclick="analyzeJD()">Analyze Job Description →</button>
+          <button class="btn btn-primary" onclick="analyzeJD()">🔍 Score Resume</button>
           <div class="loading-row" id="jd-loading"><div class="spin"></div><span>Analyzing...</span></div>
         </div>
 
@@ -2177,32 +2177,20 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
           <span id="jd-level-badge" style="display:none;">Senior</span>
         </div>
 
-        <!-- ── INLINE QUESTIONS SECTION (revealed after Analyze) ── -->
-        <div id="qa-section" style="display:none;margin-top:24px;padding-top:20px;border-top:1px solid var(--border);">
-          <div class="flex-between mb-3">
-            <div>
-              <div class="bold" style="font-size:15px;">Job Questions</div>
-              <div class="text-xs text-muted mt-1">Questions generated from gaps between your resume and the job description</div>
-            </div>
-            <button class="btn btn-primary btn-sm" onclick="showAnswerModal()">✦ Answer with AI</button>
-          </div>
-
+        <!-- ── INLINE QUESTIONS SECTION (revealed after Analyze) ──
+             4.6.16: hidden by default. The questions list itself moved
+             to the Optimizer tab per the wireframe. This div stays in
+             the DOM as a hidden container with legacy refs (autofill-
+             loading, autofill-result) so any code that touches them
+             still works, but the user-visible questions UI lives on
+             the Optimizer tab now. -->
+        <div id="qa-section" style="display:none;">
           <div class="loading-row mb-2" id="autofill-loading">
             <div class="spin"></div>
             <span id="autofill-msg">Answering questions...</span>
           </div>
-
           <div id="autofill-result" style="display:none;" class="card mb-2">
             <div style="font-size:12px;color:var(--ink2);line-height:1.6;" id="autofill-summary"></div>
-          </div>
-
-          <div id="questions-list"></div>
-
-          <!-- Bullet outcomes section removed in 4.6.15. -->
-
-          <div class="flex-c gap-2 mt-3" style="padding-top:16px;border-top:1px solid var(--border);">
-            <button class="btn btn-primary" onclick="optimizeFromJD()" id="optimize-from-jd-btn">⚡ Optimize Resume →</button>
-            <span class="text-xs text-muted">Analyzes and applies all suggestions in one pass</span>
           </div>
         </div>
       </div>
@@ -2215,7 +2203,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
                  Optimize (primary black) right. Behavior: Evaluate scores
                  the resume; Optimize optimizes + scores. -->
             <button class="btn btn-secondary" onclick="runFullAnalysis()" id="evaluate-btn">🔍 Score Resume</button>
-            <button class="btn btn-primary" onclick="autoOptimize()" id="auto-opt-btn" title="Apply all suggestions from one analysis pass">⚡ Optimize</button>
+            <button class="btn btn-primary" onclick="optimizeWithQuestionCheck()" id="auto-opt-btn" title="Apply all suggestions from one analysis pass">⚡ Optimize</button>
           </div>
         </div>
 
@@ -2586,10 +2574,29 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
             </div>
           </div>
 
-          <!-- Strengths / Gaps -->
-          <div class="two mt-3">
-            <div class="card"><div class="card-title mb-2">Strengths</div><div id="score-strengths"></div></div>
-            <div class="card"><div class="card-title mb-2">Gaps</div><div id="score-gaps"></div></div>
+          <!-- 4.6.16: Strengths/Gaps cards removed from the Optimizer
+               view per Wunmi's spec. The #score-strengths and #score-gaps
+               DOM stubs are kept (hidden) so renderDashboard's writes don't
+               throw. Job Questions section moved here, directly under the
+               score row. -->
+          <div style="display:none;">
+            <div id="score-strengths"></div>
+            <div id="score-gaps"></div>
+          </div>
+
+          <!-- ── JOB QUESTIONS (moved here from Job tab in 4.6.16) ── -->
+          <div id="opt-questions-section" style="display:none;" class="card mb-3">
+            <div class="flex-between mb-3">
+              <div>
+                <div class="bold" style="font-size:15px;">Job Questions</div>
+                <div class="text-xs text-muted mt-1">Questions generated from gaps between your resume and the job description</div>
+              </div>
+              <div class="flex-c gap-2">
+                <button class="btn btn-secondary btn-sm" onclick="autoFillAnswers()" id="autofill-answers-btn">Auto fill with answers</button>
+                <button class="btn btn-primary btn-sm" onclick="showAnswerModal()">✦ Answer with your AI</button>
+              </div>
+            </div>
+            <div id="questions-list"></div>
           </div>
 
           <!-- ATS audit (kept in DOM so existing JS references don't break,
@@ -2760,6 +2767,43 @@ NY Top Creative Winner · WIx and Vitamin T · 2014</div>
 <!-- NEW PROJECT MODAL -->
 <!-- Confirmation Modal -->
 <!-- Answer with AI Modal -->
+<!-- ── HOW-TO-ANSWER PRE-OPTIMIZE MODAL (4.6.16) ──────────────────
+     Shown when the user presses Optimize without having answered any
+     screening questions. Three explicit paths so the user makes a
+     deliberate choice rather than being silently optimized against
+     an un-personalized resume:
+       1. Auto fill with answers  → app generates answers, then optimizes
+       2. ✦ Answer with your AI   → opens the answer modal; sets the
+                                    _postApplyAction = 'optimize' flag
+                                    so optimize fires automatically when
+                                    "Apply answers" is clicked
+       3. Optimize without answering → straight to optimize, no answers
+     -->
+<div class="ai-modal hidden" id="how-to-answer-modal" onclick="if(event.target===this)hideHowToAnswerModal()">
+  <div class="ai-modal-box" style="max-width:640px;padding:36px 40px;">
+    <h3 style="text-align:center;font-size:22px;font-weight:700;margin:0 0 28px 0;">Answer questions</h3>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:24px;">
+      <!-- Auto fill -->
+      <button onclick="chooseHowToAnswer('autofill')" style="background:var(--white);border:1px solid #ddd;border-radius:10px;padding:32px 16px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;color:#111;line-height:1.4;text-align:center;min-height:120px;display:flex;align-items:center;justify-content:center;transition:border-color .15s, background .15s;" onmouseover="this.style.borderColor='#111';" onmouseout="this.style.borderColor='#ddd';">
+        Auto fill<br>answers
+      </button>
+      <!-- Answer with your AI (primary, black) -->
+      <button onclick="chooseHowToAnswer('byo-ai')" style="background:#111;border:1px solid #111;border-radius:10px;padding:32px 16px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;color:#fff;line-height:1.4;text-align:center;min-height:120px;display:flex;align-items:center;justify-content:center;transition:background .15s;" onmouseover="this.style.background='#222';" onmouseout="this.style.background='#111';">
+        ✦ Answer with<br>your AI
+      </button>
+      <!-- Optimize without answering -->
+      <button onclick="chooseHowToAnswer('skip')" style="background:var(--white);border:1px solid #ddd;border-radius:10px;padding:32px 16px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;color:#111;line-height:1.4;text-align:center;min-height:120px;display:flex;align-items:center;justify-content:center;transition:border-color .15s, background .15s;" onmouseover="this.style.borderColor='#111';" onmouseout="this.style.borderColor='#ddd';">
+        Optimize without<br>answering
+      </button>
+    </div>
+
+    <div style="display:flex;justify-content:flex-start;">
+      <button class="btn btn-ghost" onclick="hideHowToAnswerModal()" style="text-decoration:underline;font-size:14px;color:#555;padding:0;">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <div class="ai-modal hidden" id="answer-modal" onclick="if(event.target===this)hideAnswerModal()">
   <div class="ai-modal-box" style="max-width:560px;padding:32px 36px;">
     <!-- 4.6.12: full modal redesign per Wunmi's mockup.
@@ -5239,7 +5283,13 @@ function hideAnswerModal() {
   const ta = document.getElementById('ai-paste-answers');
   if (ta) ta.value = '';
   document.getElementById('answer-modal')?.classList.add('hidden');
-  // Reset answer mode so the next showAnswerModal defaults back to screening questions.
+  // 4.6.16: If the user opened the modal via the How-to-answer pre-Optimize
+  // modal and then closed it (Cancel / backdrop click) WITHOUT applying
+  // answers, _postApplyAction would still be 'optimize'. The next time they
+  // hit the ✦ Answer with your AI button directly (a non-pre-Optimize path)
+  // and apply, optimize would fire unexpectedly. Clear the flag here so
+  // only an actual "Apply answers" inside applyPastedAnswers consumes it.
+  if (proj?._postApplyAction) proj._postApplyAction = null;
 }
 
 // Computes a line-level diff between two text blocks using Myers' LCS-based algorithm.
@@ -5704,6 +5754,11 @@ ${text.slice(0, 4000)}`, 2000);
     }
 
     autoSave();
+    // 4.6.16: capture the post-apply action BEFORE hideAnswerModal clears
+    // it. hideAnswerModal nulls the flag defensively in case the user
+    // cancels the modal mid-flow; in the apply-success path we still
+    // need to read it so we know whether to chain autoOptimize.
+    const postApply = proj?._postApplyAction;
     hideAnswerModal();
     // After answers are applied, take the user to the Analyzer tab so they
     // can hit Evaluate or Optimize next. NO automatic scoring — that costs
@@ -5719,6 +5774,13 @@ ${text.slice(0, 4000)}`, 2000);
         const idx = getActiveVersionIdx();
         if (idx >= 0) setTimeout(() => applyVersionToView(idx), 100);
       } catch(e) { console.warn('applyVersionToView post-answers:', e); }
+      // 4.6.16: if the user came here from the "How to answer" pre-Optimize
+      // modal and chose ✦ Answer with your AI, postApply is 'optimize'.
+      // After answers land, kick off Optimize automatically so they don't
+      // have to click Optimize a second time.
+      if (postApply === 'optimize') {
+        setTimeout(() => { try { autoOptimize(); } catch(e) {} }, 250);
+      }
     } else {
       toast('Could not parse answers — try numbering them (1. Answer, 2. Answer...)');
     }
@@ -5775,6 +5837,93 @@ QUESTIONS:\n${questionList}`, 2500);
   loading?.classList.remove('show');
   if (btn) btn.disabled = false;
 }
+
+// ─────────────────────────────────────────────────────────────────
+// 4.6.16: autoFillAnswers() — public-facing entry point for the
+// "Auto fill with answers" button on the Optimizer tab and from the
+// "How to answer" pre-Optimize modal. Thin wrapper around the
+// existing autoAnswerQuestions() so we don't duplicate the Claude
+// call. After answers land, checks proj._postApplyAction; if set to
+// 'optimize' it kicks off autoOptimize automatically (this is the
+// path the user takes when they hit Optimize without answering and
+// pick "Auto fill with answers" from the modal — one click, two
+// actions, no second Optimize press needed).
+// ─────────────────────────────────────────────────────────────────
+async function autoFillAnswers() {
+  if (!proj?.questions?.length) {
+    toast('Score Resume first to generate questions');
+    return;
+  }
+  // Capture the post-apply intent BEFORE the await — autoAnswerQuestions
+  // calls hideAnswerModal internally which nulls the flag defensively.
+  const postApply = proj?._postApplyAction;
+  await autoAnswerQuestions();
+  if (postApply === 'optimize') {
+    setTimeout(() => { try { autoOptimize(); } catch(e) {} }, 250);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// 4.6.16: pre-Optimize "How to answer" modal routing.
+// optimizeWithQuestionCheck() is now what the Optimize button calls
+// (instead of autoOptimize() directly). If the user has questions
+// but hasn't answered any, we show them three explicit paths instead
+// of silently optimizing against an un-personalized resume. If there
+// are no questions, or at least one is answered, we go straight to
+// autoOptimize() — no extra friction.
+// ─────────────────────────────────────────────────────────────────
+function optimizeWithQuestionCheck() {
+  if (!proj) { toast('Open a project first'); return; }
+  const questions = proj.questions || [];
+  // If no questions exist (no JD analyzed yet, or none generated),
+  // just go straight to autoOptimize — it will validate the JD itself
+  // and toast appropriately if there's nothing to optimize against.
+  if (!questions.length) {
+    autoOptimize();
+    return;
+  }
+  // Has any question been answered? "Answered" = non-empty trimmed answer.
+  // We treat one answer as enough — partial intent is still intent.
+  const anyAnswered = questions.some(q => (q.answer || '').trim().length > 0);
+  if (anyAnswered) {
+    autoOptimize();
+    return;
+  }
+  // Unanswered — show the modal so the user picks a path.
+  showHowToAnswerModal();
+}
+
+function showHowToAnswerModal() {
+  document.getElementById('how-to-answer-modal')?.classList.remove('hidden');
+}
+
+function hideHowToAnswerModal() {
+  document.getElementById('how-to-answer-modal')?.classList.add('hidden');
+}
+
+// Routes the three buttons in the How-to-answer modal. Each path ends
+// in autoOptimize being called — either immediately (skip), after a
+// generated fill (autofill), or after the user pastes AI answers
+// (byo-ai sets the post-apply flag).
+async function chooseHowToAnswer(path) {
+  hideHowToAnswerModal();
+  if (path === 'autofill') {
+    // Flag tells autoFillAnswers to trigger autoOptimize when the
+    // generated answers land.
+    if (proj) proj._postApplyAction = 'optimize';
+    await autoFillAnswers();
+  } else if (path === 'byo-ai') {
+    // Open the existing 4-step Answer-with-your-AI modal. The flag
+    // tells applyPastedAnswers to trigger autoOptimize after the
+    // user clicks "Apply answers".
+    if (proj) proj._postApplyAction = 'optimize';
+    try { showAnswerModal(); } catch(e) { console.warn('showAnswerModal:', e); }
+  } else if (path === 'skip') {
+    // No answers, straight to optimize.
+    autoOptimize();
+  }
+}
+
 
 // Blocking modal helpers — full-screen overlay that prevents all interaction
 // during long async operations like JD analysis. Use showBlockingModal(title, sub)
@@ -5840,13 +5989,19 @@ JOB DESCRIPTION:\n${jdText}`,2000);
     if (loading) loading.classList.remove('show');
     hideBlockingModal();
 
-    // STAY ON THE JD TAB after analysis. The Answer with AI modal opens
-    // automatically from inside generateQuestions(), and the user should
-    // see it on the JD tab they came from — not have the page yank them
-    // to the Analyzer tab mid-flow. Scoring the resume against the JD
-    // moves to the user's next deliberate click on Evaluate or Optimize
-    // in the Analyzer tab. (Was: auto-switched to analyzer + ran
-    // runFullAnalysis after 150ms; pre-4.6.1 that closed the modal.)
+    // 4.6.16: Score Resume flow per Wunmi's wireframe.
+    // After JD analysis completes, switch to the Optimizer tab and
+    // run a full analysis against the current resume. The user lands
+    // on Optimizer with the score + sub-tiles + the inline questions
+    // section already rendered. The Answer-with-AI modal is NOT
+    // auto-opened — users decide when to engage via the two buttons
+    // in the questions section, or are routed there by the "How to
+    // answer" pre-Optimize modal.
+    try {
+      switchTab('analyzer');
+      // Brief tick so the panel is visible before the score renders.
+      setTimeout(() => { try { runFullAnalysis(); } catch(e) {} }, 80);
+    } catch(e) {}
   } catch(e){
     if (loading) loading.classList.remove('show');
     hideBlockingModal();
@@ -6057,19 +6212,25 @@ CANDIDATE HAS: ${ws.name}, ${ws.title}, ${ws.years}yrs, Skills: ${ws.hard?.slice
     const parsed=parseJson(raw);
     proj.questions=parsed.questions||[];
     renderQuestions(proj.questions);
-    // Reveal the inline questions section + Optimize Resume button now that analysis is complete
-    const qaSection = document.getElementById('qa-section');
-    if (qaSection) qaSection.style.display = 'block';
-    // Auto-open the Answer with AI modal so the user goes straight to copying the prompt.
-    if (proj.questions.length) {
-      try { showAnswerModal(); } catch(e) {}
-    }
+    // 4.6.16: no longer auto-opens the Answer-with-AI modal. The
+    // questions now render inline on the Optimizer tab; the user opens
+    // the modal manually via the ✦ Answer with your AI button there,
+    // OR is routed through the "How to answer" pre-Optimize modal if
+    // they click Optimize without answering first. The qa-section
+    // legacy container stays hidden (the Job tab no longer shows
+    // questions visibly).
   } catch(e){proj.questions=[];}
 }
 
 function renderQuestions(questions) {
   const container=document.getElementById('questions-list');
-  if(!questions?.length){container.innerHTML='<div class="empty-state"><div class="empty-icon">✅</div><p>No critical gaps found.<br>Your workspace covers the key requirements.</p></div>';return;}
+  // 4.6.16: questions live on the Optimizer tab now. Reveal the
+  // section card whenever we have any questions to show (including
+  // the empty-state message — Wunmi wants the section card visible
+  // so the user sees "no critical gaps found" rather than nothing).
+  const section = document.getElementById('opt-questions-section');
+  if (section) section.style.display = questions?.length ? 'block' : 'none';
+  if(!questions?.length){if(container)container.innerHTML='';return;}
   container.innerHTML=questions.map((q,i)=>`
     <div class="q-item" id="qi-${q.id}">
       <div class="q-priority">${q.category} · <span style="color:${q.priority==='high'?'var(--teal)':'var(--muted)'}">${q.priority} priority</span></div>
@@ -8744,13 +8905,10 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
 // ─────────────────────────────────────────────────────────
 //  AUTO-OPTIMIZE TO 90+
 // ─────────────────────────────────────────────────────────
-// Triggered from the Optimize Resume button at the bottom of the Job & Questions page.
-// Switches the user to the Analyzer tab and runs the same single-pass Optimize.
-function optimizeFromJD() {
-  switchTab('analyzer');
-  // Small delay so the tab is visible before the overlay opens
-  setTimeout(() => autoOptimize(), 100);
-}
+// 4.6.16: optimizeFromJD removed. The button that called it lived at the
+// bottom of the Job & Questions tab and was removed when the questions
+// flow moved to the Optimizer tab. Optimize is now reached exclusively
+// via the ⚡ Optimize button on the Optimizer tab → optimizeWithQuestionCheck.
 
 // (Optimize Extreme removed in 4.5.8 — it ran autoOptimize 3 times in a row
 // for ~3x cost. Wunmi removed it to simplify the UI and prevent runaway
