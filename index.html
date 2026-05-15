@@ -341,10 +341,11 @@ select option{background:var(--white);}
    Strengths, Weaknesses, and the Optimize button. CSS class rules with
    !important beat JS-set inline `style.display = 'block'` from the
    render functions, so these stay hidden even when score / audit data
-   would otherwise trigger them to appear. */
-#score-grid,
+   would otherwise trigger them to appear.
+   4.6.1: applied-fixes-card added (no longer used in the current UX). */
 #score-summary,
-#ats-audit-card { display: none !important; }
+#ats-audit-card,
+#applied-fixes-card { display: none !important; }
 .score-cell{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;text-align:center;}
 .score-cell-val{font-size:1.2rem;font-weight:700;line-height:1;margin-bottom:2px;}
 .score-cell-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
@@ -760,7 +761,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.0</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.1</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -2228,12 +2229,20 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <!-- ── ANALYZER ── -->
       <div class="panel-view" id="view-analyzer">
         <div class="flex-between mb-3">
-          <div><div class="bold" style="font-size:15px;">Analyzer</div><div class="text-xs text-muted mt-1">Score, strengths, and weaknesses against the job description</div></div>
+          <div><div class="bold" style="font-size:15px;">Analyzer</div><div class="text-xs text-muted mt-1">Score, strengths, and gaps against the job description</div></div>
           <div class="flex-c gap-2">
-            <button class="btn btn-secondary" onclick="autoOptimize()" id="auto-opt-btn" title="Apply all suggestions from one analysis pass">⚡ Optimize Now</button>
-            <button class="btn btn-primary" onclick="runFullAnalysis()">🔍 Analyze Resume →</button>
+            <!-- Button order per 4.6.1 wireframe: Evaluate (outlined) left,
+                 Optimize (primary black) right. Behavior: Evaluate scores
+                 the resume; Optimize optimizes + scores. -->
+            <button class="btn btn-secondary" onclick="runFullAnalysis()" id="evaluate-btn">🔍 Evaluate</button>
+            <button class="btn btn-primary" onclick="autoOptimize()" id="auto-opt-btn" title="Apply all suggestions from one analysis pass">⚡ Optimize</button>
           </div>
         </div>
+
+        <!-- Version pill row moved here from resume-panel-head (4.6.1).
+             Sits below the buttons, above the score row, on the LEFT side
+             so it lives in the same column as the data it summarizes. -->
+        <div id="version-pill-row" class="version-pill-row mb-3" style="display:none;"></div>
 
         <div class="loading-row mb-2" id="dash-loading" style="display:none !important;"><div class="spin"></div><span id="dash-msg">Analyzing...</span></div>
 
@@ -2347,8 +2356,11 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
             </div>
           </div>
 
-          <!-- Applied Fixes Inventory -->
-          <div class="card" id="applied-fixes-card" style="margin-top:16px;">
+          <!-- Applied Fixes Inventory — hidden permanently in 4.6.1 per
+               Wunmi's spec. Card stays in the DOM because downstream JS
+               (renderDashboard, project save/restore) reads it, but it
+               never visibly renders. -->
+          <div class="card" id="applied-fixes-card" style="margin-top:16px;display:none !important;">
             <div class="card-title mb-2">Applied Fixes</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;">
               <!-- Left: Applied improvements -->
@@ -2592,10 +2604,10 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
             </div>
           </div>
 
-          <!-- Strengths / Weaknesses -->
+          <!-- Strengths / Gaps -->
           <div class="two mt-3">
             <div class="card"><div class="card-title mb-2">Strengths</div><div id="score-strengths"></div></div>
-            <div class="card"><div class="card-title mb-2">Weaknesses</div><div id="score-gaps"></div></div>
+            <div class="card"><div class="card-title mb-2">Gaps</div><div id="score-gaps"></div></div>
           </div>
 
           <!-- ATS audit (kept in DOM so existing JS references don't break,
@@ -2615,7 +2627,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
       <div class="resume-panel-head">
         <div class="resume-panel-head-left">
           <span class="resume-panel-title">Resume</span>
-          <div id="version-pill-row" class="version-pill-row" style="display:none;"></div>
+          <!-- version-pill-row moved to analyzer panel in 4.6.1 -->
           <span id="editor-version-badge" class="badge badge-gray" style="display:none;">v20</span>
           <span id="editor-score-pill" class="score-pill" style="display:none!important;">82%</span>
         </div>
@@ -5648,9 +5660,13 @@ ${text.slice(0, 4000)}`, 2000);
 
     autoSave();
     hideAnswerModal();
-    // Stay on current page — don't switch tabs
+    // After answers are applied, take the user to the Analyzer tab so they
+    // can hit Evaluate or Optimize next. NO automatic scoring — that costs
+    // tokens the user didn't ask for and breaks the principle of "user
+    // initiates every API call" (4.6.1 spec).
     if (filled > 0) {
-      toast(`✓ ${filled} answer${filled !== 1 ? 's' : ''} applied to questions`);
+      toast(`✓ ${filled} answer${filled !== 1 ? 's' : ''} applied`);
+      try { switchTab('analyzer'); } catch(e) {}
     } else {
       toast('Could not parse answers — try numbering them (1. Answer, 2. Answer...)');
     }
@@ -5693,7 +5709,8 @@ QUESTIONS:\n${questionList}`, 2500);
 
     autoSave();
     hideAnswerModal();
-    // Stay on current page — don't switch tabs
+    // Same flow as applyPastedAnswers — go to Analyzer, don't auto-score.
+    try { switchTab('analyzer'); } catch(e) {}
     toast(`✓ ${filled} question${filled !== 1 ? 's' : ''} answered`);
   } catch(e) {
     toast('Error: ' + e.message);
@@ -5767,16 +5784,14 @@ JOB DESCRIPTION:\n${jdText}`,2000);
     autoSave();
     if (loading) loading.classList.remove('show');
     hideBlockingModal();
-    
-    // Score the resume against the JD now so user sees the original score immediately.
-    // This runs only if a resume is present — otherwise we just stop after JD analysis.
-    const resume = getResumeText();
-    if (resume && resume.trim()) {
-      // Switch to the Optimizer tab so the user sees the score appear in context.
-      switchTab('analyzer');
-      // Brief delay so the tab transition completes before the analysis overlay opens.
-      setTimeout(() => { try { runFullAnalysis(); } catch(e) { console.warn('Initial scoring failed:', e); } }, 150);
-    }
+
+    // STAY ON THE JD TAB after analysis. The Answer with AI modal opens
+    // automatically from inside generateQuestions(), and the user should
+    // see it on the JD tab they came from — not have the page yank them
+    // to the Analyzer tab mid-flow. Scoring the resume against the JD
+    // moves to the user's next deliberate click on Evaluate or Optimize
+    // in the Analyzer tab. (Was: auto-switched to analyzer + ran
+    // runFullAnalysis after 150ms; pre-4.6.1 that closed the modal.)
   } catch(e){
     if (loading) loading.classList.remove('show');
     hideBlockingModal();
