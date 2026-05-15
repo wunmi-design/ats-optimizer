@@ -761,7 +761,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.6</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.7</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -3918,7 +3918,11 @@ document.addEventListener('click', () => {
 
 function getLogoUrl(company) {
   if (!company) return null;
-  // Known company → domain mappings for best results
+  // Known company → domain mappings. These run first so common name
+  // variations (e.g. "JP Morgan Chase" vs "JPMorgan") all resolve to
+  // the right domain. Anything not in this map falls through to
+  // {normalized}.com which works for most direct-named companies
+  // (stripe → stripe.com, webflow → webflow.com).
   const knownDomains = {
     'google': 'google.com', 'meta': 'meta.com', 'apple': 'apple.com',
     'microsoft': 'microsoft.com', 'amazon': 'amazon.com', 'netflix': 'netflix.com',
@@ -3935,15 +3939,62 @@ function getLogoUrl(company) {
     'atlassian': 'atlassian.com', 'dropbox': 'dropbox.com', 'twilio': 'twilio.com',
     'datadog': 'datadoghq.com', 'splunk': 'splunk.com', 'okta': 'okta.com',
     'workday': 'workday.com', 'servicenow': 'servicenow.com',
-    'capitalone': 'capitalone.com', 'jpmorgan': 'jpmorgan.com', 'goldman': 'goldmansachs.com',
+    'capitalone': 'capitalone.com', 'jpmorgan': 'jpmorgan.com',
+    'jpmorganchase': 'jpmorgan.com', 'chase': 'jpmorgan.com',
+    'goldman': 'goldmansachs.com', 'goldmansachs': 'goldmansachs.com',
+    'circleci': 'circleci.com', 'betterup': 'betterup.com',
+    'ollyolly': 'olly-olly.com',
+    'discord': 'discord.com', 'spotify': 'spotify.com', 'pinterest': 'pinterest.com',
+    'snap': 'snap.com', 'tiktok': 'tiktok.com', 'bytedance': 'bytedance.com',
+    'square': 'squareup.com', 'block': 'block.xyz', 'paypal': 'paypal.com',
+    'plaid': 'plaid.com', 'brex': 'brex.com', 'ramp': 'ramp.com',
+    'mercury': 'mercury.com', 'wise': 'wise.com', 'robinhood': 'robinhood.com',
+    'coinbase': 'coinbase.com', 'kraken': 'kraken.com',
+    'doordash': 'doordash.com', 'instacart': 'instacart.com',
+    'opendoor': 'opendoor.com', 'redfin': 'redfin.com', 'zillow': 'zillow.com',
+    'pinterest': 'pinterest.com', 'reddit': 'reddit.com',
+    'cisco': 'cisco.com', 'intel': 'intel.com', 'nvidia': 'nvidia.com',
+    'amd': 'amd.com', 'qualcomm': 'qualcomm.com',
+    'tesla': 'tesla.com', 'spacex': 'spacex.com', 'rivian': 'rivian.com',
+    'duolingo': 'duolingo.com', 'coursera': 'coursera.com', 'udemy': 'udemy.com',
+    'khan': 'khanacademy.org', 'khanacademy': 'khanacademy.org',
+    'chime': 'chime.com', 'sofi': 'sofi.com', 'affirm': 'affirm.com',
+    'klarna': 'klarna.com', 'afterpay': 'afterpay.com',
+    'walmart': 'walmart.com', 'target': 'target.com', 'costco': 'costco.com',
+    'kroger': 'kroger.com', 'wayfair': 'wayfair.com', 'etsy': 'etsy.com',
+    'ebay': 'ebay.com', 'mercado': 'mercadolibre.com',
+    'anthropic': 'anthropic.com', 'openai': 'openai.com', 'huggingface': 'huggingface.co',
+    'cohere': 'cohere.com', 'mistral': 'mistral.ai', 'midjourney': 'midjourney.com',
+    'github': 'github.com', 'gitlab': 'gitlab.com', 'bitbucket': 'bitbucket.org',
+    'vercel': 'vercel.com', 'netlify': 'netlify.com', 'cloudflare': 'cloudflare.com',
+    'fastly': 'fastly.com', 'akamai': 'akamai.com',
+    'mongodb': 'mongodb.com', 'snowflake': 'snowflake.com', 'databricks': 'databricks.com',
+    'palantir': 'palantir.com', 'samsara': 'samsara.com',
+    'roblox': 'roblox.com', 'epic': 'epicgames.com', 'epicgames': 'epicgames.com',
+    'unity': 'unity.com', 'ea': 'ea.com', 'electronicarts': 'ea.com',
+    'activision': 'activision.com', 'blizzard': 'blizzard.com',
+    'nike': 'nike.com', 'adidas': 'adidas.com', 'underarmour': 'underarmour.com',
+    'starbucks': 'starbucks.com', 'mcdonalds': 'mcdonalds.com', 'chipotle': 'chipotle.com',
+    'cocacola': 'coca-cola.com', 'pepsi': 'pepsico.com',
+    'jnj': 'jnj.com', 'johnsonjohnson': 'jnj.com', 'pfizer': 'pfizer.com',
+    'merck': 'merck.com', 'cvs': 'cvshealth.com', 'walgreens': 'walgreens.com',
+    'kaiser': 'kaiserpermanente.org', 'humana': 'humana.com', 'aetna': 'aetna.com',
+    'unitedhealth': 'unitedhealthgroup.com', 'cigna': 'cigna.com',
+    'fidelity': 'fidelity.com', 'vanguard': 'vanguard.com', 'schwab': 'schwab.com',
+    'blackrock': 'blackrock.com', 'morganstanley': 'morganstanley.com',
+    'wellsfargo': 'wellsfargo.com', 'bankofamerica': 'bankofamerica.com', 'citi': 'citi.com',
   };
   const key = company.toLowerCase().replace(/[^a-z0-9]/g,'');
   const domain = knownDomains[key] || (key + '.com');
-  // Clearbit's logo CDN returns real high-resolution company logos and
-  // proper 404s on unknown domains (Google favicons used to return a
-  // generic placeholder image instead, so onerror never fired and the
-  // tile showed a blank/generic icon). 4.6.3.
-  return `https://logo.clearbit.com/${domain}`;
+  // 4.6.7: switched back from Clearbit (which appears deprecated post-
+  // HubSpot acquisition — every request, even known companies like
+  // Stripe / JPMorgan / Capital One, was returning errors so EVERY tile
+  // showed the letter placeholder) to Google's favicon service. Google
+  // returns real favicons for known domains and a generic globe for
+  // unknowns — never 404s, so the onerror fallback rarely fires, but
+  // the result is real company branding instead of universal letter
+  // placeholders.
+  return `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
 }
 
 function renderProjGrid() {
@@ -3987,7 +4038,14 @@ function renderProjGrid() {
       const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
       return `${dateStr} · ${timeStr}`;
     })() : '';
-    const logoUrl = getLogoUrl(p.jdCompany);
+    // 4.6.7: prefer jdCompany (extracted from the JD), but fall back to
+    // the project name if it's missing. Many older projects predate the
+    // auto-extract feature and have empty jdCompany — but their project
+    // name still carries the company (e.g. "JP Morgan Chase", "Stripe 0",
+    // "CircleCI 2nd 01"), so we use that as a second source for the logo
+    // lookup. Letter-placeholder fallback still uses the same chain.
+    const companyForLogo = p.jdCompany || p.name || '';
+    const logoUrl = getLogoUrl(companyForLogo);
     const logoHtml = logoUrl
       ? `<img class="proj-logo" src="${logoUrl}" alt=""
            onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
