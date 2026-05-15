@@ -604,7 +604,7 @@ select option{background:var(--white);}
 /* ── ANSWER WITH AI MODAL ────────────────────────────── */
 .ai-modal{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;}
 .ai-modal.hidden{display:none;}
-.ai-modal-box{background:var(--white);border-radius:14px;padding:28px;max-width:520px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,.25);max-height:90vh;overflow-y:auto;}
+.ai-modal-box{background:var(--white);border-radius:14px;padding:28px;max-width:640px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,.25);max-height:90vh;overflow-y:auto;}
 .ai-modal-box h3{font-size:16px;font-weight:700;margin-bottom:6px;}
 .ai-modal-box .subtitle{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.5;}
 .ai-option{border:1.5px solid var(--border);border-radius:10px;padding:14px 16px;cursor:pointer;margin-bottom:10px;transition:all .15s;}
@@ -732,7 +732,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.5.3</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.5.4</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -2742,29 +2742,58 @@ NY Top Creative Winner · WIx and Vitamin T · 2014</div>
     <p class="subtitle">Copy the prompt, paste it into Claude or ChatGPT, then paste the answers back here.</p>
 
     <!-- AI PROJECT SETUP GUIDANCE
-         Tells the user what to put into their agentic AI's project / custom
-         instructions so the answers come back tailored AND truthful. The
-         "Why this matters" details collapse behind a small info icon so the
-         modal stays focused on the action (copy → paste) when re-opened. -->
-    <div style="background:#f7f7f5;border:1px solid #ececec;border-radius:10px;padding:14px 16px;margin-bottom:14px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-        <!-- Sparkle/setup illustration -->
+         Quick primer on what to feed an agentic AI so its answers reflect
+         the real person behind the resume, not a generic best-guess.
+         Five compact category cards. The pro-tip line below sits below
+         the grid; the "anonymize first?" question is a soft prompt at
+         the very end of the card. -->
+    <div style="background:#f7f7f5;border:1px solid #ececec;border-radius:10px;padding:16px;margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
         <svg viewBox="0 0 24 24" fill="none" style="width:18px;height:18px;flex-shrink:0;" aria-hidden="true">
           <path d="M12 2 L13.5 8.5 L20 10 L13.5 11.5 L12 18 L10.5 11.5 L4 10 L10.5 8.5 Z" fill="#111111"/>
           <circle cx="19" cy="5" r="1.5" fill="#111111"/>
           <circle cx="5" cy="19" r="1" fill="#111111"/>
         </svg>
-        <div style="font-size:13px;font-weight:600;color:#111;">For best results, add this to your AI project</div>
-        <button type="button" onclick="this.parentElement.nextElementSibling.style.display=this.parentElement.nextElementSibling.style.display==='block'?'none':'block';this.textContent=this.textContent==='ⓘ'?'×':'ⓘ'" title="Why this matters" aria-label="Why this matters" style="margin-left:auto;background:transparent;border:none;color:#888;cursor:pointer;font-size:14px;line-height:1;padding:0;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;">ⓘ</button>
+        <div style="font-size:13px;font-weight:600;color:#111;">Give your AI a "soul"</div>
       </div>
-      <!-- Always-visible: the rules an AI project should follow -->
-      <ul style="margin:0;padding-left:18px;font-size:12.5px;line-height:1.65;color:#444;">
-        <li><strong>Role-specific tailoring</strong> — answer in the voice of the role being applied to, not generically.</li>
-        <li><strong>Language rooted in reality</strong> — never invent titles, skills, achievements, certifications, years of experience, or metrics.</li>
-      </ul>
-      <!-- Toggled by the ⓘ button: explanation of why these rules matter -->
-      <div style="display:none;margin-top:10px;padding-top:10px;border-top:1px dashed #d4d4d4;font-size:12px;line-height:1.55;color:#666;">
-        Generic AI assistants tend to invent specifics when answering screening questions ("I scaled the team to 12 designers" when there were 6). Giving your AI project these two rules up front keeps answers truthful and aligned with the role — both protect you in later interviews where you'll need to defend every claim.
+      <div style="font-size:12.5px;line-height:1.55;color:#555;margin-bottom:12px;">
+        Feed it the raw materials behind your achievements — not just the finished resume. Five things to include in your AI's project:
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;">
+
+        <!-- 1. Paper trail -->
+        <div style="background:#fff;border:1px solid #ececec;border-radius:8px;padding:10px 12px;">
+          <div style="font-size:12px;font-weight:600;color:#111;margin-bottom:3px;">📋 Paper trail of impact</div>
+          <div style="font-size:11.5px;line-height:1.5;color:#666;">Performance reviews, award nominations, project post-mortems.</div>
+        </div>
+
+        <!-- 2. Work evidence -->
+        <div style="background:#fff;border:1px solid #ececec;border-radius:8px;padding:10px 12px;">
+          <div style="font-size:12px;font-weight:600;color:#111;margin-bottom:3px;">🎯 Work evidence ("receipts")</div>
+          <div style="font-size:11.5px;line-height:1.5;color:#666;">Portfolio samples, KPI dashboards, kudos emails.</div>
+        </div>
+
+        <!-- 3. Education & skill context -->
+        <div style="background:#fff;border:1px solid #ececec;border-radius:8px;padding:10px 12px;">
+          <div style="font-size:12px;font-weight:600;color:#111;margin-bottom:3px;">🎓 Education context</div>
+          <div style="font-size:11.5px;line-height:1.5;color:#666;">Transcripts, certification syllabi, learning logs.</div>
+        </div>
+
+        <!-- 4. Brain dump -->
+        <div style="background:#fff;border:1px solid #ececec;border-radius:8px;padding:10px 12px;">
+          <div style="font-size:12px;font-weight:600;color:#111;margin-bottom:3px;">🧠 Personal brain dump</div>
+          <div style="font-size:11.5px;line-height:1.5;color:#666;">Work journals, your leadership philosophy and "why."</div>
+        </div>
+
+        <!-- 5. Historical context -->
+        <div style="background:#fff;border:1px solid #ececec;border-radius:8px;padding:10px 12px;">
+          <div style="font-size:12px;font-weight:600;color:#111;margin-bottom:3px;">📅 Historical context</div>
+          <div style="font-size:11.5px;line-height:1.5;color:#666;">Old resumes (5–10 yrs), past + target job descriptions.</div>
+        </div>
+
+      </div>
+      <div style="font-size:11.5px;line-height:1.55;color:#666;margin-top:12px;padding-top:10px;border-top:1px dashed #d4d4d4;">
+        <strong>Pro-tip:</strong> CSV/JSON wins for metrics. Word/MD makes the voice feel human. Scrub sensitive company data before uploading.
       </div>
     </div>
 
@@ -6868,7 +6897,18 @@ function renderDashboard(score) {
   try {
     const pct=score.overall||0;
     const circ=document.getElementById('score-circle');
-    if(circ){const c=2*Math.PI*42;circ.style.strokeDashoffset=c-(pct/100)*c;circ.style.stroke=pct>=80?'var(--green)':pct>=60?'var(--teal)':'var(--red)';}
+    if(circ){
+      const c=2*Math.PI*42;
+      circ.style.strokeDashoffset=c-(pct/100)*c;
+      // Smooth red→yellow→green gradient. HSL hue 0 = red, 60 = yellow,
+      // 120 = green. Score 0–100 maps to hue 0–120. Saturation/lightness
+      // tuned so the ring reads strong on white (more saturated than the
+      // pastel pill chips). Matches the analogous color signal Wunmi
+      // wants on the meter while keeping the V1/V2/V3 pills neutral.
+      const clamped = Math.max(0, Math.min(100, pct));
+      const hue = clamped * 1.2;
+      circ.style.stroke = `hsl(${hue}, 65%, 45%)`;
+    }
     const numEl=document.getElementById('score-num');if(numEl)numEl.textContent=pct+'%';
     // Update the label under the score: shows "original match" when the resume hasn't been
     // optimized in this project yet, or "match" once at least one fix has been applied. Lets
@@ -10306,15 +10346,10 @@ function renderVersionPills() {
     if (typeof s !== 'number' && i === drafts.length - 1) {
       s = scores[scores.length - 1]?.overall;
     }
-    // Score chip uses the same red→yellow→green hue gradient as the main
-    // score pill (HSL hue 0–120 mapped to score 0–100). Inline-styled so the
-    // chip background carries the color without needing extra CSS classes.
-    let scoreHtml = '';
-    if (typeof s === 'number') {
-      const clamped = Math.max(0, Math.min(100, s));
-      const hue = clamped * 1.2;
-      scoreHtml = `<span class="version-pill-score" style="background:hsl(${hue},78%,92%);color:hsl(${hue},70%,28%);padding:1px 6px;border-radius:999px;margin-left:4px;">${Math.round(s)}%</span>`;
-    }
+    // Score chip uses the neutral .version-pill-score class — no color,
+    // so the pill row stays calm. The colored ring meter on the analyzer
+    // dashboard carries the red→yellow→green signal instead.
+    const scoreHtml = (typeof s === 'number') ? `<span class="version-pill-score">${Math.round(s)}%</span>` : '';
     const cls = i === activeIdx ? 'version-pill active' : 'version-pill';
     html += `<div class="${cls}" onclick="selectVersion(${i})" title="View V${i+1}">V${i+1}${scoreHtml ? ' ' + scoreHtml : ''}</div>`;
   }
