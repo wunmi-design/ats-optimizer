@@ -761,7 +761,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.12</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.13</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -2163,11 +2163,13 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
 
         <div class="card mb-3">
           <div class="field"><label class="fl">Job title</label><input type="text" id="jd-title" oninput="syncJDToWorkspace()"></div>
-          <!-- Company + URL fields removed in 4.5.7. The company name is now
-               auto-extracted from the pasted job description via a small Haiku
-               call (extractCompanyFromJD, triggered from the debounce in
-               syncJDToWorkspace). The URL-fetch flow (Lever / Greenhouse / Workday
-               et al.) is gone — users now paste the JD text directly. -->
+          <!-- 4.6.13: Company field restored as a user-controlled input.
+               Auto-extraction from JD text (extractCompanyFromJD via Haiku)
+               was unreliable for short JDs and edge-case formats, and an
+               explicit field is more predictable. Used by the project tile
+               logo lookup and any downstream prompt that references the
+               target company. -->
+          <div class="field"><label class="fl">Company</label><input type="text" id="jd-company" oninput="syncJDToWorkspace()" placeholder="e.g. Stripe, Capital One, BetterUp"></div>
           <div class="field"><label class="fl">Full job description</label><textarea id="jd-text" oninput="syncJDToWorkspace()" style="min-height:240px;" placeholder="Paste the full job description here..."></textarea></div>
         </div>
 
@@ -3104,40 +3106,12 @@ async function trackEvent(name, properties = {}) {
 // Debounce timer used for jd_pasted so we don't fire on every keystroke.
 let _jdPastedTimer = null;
 
-// ── COMPANY AUTO-EXTRACT ──────────────────────────────────────────────
-// Wunmi removed the Company input field from the JD tab in 4.5.7 to
-// simplify the form. The downstream consumers of proj.jdCompany still
-// exist — project-card logos, prompt context, filename generation — so
-// we need to populate the value some other way. This function runs a
-// small Haiku call on the pasted JD text and writes the extracted name
-// to proj.jdCompany. Triggered from the debounced jd_pasted handler in
-// syncJDToWorkspace() so it only fires once typing settles, never on
-// every keystroke. Failures are silent — the field is optional.
-async function extractCompanyFromJD(text) {
-  if (!text || text.trim().length < 80) return;
-  if (!proj) return;
-  // Skip if we already have a non-empty company for this exact text
-  // (so reopening a project doesn't re-bill an extraction).
-  if (proj.jdCompany && proj._jdCompanyExtractedFrom === text) return;
-  try {
-    const prompt = `Extract the hiring company name from this job description. Return ONLY the company name as plain text — no quotes, no labels, no extra words, no explanation. If the company can't be confidently identified, return exactly: UNKNOWN
-
-JOB DESCRIPTION:
-${text.slice(0, 2500)}`;
-    const raw = await claudeFetch(prompt, 50, undefined, 0, 'claude-haiku-4-5');
-    const company = (raw || '').trim().replace(/^["'`]|["'`]$/g, '').slice(0, 80);
-    if (!company || /^unknown$/i.test(company)) return;
-    proj.jdCompany = company;
-    proj._jdCompanyExtractedFrom = text;
-    autoSave();
-    // Re-render the project grid so the logo + meta line update with the new company name.
-    if (typeof renderProjGrid === 'function') {
-      try { renderProjGrid(); } catch(e) {}
-    }
-  } catch (e) {
-    // Silent — extraction is best-effort; the rest of the workflow still works.
-  }
-}
+// ── COMPANY EXTRACTION REMOVED IN 4.6.13 ──────────────────────────
+// extractCompanyFromJD() lived here. Wunmi reverted to a user-controlled
+// Company input field on the JD tab, so the auto-extraction (and the
+// Haiku call it depended on) is no longer needed. The downstream
+// consumers — project-card logos, prompt context, filename generation —
+// now read proj.jdCompany directly from the input.
 
 // Called from the two proj.scores.push sites whenever a new analyzer score
 // has been computed. Detects whether this score follows an apply (the
@@ -4316,7 +4290,7 @@ function loadProject(id) {
   if (strengths) strengths.innerHTML = '';
   const gaps = document.getElementById('score-gaps');
   if (gaps) gaps.innerHTML = '';
-  try { s('jd-title', proj.jdTitle||''); s('jd-text', proj.jdText||''); } catch(e) {}
+  try { s('jd-title', proj.jdTitle||''); s('jd-company', proj.jdCompany||''); s('jd-text', proj.jdText||''); } catch(e) {}
   try { if (proj.jdAnalysis) renderJDAnalysis(proj.jdAnalysis); } catch(e) {}
   try { if (proj.questions?.length) renderQuestions(proj.questions); } catch(e) {}
   try { if (proj.outcomeQuestions?.length) renderOutcomeQuestions(); } catch(e) {}
@@ -5241,9 +5215,14 @@ function fileToBase64(file){return new Promise((r,j)=>{const rd=new FileReader()
 //  JD ANALYZER
 // ─────────────────────────────────────────────────────────
 function syncJDToWorkspace() {
-  // Keep proj in sync so prompts always use latest JD title/company/url/text
+  // Keep proj in sync so prompts always use latest JD title/company/text
   if (!proj) return;
   proj.jdTitle = g('jd-title');
+  // 4.6.13: company is now an explicit user input again (was auto-extracted
+  // via Haiku from 4.5.7 to 4.6.12). Read it directly from the field; if
+  // the user clears it, proj.jdCompany is cleared too so the project tile
+  // logo falls back to the project-name lookup.
+  proj.jdCompany = g('jd-company');
   proj.jdText = g('jd-text');
   autoSave();
   // Fire jd_pasted at most once every 2.5s of typing inactivity. We don't
@@ -5254,8 +5233,6 @@ function syncJDToWorkspace() {
     const len = (proj.jdText || '').trim().length;
     if (len > 50) {
       trackEvent('jd_pasted', { jd_len: len });
-      // Auto-extract the company from the JD text (replaces the removed Company field).
-      extractCompanyFromJD(proj.jdText);
     }
   }, 2500);
 }
@@ -5921,13 +5898,11 @@ For company: find the organization name (e.g. "Loop", "Netflix", "Verizon"). Loo
 JOB DESCRIPTION:\n${jdText}`,2000);
     const analysis=parseJson(raw);
     proj.jdAnalysis=analysis; proj.jdTitle=g('jd-title')||analysis.title||''; proj.jdText=jdText;
-    // Auto-fill company only if the field is empty — don't clobber what the user already typed.
-    if (!g('jd-company') && analysis.company) {
-      s('jd-company', analysis.company);
-      proj.jdCompany = analysis.company;
-    } else {
-      proj.jdCompany = g('jd-company') || '';
-    }
+    // 4.6.13: company is user-controlled, never auto-filled. The
+    // `For company:` instruction stays in the prompt so analysis.company
+    // is still populated downstream for prompt context (e.g. resume
+    // tailoring), but we no longer write it to the visible input.
+    proj.jdCompany = g('jd-company') || '';
     s('jd-title',proj.jdTitle);
     renderJDAnalysis(analysis);
     
