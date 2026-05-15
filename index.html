@@ -760,7 +760,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.5.9</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.0</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -7982,6 +7982,97 @@ ${text}`;
 // "Led 30 designers ship platform" + "Aligned 30 designers on product direction"
 // are the same accomplishment with cosmetic rewording. Different from dedupeBulletMetrics
 // (metric-only) and differentiateSameEmployerRoles (cross-role at same company).
+// ── EXACT DUPLICATE BULLET REPHRASER (added 4.6.0) ──────────────────
+// The Claude-based dedupeBulletPhrases / dedupeCrossRoleBoilerplate calls
+// catch most near-duplicates but occasionally miss obvious exact-text
+// matches (LLM execution isn't 100% reliable). This deterministic JS pass
+// finds bullets whose normalized text matches verbatim, then makes ONE
+// Claude call to rephrase the duplicates in a batch. The first occurrence
+// of each duplicate group is left alone; subsequent ones get rephrased to
+// say the same thing with different verbs / structure / emphasis while
+// preserving all metrics, numbers, and proper nouns.
+async function rephraseExactDuplicateBullets(text) {
+  try {
+    const lines = text.split('\n');
+    const groups = {}; // normalized → array of line indices
+    const norm = (s) => s
+      .replace(/^[•\-\*]\s+/, '')          // strip bullet character
+      .toLowerCase()
+      .replace(/[.,;:!?'"()]/g, '')          // strip punctuation
+      .replace(/\s+/g, ' ')                  // collapse whitespace
+      .trim();
+
+    lines.forEach((line, idx) => {
+      const trimmed = line.trim();
+      if (!/^[•\-\*]\s/.test(trimmed)) return;
+      const body = trimmed.replace(/^[•\-\*]\s+/, '').trim();
+      // Skip very short bullets — false-positive risk
+      if (body.length < 20) return;
+      const key = norm(trimmed);
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(idx);
+    });
+
+    // Build the list of bullets to rephrase: every duplicate AFTER the first
+    const toRephrase = [];
+    Object.values(groups).forEach(group => {
+      if (group.length < 2) return;
+      for (let i = 1; i < group.length; i++) {
+        const lineIdx = group[i];
+        toRephrase.push({ idx: lineIdx, original: lines[lineIdx].trim() });
+      }
+    });
+
+    if (!toRephrase.length) return text;
+    console.log(`[exact-dedup] Found ${toRephrase.length} exact-duplicate bullet(s) to rephrase`);
+
+    // One batch Claude call — Sonnet is plenty for this rewrite task
+    const prompt = `These bullets in a resume are EXACT duplicates of earlier bullets in the same resume. Rephrase each one so it conveys the SAME achievement but uses different verbs, structure, and emphasis.
+
+ABSOLUTE RULES:
+- Preserve ALL metrics, numbers, percentages, dollar amounts, and proper nouns (company names, product names, technologies) EXACTLY as written.
+- Do NOT invent new facts, metrics, skills, dates, or scope.
+- Keep each rephrase the same approximate length as the original.
+- Do not start consecutive rephrases with the same verb.
+
+Return ONLY a JSON array of rephrased bullet text (no bullet character prefix, no commentary, no code fences) in the SAME ORDER as the inputs:
+[
+  "rephrased text 1",
+  "rephrased text 2"
+]
+
+BULLETS TO REPHRASE:
+${toRephrase.map((d, i) => `${i + 1}. ${d.original.replace(/^[•\-\*]\s+/, '')}`).join('\n')}`;
+
+    const raw = await claudeFetch(prompt, 1500, undefined, 0.45, 'claude-sonnet-4-6');
+    let rephrased;
+    try {
+      const cleaned = raw.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim();
+      rephrased = JSON.parse(cleaned);
+    } catch (parseErr) {
+      console.warn('[exact-dedup] JSON parse failed, returning original:', parseErr);
+      return text;
+    }
+    if (!Array.isArray(rephrased)) return text;
+
+    // Substitute each rephrase back into its line, preserving bullet character
+    toRephrase.forEach((d, i) => {
+      const newText = rephrased[i];
+      if (newText && typeof newText === 'string' && newText.trim().length >= 10) {
+        const bulletMatch = lines[d.idx].match(/^(\s*)([•\-\*])\s+/);
+        const indent = bulletMatch ? bulletMatch[1] : '';
+        const bullet = bulletMatch ? bulletMatch[2] : '•';
+        lines[d.idx] = `${indent}${bullet} ${newText.trim().replace(/^[•\-\*]\s+/, '')}`;
+      }
+    });
+
+    return lines.join('\n');
+  } catch (e) {
+    console.warn('rephraseExactDuplicateBullets failed, returning original:', e);
+    return text;
+  }
+}
+
 async function dedupeBulletPhrases(text) {
   try {
     const prompt = `Your only job: within each single role, find pairs of bullets OR role-summary + bullet that describe the same accomplishment with cosmetic rewording, and remove the less-specific one.
@@ -8548,9 +8639,18 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     overlaySub.textContent = 'Removing repeated boilerplate across roles';
     const boilerplateCleaned = await dedupeCrossRoleBoilerplate(differentiated);
 
+    // Phase 4a2: Deterministic exact-duplicate catch-all (added 4.6.0).
+    // The Claude-based dedup upstream catches most near-duplicates but
+    // occasionally misses verbatim duplicates. This JS pass finds them
+    // by exact text match, batches them into one Sonnet call, and
+    // rephrases (preserving metrics + proper nouns) so identical bullet
+    // text never ships.
+    overlaySub.textContent = 'Rephrasing exact duplicate bullets';
+    const exactRephrased = await rephraseExactDuplicateBullets(boilerplateCleaned);
+
     // Phase 4b: Cap bullets at 3 per role for ATS optimization.
     overlaySub.textContent = 'Limiting bullets to 3 per role';
-    const bulletsCapped = capBulletsPerRole(boilerplateCleaned);
+    const bulletsCapped = capBulletsPerRole(exactRephrased);
 
     // Phase 4b2: Stale role removal — drop roles ended 15+ years ago (industry best practice).
     // Programmatic backstop — even if the AI didn't follow the prompt rule, this enforces it.
@@ -8865,8 +8965,12 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     overlaySub.textContent = 'Removing repeated boilerplate across roles';
     const boilerplateCleaned = await dedupeCrossRoleBoilerplate(differentiated);
 
+    // Exact-duplicate catch-all (added 4.6.0) — same pass as applySelectedFixes.
+    overlaySub.textContent = 'Rephrasing exact duplicate bullets';
+    const exactRephrased = await rephraseExactDuplicateBullets(boilerplateCleaned);
+
     overlaySub.textContent = 'Limiting bullets to 3 per role';
-    const bulletsCapped = capBulletsPerRole(boilerplateCleaned);
+    const bulletsCapped = capBulletsPerRole(exactRephrased);
 
     // Stale role removal — drop roles ended 15+ years ago
     overlaySub.textContent = 'Removing roles older than 15 years';
