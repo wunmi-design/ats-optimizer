@@ -761,7 +761,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.9</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.10</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -5797,10 +5797,17 @@ ${text.slice(0, 4000)}`, 2000);
     // After answers are applied, take the user to the Analyzer tab so they
     // can hit Evaluate or Optimize next. NO automatic scoring — that costs
     // tokens the user didn't ask for and breaks the principle of "user
-    // initiates every API call" (4.6.1 spec).
+    // initiates every API call" (4.6.1 spec). But 4.6.10: we DO refresh
+    // the dashboard render so existing cached data (strengths/gaps/
+    // sub-scores) actually paints — if it's missing, applyVersionToView
+    // shows clear "Click Score Resume" CTAs instead of blank cards.
     if (filled > 0) {
       toast(`✓ ${filled} answer${filled !== 1 ? 's' : ''} applied`);
       try { switchTab('analyzer'); } catch(e) {}
+      try {
+        const idx = getActiveVersionIdx();
+        if (idx >= 0) setTimeout(() => applyVersionToView(idx), 100);
+      } catch(e) { console.warn('applyVersionToView post-answers:', e); }
     } else {
       toast('Could not parse answers — try numbering them (1. Answer, 2. Answer...)');
     }
@@ -5843,8 +5850,13 @@ QUESTIONS:\n${questionList}`, 2500);
 
     autoSave();
     hideAnswerModal();
-    // Same flow as applyPastedAnswers — go to Analyzer, don't auto-score.
+    // Same flow as applyPastedAnswers — go to Analyzer, don't auto-score,
+    // but DO refresh the dashboard render (4.6.10).
     try { switchTab('analyzer'); } catch(e) {}
+    try {
+      const idx = getActiveVersionIdx();
+      if (idx >= 0) setTimeout(() => applyVersionToView(idx), 100);
+    } catch(e) { console.warn('applyVersionToView post-auto-answers:', e); }
     toast(`✓ ${filled} question${filled !== 1 ? 's' : ''} answered`);
   } catch(e) {
     toast('Error: ' + e.message);
@@ -10597,7 +10609,22 @@ function selectVersion(idx) {
 function applyVersionToView(idx) {
   if (!proj || typeof idx !== 'number' || idx < 0) return;
 
-  const scoreData = proj.versionScoreData?.[idx];
+  // 4.6.10: be robust about finding score data. Try sources in order:
+  //   1. versionScoreData[idx]    — 4.6.5+ per-version store (most precise)
+  //   2. proj._cachedScore        — latest in-memory score, valid if idx
+  //                                 matches active version
+  //   3. proj.scores[length-1]    — legacy global score store
+  // This way projects scored under older builds (whose data only lives
+  // in proj.scores) still render strengths/gaps/sub-scores when you
+  // click their pill or land on the analyzer tab.
+  let scoreData = proj.versionScoreData?.[idx];
+  if (!scoreData && idx === getActiveVersionIdx() && proj._cachedScore) {
+    scoreData = proj._cachedScore;
+  }
+  if (!scoreData && proj.scores?.length && idx === (proj.drafts?.length || 1) - 1) {
+    scoreData = proj.scores[proj.scores.length - 1];
+  }
+
   const diff = proj.versionDiffs?.[idx];
 
   // Make sure the analyzer content card is visible (it may be hidden
@@ -10607,39 +10634,45 @@ function applyVersionToView(idx) {
   const dashLoading = document.getElementById('dash-loading');
   if (dashLoading) dashLoading.style.display = 'none';
 
+  // 4.6.10: "full data" means the score has at least one sub-score field
+  // populated. If only `overall` is set (legacy partial), we render the
+  // ring + show CTAs for the missing breakdown.
+  const hasFullData = scoreData && (
+    scoreData.hard_skills !== undefined ||
+    scoreData.keyword_match !== undefined ||
+    scoreData.summary_quality !== undefined ||
+    (scoreData.strengths && scoreData.strengths.length) ||
+    (scoreData.gaps && scoreData.gaps.length)
+  );
+
   // 1. Dashboard (score ring, sub-scores, strengths, gaps)
-  if (scoreData) {
-    // Restore _cachedScore so any code that reads it sees this version's data.
+  if (hasFullData) {
     proj._cachedScore = JSON.parse(JSON.stringify(scoreData));
     try { renderDashboard(scoreData); } catch(e) { console.warn('renderDashboard(version):', e); }
   } else {
-    // Legacy version without stored full score data — only overall % is
-    // available from versionScores. Render JUST the overall ring; do NOT
-    // synthesize zeros for sub-scores (4.6.6 — earlier passing
-    // hard_skills:0, soft_skills:0 etc. displayed as misleading red
-    // "0%" tiles that looked like real failing scores).
-    const overall = proj.versionScores?.[idx];
+    // No full data — render just the ring with overall %, plus explicit
+    // CTAs in the strengths/gaps/grid so the user knows what to do
+    // instead of seeing mysterious empty boxes.
+    const overall = scoreData?.overall ?? proj.versionScores?.[idx];
     if (typeof overall === 'number') {
       try {
-        // renderDashboard filters out undefined sub-scores → grid stays empty.
         renderDashboard({ overall: overall, keyword_coverage: [], strengths: [], gaps: [] });
       } catch(e) { console.warn('renderDashboard(legacy version):', e); }
-      // Replace the empty score grid with a helpful CTA explaining why
-      // the sub-scores aren't shown and how to populate them.
-      const grid = document.getElementById('score-grid');
-      if (grid) {
-        grid.innerHTML = `<div style="grid-column:1/-1;padding:14px 16px;background:var(--surface);border-radius:6px;border:1px dashed var(--border);font-size:12px;color:var(--ink2);line-height:1.5;">
-          <strong style="color:var(--ink);">No detailed breakdown for V${idx + 1}.</strong>
-          This version was scored before per-version data was stored.
-          Click <strong>🔍 Score Resume</strong> to populate the sub-scores, strengths, and gaps for this version.
-        </div>`;
-      }
-      // Clear strengths/gaps lists too so they don't show stale data from the previous active pill.
-      const strengthsEl = document.getElementById('score-strengths');
-      const gapsEl = document.getElementById('score-gaps');
-      if (strengthsEl) strengthsEl.innerHTML = '<div class="text-xs text-muted" style="padding:6px 0;">—</div>';
-      if (gapsEl) gapsEl.innerHTML = '<div class="text-xs text-muted" style="padding:6px 0;">—</div>';
     }
+    // Sub-score grid: replace empty grid with a clear CTA
+    const grid = document.getElementById('score-grid');
+    if (grid) {
+      grid.innerHTML = `<div style="grid-column:1/-1;padding:14px 16px;background:var(--surface);border-radius:6px;border:1px dashed var(--border);font-size:12px;color:var(--ink2);line-height:1.5;">
+        <strong style="color:var(--ink);">No detailed breakdown for this version.</strong>
+        Click <strong>🔍 Score Resume</strong> above to populate the sub-scores, strengths, and gaps.
+      </div>`;
+    }
+    // Strengths/Gaps cards: show CTA hint instead of blank cards
+    const ctaHTML = '<div class="text-xs text-muted" style="padding:8px 0;line-height:1.5;">Click <strong style="color:var(--ink);">🔍 Score Resume</strong> to populate.</div>';
+    const strengthsEl = document.getElementById('score-strengths');
+    const gapsEl = document.getElementById('score-gaps');
+    if (strengthsEl) strengthsEl.innerHTML = ctaHTML;
+    if (gapsEl) gapsEl.innerHTML = ctaHTML;
   }
 
   // 2. What Has Changed panel
