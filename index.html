@@ -761,7 +761,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.2</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.3</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -2234,7 +2234,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
             <!-- Button order per 4.6.1 wireframe: Evaluate (outlined) left,
                  Optimize (primary black) right. Behavior: Evaluate scores
                  the resume; Optimize optimizes + scores. -->
-            <button class="btn btn-secondary" onclick="runFullAnalysis()" id="evaluate-btn">🔍 Evaluate</button>
+            <button class="btn btn-secondary" onclick="runFullAnalysis()" id="evaluate-btn">🔍 Score Resume</button>
             <button class="btn btn-primary" onclick="autoOptimize()" id="auto-opt-btn" title="Apply all suggestions from one analysis pass">⚡ Optimize</button>
           </div>
         </div>
@@ -3935,11 +3935,15 @@ function getLogoUrl(company) {
     'atlassian': 'atlassian.com', 'dropbox': 'dropbox.com', 'twilio': 'twilio.com',
     'datadog': 'datadoghq.com', 'splunk': 'splunk.com', 'okta': 'okta.com',
     'workday': 'workday.com', 'servicenow': 'servicenow.com',
+    'capitalone': 'capitalone.com', 'jpmorgan': 'jpmorgan.com', 'goldman': 'goldmansachs.com',
   };
   const key = company.toLowerCase().replace(/[^a-z0-9]/g,'');
   const domain = knownDomains[key] || (key + '.com');
-  // Use Google favicon service — returns real favicon, no generic placeholder
-  return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+  // Clearbit's logo CDN returns real high-resolution company logos and
+  // proper 404s on unknown domains (Google favicons used to return a
+  // generic placeholder image instead, so onerror never fired and the
+  // tile showed a blank/generic icon). 4.6.3.
+  return `https://logo.clearbit.com/${domain}`;
 }
 
 function renderProjGrid() {
@@ -9074,13 +9078,53 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     // Re-score so the user sees the new number after this single pass
     overlayMsg.textContent = passLabel ? `${passLabel} — scoring updated resume` : 'Scoring updated resume...';
     overlaySub.textContent = '';
+    // Snapshot the pre-rescore cached score so we can restore it on regression.
+    const cachedScoreSnapshot = proj._cachedScore ? JSON.parse(JSON.stringify(proj._cachedScore)) : null;
+    const analysisHashSnapshot = proj._analysisHash;
     await runFullAnalysis(true);
     const scoreAfter = proj._cachedScore?.overall || 0;
-    toast(`${passLabel ? passLabel + ': ' : 'Optimize complete. '}Score: ${scoreBefore} → ${scoreAfter}`);
-    // Replace the suggestions panel with the post-Optimize view (score + AI-titled change list).
-    if (!suppressPostView) {
-      try { await showPostOptimizeView(beforeDraft, cleaned, scoreBefore, scoreAfter); }
-      catch(viewErr) { console.warn('Post-optimize view:', viewErr); }
+
+    // SCORE REGRESSION GUARD (added 4.6.3) — if Optimize made the score
+    // worse, revert the new draft. The LLM pipeline can occasionally
+    // strip JD-matched keywords or replace them with weaker variants,
+    // dropping the score 10-20 points (Wunmi reported 72 → 52). Reverting
+    // protects the user from shipping a worse resume than they started
+    // with. Threshold of 3 points ignores natural ±1-2 point variance.
+    if (scoreBefore > 0 && scoreAfter < scoreBefore - 3) {
+      console.warn(`[score-guard] regression detected: ${scoreBefore} → ${scoreAfter}. Reverting.`);
+      // Pop the worse draft + its score
+      proj.drafts.pop();
+      if (proj.versionScores) proj.versionScores.pop();
+      proj._activeVersionIdx = undefined;
+      proj._aiApplied = false;
+      // Restore the pre-optimize cached score so the UI shows the original
+      // strengths/gaps + sub-scores, not the regressed run's data.
+      proj._cachedScore = cachedScoreSnapshot;
+      proj._analysisHash = analysisHashSnapshot;
+      // Forget the post-optimize diff data — there's nothing to compare
+      // against now.
+      proj.lastOptimize = null;
+      autoSave();
+
+      // Re-render the previous draft as active + restore the dashboard
+      try {
+        const restoredText = getResumeText();
+        showResume(restoredText, proj.drafts.length);
+        if (typeof renderVersionPills === 'function') renderVersionPills();
+        if (cachedScoreSnapshot && typeof renderDashboard === 'function') {
+          renderDashboard(cachedScoreSnapshot);
+        }
+      } catch(e) { console.warn('Restore UI after regression:', e); }
+
+      toast(`Optimize couldn't improve this round (${scoreBefore}% → ${scoreAfter}%). Kept V${proj.drafts.length}.`);
+      // Skip the post-optimize diff view since we reverted
+    } else {
+      toast(`${passLabel ? passLabel + ': ' : 'Optimize complete. '}Score: ${scoreBefore} → ${scoreAfter}`);
+      // Replace the suggestions panel with the post-Optimize view (score + AI-titled change list).
+      if (!suppressPostView) {
+        try { await showPostOptimizeView(beforeDraft, cleaned, scoreBefore, scoreAfter); }
+        catch(viewErr) { console.warn('Post-optimize view:', viewErr); }
+      }
     }
   } catch(e) {
     let msg;
