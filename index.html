@@ -761,7 +761,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.11</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.12</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -2781,45 +2781,68 @@ NY Top Creative Winner · WIx and Vitamin T · 2014</div>
 <!-- Confirmation Modal -->
 <!-- Answer with AI Modal -->
 <div class="ai-modal hidden" id="answer-modal" onclick="if(event.target===this)hideAnswerModal()">
-  <div class="ai-modal-box">
-    <h3>✦ Answer with AI</h3>
-    <p class="subtitle">Add important docs to your AI and ask it these questions.</p>
+  <div class="ai-modal-box" style="max-width:560px;padding:32px 36px;">
+    <!-- 4.6.12: full modal redesign per Wunmi's mockup.
+         - Title: "Answer with *your* AI" (your in italics)
+         - 4 large numbered steps (number column + content column)
+         - Step 1 is clickable anywhere to expand LinkedIn-PDF instructions
+         - Step 2 has inline "Copy this prompt" button + label
+         - Step 3 is an instruction-only step (no button)
+         - Step 4 is the paste-answers textarea
+         - Footer: "Apply answers" + underlined "Cancel" text link -->
+    <h3 style="text-align:center;font-size:22px;font-weight:700;margin:0 0 28px 0;">✦ Answer with <em>your</em> AI</h3>
 
-    <!-- ADD IMPORTANT DOCS — collapsed by default behind a small toggle.
-         Expands to a short vertical list of recommended documents the
-         user should add to their Claude/ChatGPT project before clicking
-         Copy Prompt. Replaces the longer 'Give your AI a soul' / 5-card
-         grid / Pro-tip block from earlier builds (4.6.11) — Wunmi found
-         it too verbose; the simpler 4-item list lands faster. -->
-    <button type="button" onclick="(function(b){var c=document.getElementById('ai-guidance-card');var open=c.style.display==='block';c.style.display=open?'none':'block';b.querySelector('.chev').style.transform=open?'rotate(0deg)':'rotate(90deg)';})(this)" style="background:#f7f7f5;border:1px solid #ececec;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:500;color:#444;cursor:pointer;width:100%;text-align:left;display:flex;align-items:center;gap:8px;margin-bottom:12px;font-family:inherit;">
-      <svg viewBox="0 0 24 24" fill="none" style="width:16px;height:16px;flex-shrink:0;" aria-hidden="true">
-        <path d="M12 2 L13.5 8.5 L20 10 L13.5 11.5 L12 18 L10.5 11.5 L4 10 L10.5 8.5 Z" fill="#111111"/>
-      </svg>
-      <span>Add important docs</span>
-      <span class="chev" style="margin-left:auto;color:#999;font-size:16px;line-height:1;transition:transform 0.15s;">›</span>
-    </button>
-
-    <div id="ai-guidance-card" style="display:none;background:#f7f7f5;border:1px solid #ececec;border-radius:10px;padding:18px 20px;margin-bottom:14px;">
-      <div style="font-size:14px;font-weight:600;color:#111;margin-bottom:16px;line-height:1.45;">Create a project for Claude or ChatGPT and add these documents:</div>
-      <ul style="list-style:none;padding:0;margin:0 0 16px 0;display:flex;flex-direction:column;gap:14px;">
-        <li style="font-size:15px;line-height:1.5;color:#111;font-weight:600;">Your resume</li>
-        <li style="font-size:15px;line-height:1.5;color:#111;font-weight:600;">LinkedIn profile PDF<div style="font-size:13px;font-weight:400;color:#555;margin-top:4px;line-height:1.5;">Go to your LinkedIn profile, click "More" or the "Resources" button, and select "Save to PDF."</div></li>
-        <li style="font-size:15px;line-height:1.5;color:#111;font-weight:600;">Performance reviews</li>
-        <li style="font-size:15px;line-height:1.5;color:#111;font-weight:600;">Presentations, decks</li>
-      </ul>
-      <div style="font-size:14px;font-weight:500;color:#111;line-height:1.5;padding-top:14px;border-top:1px solid #ececec;">Then ask it these questions by clicking on <strong>"Copy Prompt"</strong>.</div>
+    <!-- STEP 1 — clickable to toggle LinkedIn-PDF tip -->
+    <div onclick="(function(b){var t=document.getElementById('linkedin-tip');var c=b.querySelector('.chev');var open=t.style.display==='block';t.style.display=open?'none':'block';if(c)c.textContent=open?'▼':'▲';})(this)" style="display:grid;grid-template-columns:36px 1fr 20px;gap:14px;align-items:start;padding:0 0 22px 0;cursor:pointer;">
+      <span style="font-size:26px;font-weight:400;color:#111;line-height:1.1;">1</span>
+      <div>
+        <div style="font-size:15px;line-height:1.55;color:#111;">Add your resume, <span style="text-decoration:underline;">LinkedIn PDF</span>, performance reviews, and presentation decks to a Claude or ChatGPT project.</div>
+        <div id="linkedin-tip" style="display:none;margin-top:14px;font-size:13.5px;line-height:1.55;color:#333;">
+          <div style="font-weight:600;color:#111;margin-bottom:6px;">To generate your LinkedIn pdf:</div>
+          <ul style="margin:0;padding-left:20px;color:#444;">
+            <li style="margin-bottom:2px;">Go to your LinkedIn profile,</li>
+            <li style="margin-bottom:2px;">Click "More" or the "Resources" button,</li>
+            <li>Select "Save to PDF."</li>
+          </ul>
+        </div>
+      </div>
+      <span class="chev" style="font-size:11px;color:#999;line-height:1.5;user-select:none;">▼</span>
     </div>
 
-    <button class="btn btn-primary" style="width:100%;padding:14px 18px;font-size:15px;font-weight:600;margin-bottom:12px;" onclick="copyQuestionsPromptAndOpen()">📋 Copy Prompt</button>
-
-    <div class="field">
-      <label class="fl">Paste the AI's answers</label>
-      <textarea id="ai-paste-answers" style="min-height:140px;font-size:12px;"></textarea>
+    <!-- STEP 2 — Copy prompt button + instruction -->
+    <div style="display:grid;grid-template-columns:36px 1fr;gap:14px;align-items:center;padding:0 0 22px 0;">
+      <span style="font-size:26px;font-weight:400;color:#111;line-height:1.1;">2</span>
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="copyQuestionsPromptAndOpen()" style="padding:10px 18px;font-size:13px;font-weight:600;flex-shrink:0;">Copy this prompt</button>
+        <span style="font-size:15px;color:#111;">Then paste it into your AI</span>
+      </div>
     </div>
 
-    <div class="flex-c gap-2 mt-2">
-      <button class="btn btn-primary btn-sm" id="apply-answers-btn" onclick="applyPastedAnswers()">Apply Answers →</button>
-      <button class="btn btn-ghost btn-sm" onclick="hideAnswerModal()">Cancel</button>
+    <!-- STEP 3 — visual reminder; not an action -->
+    <div style="display:grid;grid-template-columns:36px 1fr;gap:14px;align-items:center;padding:0 0 22px 0;">
+      <span style="font-size:26px;font-weight:400;color:#111;line-height:1.1;">3</span>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="width:22px;height:22px;flex-shrink:0;color:#666;">
+          <rect x="9" y="9" width="13" height="13" rx="2"/>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+        <span style="font-size:15px;color:#111;">Copy your AI's answers</span>
+      </div>
+    </div>
+
+    <!-- STEP 4 — paste textarea -->
+    <div style="display:grid;grid-template-columns:36px 1fr;gap:14px;align-items:start;padding:0 0 16px 0;">
+      <span style="font-size:26px;font-weight:400;color:#111;line-height:1.1;">4</span>
+      <div>
+        <div style="font-size:15px;color:#111;margin-bottom:10px;">Paste your AI's answers here</div>
+        <textarea id="ai-paste-answers" style="width:100%;min-height:130px;font-size:13px;padding:10px 12px;border:1px solid #ddd;border-radius:6px;font-family:inherit;line-height:1.5;box-sizing:border-box;"></textarea>
+      </div>
+    </div>
+
+    <!-- Footer: aligned with content column, not numbers -->
+    <div style="display:flex;align-items:center;gap:18px;margin-left:50px;">
+      <button class="btn btn-primary" id="apply-answers-btn" onclick="applyPastedAnswers()" style="padding:11px 24px;font-size:14px;font-weight:600;">Apply answers</button>
+      <button class="btn btn-ghost" onclick="hideAnswerModal()" style="text-decoration:underline;font-size:14px;color:#555;padding:0;">Cancel</button>
     </div>
   </div>
 </div>
