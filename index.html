@@ -761,7 +761,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.3</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.4</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -8467,6 +8467,70 @@ function buildBulletContextBlock() {
   return `\n\nBULLET CONTEXT — the user has provided outcomes for these specific bullets. Fold each outcome INTO its matching bullet so the bullet now leads with measurable impact. CRITICAL: each rewritten bullet MUST stay under 180 characters (target ~150). Trim setup language to make room for the outcome — do NOT just append. If the outcome contains a range or hedge ("around 25%", "in the 20-30% range"), keep it as the user wrote it; do NOT pretend it's a precise figure.\n\n${formatted}\n\n`;
 }
 
+// ── KEYWORD COVERAGE BLOCK (added 4.6.4) ─────────────────────────
+// Reads the most recent analyzer score's keyword_coverage data and
+// produces a strict instruction block telling the apply step which
+// JD keywords are FOUND in the resume (must preserve verbatim) and
+// which are MISSING (work in where truthful). This is the root-cause
+// fix for the 72→52 score regression Wunmi reported — before this,
+// the apply prompt had no explicit signal about which exact tokens
+// were driving the keyword/hard-skill sub-scores, so the rewrite
+// could freely paraphrase or replace them with synonyms, silently
+// tanking the score.
+function buildKeywordCoverageBlock() {
+  const coverage = proj?._cachedScore?.keyword_coverage || [];
+  // keyword_coverage entries can be either {keyword, found} OR just
+  // strings — normalize both. Also tolerate {kw, present} variants
+  // some prompts return.
+  const found = [];
+  const missing = [];
+  coverage.forEach(entry => {
+    if (!entry) return;
+    const kw = (typeof entry === 'string') ? entry : (entry.keyword || entry.kw || '');
+    if (!kw) return;
+    const isFound = (typeof entry === 'string') ? true : (entry.found === true || entry.present === true || entry.in_resume === true);
+    (isFound ? found : missing).push(kw.trim());
+  });
+
+  // Also pull in deep-analysis missing keywords (often more specific
+  // than what runFullAnalysis returns, e.g. exact phrases from the JD)
+  const deepMissing = (proj?._lastDeep?.missing_keywords || [])
+    .map(k => (typeof k === 'string') ? k : (k.keyword || ''))
+    .filter(Boolean);
+  // Dedupe + cap to keep the prompt from ballooning. 25 missing is
+  // plenty to seed a rewrite; more dilutes the signal.
+  const allMissing = [...new Set([...missing, ...deepMissing])].filter(k => k.length > 1).slice(0, 25);
+  const allFound = [...new Set(found)].filter(k => k.length > 1);
+
+  if (!allFound.length && !allMissing.length) return '';
+
+  return `\n\n═══════════════════════════════════════════════════════
+KEYWORD COVERAGE (CRITICAL — preserve verbatim, do not regress the score)
+═══════════════════════════════════════════════════════
+The current resume has been scored against the JD. These are the JD-derived keywords and whether each one currently appears in the resume.
+
+KEYWORDS CURRENTLY FOUND in the resume (${allFound.length}) — MUST be preserved verbatim in your output:
+${allFound.length ? allFound.map(k => `  ✓ ${k}`).join('\n') : '  (none — every keyword below is missing)'}
+
+ABSOLUTE RULE on FOUND keywords: every keyword listed above must appear in your output with the same spelling. Do NOT remove, paraphrase, swap for a synonym, or merge into a generic category label that drops the specific term. Examples of forbidden changes:
+  - "user research methodologies" → "user research" (term lost)
+  - "design systems" → "design systems thinking" (term reshaped)
+  - "WCAG accessibility" → "accessibility" (specific term dropped)
+This is the #1 cause of post-Optimize score regression. The keyword and hard-skill sub-scores tank when found terms get replaced with paraphrases.
+
+KEYWORDS MISSING from the resume (${allMissing.length}) — work in where truthful:
+${allMissing.length ? allMissing.map(k => `  ✗ ${k}`).join('\n') : '  (none — coverage is already complete)'}
+
+For MISSING keywords: add them to the resume ONLY where they match the candidate's actual experience per VERIFIED FACTS. Acceptable placements:
+  - Skills section (if the candidate has the skill — never invent a skill)
+  - Bullets (if the candidate did the work — never invent a project)
+  - Summary (at most 2-3 of the most important missing keywords)
+If a missing keyword can't be added truthfully, skip it. Never invent experience to fit a keyword.
+
+The goal of this rewrite is to PRESERVE every FOUND keyword and INCREASE coverage by truthfully adding MISSING keywords. Score must go up, not down.
+`;
+}
+
 async function applySelectedFixes(){
   trackEvent('optimize_clicked', { kind: 'apply_selected' });
   // Check token limits before proceeding (only if using app's key, not user's own)
@@ -8520,6 +8584,7 @@ async function applySelectedFixes(){
     const verifiedFacts = buildVerifiedFacts();
     const verifiedFactsBlock = verifiedFacts ? `\n\nVERIFIED FACTS — the closed world of this candidate's actual experience. You may rephrase, reorder, emphasize, or sharpen anything below. You may NOT introduce anything outside it.\n\n${verifiedFacts}` : '';
     const bulletContextBlock = buildBulletContextBlock();
+    const keywordCoverageBlock = buildKeywordCoverageBlock();
     // Detect career stage so the rewrite voice matches the candidate. PDF Prompt #16.
     const careerStage = CAREER_STAGE.detect(resume);
     const stageGuidanceBlock = `\n\n═══════════════════════════════════════════════════════\nCAREER STAGE (PDF Prompt #16 — voice, claim level, framing)\n═══════════════════════════════════════════════════════\n${CAREER_STAGE.guidance(careerStage)}\n\nEvery rewritten summary line, bullet, and skill phrase MUST match the career stage above. Do not borrow executive-tier language for an entry-level candidate. Do not use entry-level "learning velocity" framing for an executive. Match the stage exactly.\n`;
@@ -8627,7 +8692,7 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
 - CRITICAL: Before returning, check for duplicate job entries. If any company + title + date combination appears more than once, remove the duplicate. Each role must appear exactly once.
 - CRITICAL: NEVER output placeholder metric tokens. Forbidden: "X%", "XX%", "Y%", "Z%", "[number]%", "[percent]%", "[metric]%", "___%", "TBD%", or any bracketed/blank stand-in for a number. If you don't have a real value from the original resume, write the bullet WITHOUT a percentage — a bullet with no metric is acceptable, a bullet with a placeholder metric is NOT.
 - CRITICAL: Within each role, check for repeated metrics or phrases across bullets. If the same metric (e.g. '26% MAU growth') appears in more than one bullet, remove it from the less specific bullet and keep it only in the bullet that explains it most clearly.\n- SUMMARY DEDUPLICATION: The summary must NOT repeat phrases, metrics, or accomplishments that already appear in bullets. Summary should describe WHO the candidate is at their actual career stage (see CAREER STAGE block above) — not RECAP what bullets already say. If "26% MAU growth" is in a bullet, do NOT repeat it in the summary. Replacement language must match the career stage exactly.\n- NEVER FABRICATE metrics, percentages, revenue figures, outcomes, team members, products, domains, or accomplishments not present in VERIFIED FACTS. If the original says '26% MAU growth', keep that exact number. Never invent '40% user growth' or '$2M revenue' unless those exact figures exist in VERIFIED FACTS.\n- NEVER USE competitor brand names anywhere in the resume. 'Commercial Card', 'Capital One brand', 'Chase', 'Amex', etc. are competitor product names. Replace with generic terms.\n- CRITICAL: Use FIRST PERSON (I/me/my) throughout. NEVER write in third person (he/she/they/name). Remove all third-person pronouns.
-- BEFORE returning the resume, scan every bullet, summary line, and skill for: (1) any metric not in VERIFIED FACTS, (2) any competitor brand name, (3) any domain/product/team-member that does not appear in VERIFIED FACTS, (4) any verbatim JD phrase grafted onto unrelated work, (5) ANY THIRD-PERSON PRONOUNS. Remove or rewrite all five.\n- SKILLS must stay in labeled categories. NEVER merge into one block.\n- Remove non-skills from the skills section: phrases like 'Business Goals', 'portfolio strategy', 'Experience Design organization' are NOT skills.\n- SUMMARY must be 50-75 words. If the current summary exceeds 75 words, trim it. NEVER let it grow beyond 75 words.\n- NEVER repeat the same phrase twice in the summary. Check for duplicates before returning.\n- The job title directly under the candidate's name MUST exactly match the JD title at the same seniority tier. Do not downgrade.\n- BULLET COUNT BY ROLE POSITION: Role 1 (most recent) → 4-5 bullets; Role 2-3 → 3-4 bullets; Roles 4+ → 2-3 bullets. Recent/highly relevant positions get MORE bullets than older/less relevant ones.\n- Bullets target: ~150 characters each (180 hard ceiling). Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n${verifiedFactsBlock}${bulletContextBlock}\n\n${promptBody}RESUME:\n${resume}`,
+- BEFORE returning the resume, scan every bullet, summary line, and skill for: (1) any metric not in VERIFIED FACTS, (2) any competitor brand name, (3) any domain/product/team-member that does not appear in VERIFIED FACTS, (4) any verbatim JD phrase grafted onto unrelated work, (5) ANY THIRD-PERSON PRONOUNS. Remove or rewrite all five.\n- SKILLS must stay in labeled categories. NEVER merge into one block.\n- Remove non-skills from the skills section: phrases like 'Business Goals', 'portfolio strategy', 'Experience Design organization' are NOT skills.\n- SUMMARY must be 50-75 words. If the current summary exceeds 75 words, trim it. NEVER let it grow beyond 75 words.\n- NEVER repeat the same phrase twice in the summary. Check for duplicates before returning.\n- The job title directly under the candidate's name MUST exactly match the JD title at the same seniority tier. Do not downgrade.\n- BULLET COUNT BY ROLE POSITION: Role 1 (most recent) → 4-5 bullets; Role 2-3 → 3-4 bullets; Roles 4+ → 2-3 bullets. Recent/highly relevant positions get MORE bullets than older/less relevant ones.\n- Bullets target: ~150 characters each (180 hard ceiling). Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n${verifiedFactsBlock}${bulletContextBlock}${keywordCoverageBlock}\n\n${promptBody}RESUME:\n${resume}`,
       4000
     );
     const firstPass = deduplicateResume(result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim());
@@ -8957,6 +9022,7 @@ async function autoOptimize(opts) {
     const verifiedFacts = buildVerifiedFacts();
     const verifiedFactsBlock = verifiedFacts ? `\n\nVERIFIED FACTS — the closed world of this candidate's actual experience. You may rephrase, reorder, emphasize, or sharpen anything below. You may NOT introduce anything outside it.\n\n${verifiedFacts}` : '';
     const bulletContextBlock = buildBulletContextBlock();
+    const keywordCoverageBlock = buildKeywordCoverageBlock();
 
     const result = await claudeFetch(
       `GOAL: Find the strongest HONEST angle this candidate has on this JD, and amplify it. The goal is NOT to make the resume look like the JD. Bridges to gaps must come from real transferable strengths, never from invented experience.
@@ -8965,7 +9031,7 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
 - CRITICAL: Before returning, check for duplicate job entries. If any company + title + date combination appears more than once, remove the duplicate. Each role must appear exactly once.
 - CRITICAL: NEVER output placeholder metric tokens. Forbidden: "X%", "XX%", "Y%", "Z%", "[number]%", "[percent]%", "[metric]%", "___%", "TBD%", or any bracketed/blank stand-in for a number. If you don't have a real value from the original resume, write the bullet WITHOUT a percentage — a bullet with no metric is acceptable, a bullet with a placeholder metric is NOT.
 - CRITICAL: Within each role, check for repeated metrics or phrases across bullets. If the same metric (e.g. '26% MAU growth') appears in more than one bullet, remove it from the less specific bullet and keep it only in the bullet that explains it most clearly.\n- NEVER FABRICATE metrics, percentages, revenue figures, outcomes, team members, products, domains, or accomplishments not present in VERIFIED FACTS. If the original says '26% MAU growth', keep that exact number. Never invent '40% user growth' or '$2M revenue' unless those exact figures exist in VERIFIED FACTS.\n- NEVER USE competitor brand names anywhere in the resume. 'Commercial Card', 'Capital One brand', 'Chase', 'Amex', etc. are competitor product names. Replace with generic terms.\n- CRITICAL: Use FIRST PERSON (I/me/my) throughout. NEVER write in third person (he/she/they/name). Remove all third-person pronouns.
-- BEFORE returning the resume, scan every bullet, summary line, and skill for: (1) any metric not in VERIFIED FACTS, (2) any competitor brand name, (3) any domain/product/team-member that does not appear in VERIFIED FACTS, (4) any verbatim JD phrase grafted onto unrelated work, (5) ANY THIRD-PERSON PRONOUNS. Remove or rewrite all five.\n- SKILLS must stay in labeled categories. NEVER merge into one block.\n- Remove non-skills from the skills section: phrases like 'Business Goals', 'portfolio strategy', 'Experience Design organization' are NOT skills.\n- SUMMARY must be 50-75 words. If the current summary exceeds 75 words, trim it. NEVER let it grow beyond 75 words.\n- NEVER repeat the same phrase twice in the summary. Check for duplicates before returning.\n- The job title directly under the candidate's name MUST exactly match the JD title. Do not revert it.\n- Bullets target: ~150 characters each (180 hard ceiling). Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n${verifiedFactsBlock}${bulletContextBlock}\n\n${promptBody}RESUME:\n${currentResume}`,
+- BEFORE returning the resume, scan every bullet, summary line, and skill for: (1) any metric not in VERIFIED FACTS, (2) any competitor brand name, (3) any domain/product/team-member that does not appear in VERIFIED FACTS, (4) any verbatim JD phrase grafted onto unrelated work, (5) ANY THIRD-PERSON PRONOUNS. Remove or rewrite all five.\n- SKILLS must stay in labeled categories. NEVER merge into one block.\n- Remove non-skills from the skills section: phrases like 'Business Goals', 'portfolio strategy', 'Experience Design organization' are NOT skills.\n- SUMMARY must be 50-75 words. If the current summary exceeds 75 words, trim it. NEVER let it grow beyond 75 words.\n- NEVER repeat the same phrase twice in the summary. Check for duplicates before returning.\n- The job title directly under the candidate's name MUST exactly match the JD title. Do not revert it.\n- Bullets target: ~150 characters each (180 hard ceiling). Skills target: 15-25 items in categories.\n\nReturn ONLY the complete corrected plain-text resume, no commentary.\n${verifiedFactsBlock}${bulletContextBlock}${keywordCoverageBlock}\n\n${promptBody}RESUME:\n${currentResume}`,
       4000
     );
     const firstPass = deduplicateResume(result.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim());
