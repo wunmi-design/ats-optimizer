@@ -442,6 +442,11 @@ select option{background:var(--white);}
    reserve the right amount of vertical space after scaling (pages would otherwise overlap). */
 .fmt-preview-page-slot{position:relative;}
 .fmt-preview-page{width:8.5in;height:11in;background:#fff;box-shadow:var(--shadow-lg);font-size:10pt;line-height:1.35;color:#111;overflow:hidden;transform-origin:top left;}
+/* Contact info must start exactly at the 0.5in padding boundary — zero out
+   any default top margin on the first content block (contact header). Some
+   template renderers emit a div with its own margin-top; this clamps it. */
+.fmt-preview-page > *:first-child{margin-top:0!important;padding-top:0!important;}
+.fmt-preview-page > *:first-child > *:first-child{margin-top:0!important;padding-top:0!important;}
 /* Legacy id kept for compatibility — first page in the list */
 #fmt-preview-page{width:8.5in;height:11in;background:#fff;box-shadow:var(--shadow-lg);font-size:10pt;line-height:1.35;color:#111;overflow:hidden;transform-origin:top left;}
 .fmt-tab-opt{display:none;}/* hide old style */
@@ -695,10 +700,9 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
 
 /* ── TEMPLATE TAB: COLORS-ONLY DEBUG MODE ──────────────────────
    When #view-format has the .debug-mode class, hide every direct
-   child except the toggle bar and the Colors section. Lets us
-   iterate on background/text color combinations without scrolling
-   past templates, typography, sizes, and margins. */
-#view-format.debug-mode > *:not(#fmt-debug-toggle-wrap):not(#fmt-colors-section) {
+   child except the toggle bar, the Templates section (so users can
+   pick between Standard and Professional), and the Colors section. */
+#view-format.debug-mode > *:not(#fmt-debug-toggle-wrap):not(#fmt-templates-section):not(#fmt-colors-section) {
   display: none !important;
 }
 /* Toggle switch visual states */
@@ -732,7 +736,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.5.5</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.5.6</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -1988,6 +1992,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
           <div></div>
         </div>
 
+        <div id="fmt-templates-section">
         <span class="fmt-section-label">Templates</span>
         <div class="tmpl-grid" id="tmpl-grid">
     <div class="tmpl-card " id="tmpl-standard" onclick="selectTemplate('standard')" title="Left-aligned header with name, title, and stacked contact lines.">
@@ -2021,6 +2026,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
   </div></div>
       <div class="tmpl-name">Professional</div>
     </div></div>
+        </div>
 
         <span class="fmt-section-label" style="margin-top:16px;">Accent Color</span>
         <div class="fmt-chip-row">
@@ -11130,6 +11136,12 @@ ${googleFontsLink}
     print-color-adjust: exact;
   }
   a { color: inherit; text-decoration: none; }
+  /* Contact info starts exactly at the @page 0.5in margin — zero out any
+     default top margin/padding on the first content block. Mirrors the
+     screen preview rule (.fmt-preview-page > *:first-child) so the PDF
+     output looks identical to the preview. */
+  body > *:first-child { margin-top: 0 !important; padding-top: 0 !important; }
+  body > *:first-child > *:first-child { margin-top: 0 !important; padding-top: 0 !important; }
   
   /* PAGE BREAK CONTROL — prevents orphans and split sections.
      Each top-level section (Summary, Skills, Work Experience entries, Education, Awards)
