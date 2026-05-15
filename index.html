@@ -732,7 +732,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.5.2</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.5.3</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -1964,20 +1964,22 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
 
 
             <!-- ── FORMAT ── -->
-      <div class="panel-view" id="view-format">
+      <div class="panel-view debug-mode" id="view-format">
         <!-- Debug toggle: when enabled, hides every section in the Template tab
              except Colors. Useful when iterating on print/background/text
              color combinations without the visual noise of templates,
              typography, font sizes, margins, etc. CSS rule sits in the main
              stylesheet — it targets #view-format.debug-mode and uses :not()
-             to keep the toggle bar and #fmt-colors-section visible. -->
+             to keep the toggle bar and #fmt-colors-section visible.
+             Default: ON (Wunmi's spec for the testing rollout). To restore
+             the full Template tab, flip the toggle off. -->
         <div id="fmt-debug-toggle-wrap" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;margin-bottom:14px;background:#fafafa;border:1px solid #ececec;border-radius:10px;">
           <div>
             <div style="font-size:13px;font-weight:600;color:#111;">Colors-only mode</div>
             <div style="font-size:11px;color:#666;margin-top:2px;">Hide everything except Background and Text color</div>
           </div>
           <label style="display:inline-flex;align-items:center;cursor:pointer;">
-            <input type="checkbox" id="fmt-debug-toggle" onchange="toggleFmtDebugMode(this.checked)" style="appearance:none;-webkit-appearance:none;width:36px;height:20px;background:#d4d4d4;border-radius:999px;position:relative;cursor:pointer;transition:background 0.15s;outline:none;margin:0;">
+            <input type="checkbox" id="fmt-debug-toggle" checked onchange="toggleFmtDebugMode(this.checked)" style="appearance:none;-webkit-appearance:none;width:36px;height:20px;background:#d4d4d4;border-radius:999px;position:relative;cursor:pointer;transition:background 0.15s;outline:none;margin:0;">
           </label>
         </div>
 
@@ -2738,6 +2740,33 @@ NY Top Creative Winner · WIx and Vitamin T · 2014</div>
   <div class="ai-modal-box">
     <h3>✦ Answer with AI</h3>
     <p class="subtitle">Copy the prompt, paste it into Claude or ChatGPT, then paste the answers back here.</p>
+
+    <!-- AI PROJECT SETUP GUIDANCE
+         Tells the user what to put into their agentic AI's project / custom
+         instructions so the answers come back tailored AND truthful. The
+         "Why this matters" details collapse behind a small info icon so the
+         modal stays focused on the action (copy → paste) when re-opened. -->
+    <div style="background:#f7f7f5;border:1px solid #ececec;border-radius:10px;padding:14px 16px;margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <!-- Sparkle/setup illustration -->
+        <svg viewBox="0 0 24 24" fill="none" style="width:18px;height:18px;flex-shrink:0;" aria-hidden="true">
+          <path d="M12 2 L13.5 8.5 L20 10 L13.5 11.5 L12 18 L10.5 11.5 L4 10 L10.5 8.5 Z" fill="#111111"/>
+          <circle cx="19" cy="5" r="1.5" fill="#111111"/>
+          <circle cx="5" cy="19" r="1" fill="#111111"/>
+        </svg>
+        <div style="font-size:13px;font-weight:600;color:#111;">For best results, add this to your AI project</div>
+        <button type="button" onclick="this.parentElement.nextElementSibling.style.display=this.parentElement.nextElementSibling.style.display==='block'?'none':'block';this.textContent=this.textContent==='ⓘ'?'×':'ⓘ'" title="Why this matters" aria-label="Why this matters" style="margin-left:auto;background:transparent;border:none;color:#888;cursor:pointer;font-size:14px;line-height:1;padding:0;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;">ⓘ</button>
+      </div>
+      <!-- Always-visible: the rules an AI project should follow -->
+      <ul style="margin:0;padding-left:18px;font-size:12.5px;line-height:1.65;color:#444;">
+        <li><strong>Role-specific tailoring</strong> — answer in the voice of the role being applied to, not generically.</li>
+        <li><strong>Language rooted in reality</strong> — never invent titles, skills, achievements, certifications, years of experience, or metrics.</li>
+      </ul>
+      <!-- Toggled by the ⓘ button: explanation of why these rules matter -->
+      <div style="display:none;margin-top:10px;padding-top:10px;border-top:1px dashed #d4d4d4;font-size:12px;line-height:1.55;color:#666;">
+        Generic AI assistants tend to invent specifics when answering screening questions ("I scaled the team to 12 designers" when there were 6). Giving your AI project these two rules up front keeps answers truthful and aligned with the role — both protect you in later interviews where you'll need to defend every claim.
+      </div>
+    </div>
 
     <button class="btn btn-primary" style="width:100%;padding:14px 18px;font-size:15px;font-weight:600;margin-bottom:12px;" onclick="copyQuestionsPromptAndOpen()">📋 Copy Prompt</button>
 
@@ -4438,11 +4467,12 @@ function showResume(text, vNum) {
   }
   if(empty) empty.style.display='none'; 
   if(foot) foot.style.display='flex';
+  // Legacy editor-version-badge is intentionally NOT shown anymore — the
+  // V1/V2/V3 pill row above the resume preview already displays the active
+  // version plus its score (e.g. "V2 72%"). Surfacing both was redundant
+  // and produced the "lone V2 with no score" pill that Wunmi flagged.
   const badge=document.getElementById('editor-version-badge');
-  if(badge) {
-    badge.textContent='v'+(vNum||1); 
-    badge.style.display='inline-flex';
-  }
+  if(badge) badge.style.display='none';
 }
 // Builds the natural filename without AI calls. Sync. Used as the fallback when AI abbreviation
 // fails or isn't needed (i.e. the name is already within the target length).
@@ -4654,12 +4684,30 @@ function updateScorePill(pct) {
   const pill=document.getElementById('editor-score-pill');
   const tabBadge=document.getElementById('tab-analyzer-score');
   if (pct === null || pct === undefined) {
-    if (pill) pill.className = 'score-pill';
-    if (tabBadge) tabBadge.className = 'score-pill';
+    if (pill) { pill.className = 'score-pill'; pill.style.background = ''; pill.style.color = ''; }
+    if (tabBadge) { tabBadge.className = 'score-pill'; tabBadge.style.cssText = ''; }
     return;
   }
-  if(pill){pill.textContent=pct+'%';pill.className='score-pill show '+(pct>=80?'high':pct>=60?'mid':'low');}
-  if(tabBadge){tabBadge.textContent=pct+'%';tabBadge.className='score-pill show '+(pct>=80?'high':pct>=60?'mid':'low');tabBadge.style.cssText='font-size:10px;padding:1px 5px;margin-left:4px;';}
+  // Smooth red → yellow → green gradient based on the exact score.
+  // HSL hue 0 = red, 60 = yellow, 120 = green. Mapping score 0–100 to
+  // hue 0–120 gives a natural bad-to-best ramp that's continuous rather
+  // than tier-banded. Saturation/lightness chosen to read as a soft
+  // chip background with a darker matched foreground.
+  const clamped = Math.max(0, Math.min(100, pct));
+  const hue = clamped * 1.2;
+  const bg = `hsl(${hue}, 78%, 92%)`;
+  const fg = `hsl(${hue}, 70%, 28%)`;
+  if (pill) {
+    pill.textContent = pct + '%';
+    pill.className = 'score-pill show';
+    pill.style.background = bg;
+    pill.style.color = fg;
+  }
+  if (tabBadge) {
+    tabBadge.textContent = pct + '%';
+    tabBadge.className = 'score-pill show';
+    tabBadge.style.cssText = `background:${bg};color:${fg};font-size:10px;padding:1px 5px;margin-left:4px;`;
+  }
 }
 function copyResume(){
   navigator.clipboard.writeText(getResumeText()).then(()=>toast('Copied'));
@@ -5573,6 +5621,38 @@ async function showPostOptimizeView(beforeText, afterText, scoreBefore, scoreAft
   // Filter out trivially small blocks (single-line, fewer than 3 chars of change) which clutter
   // the list without telling the user anything useful.
   blocks = blocks.filter(b => (b.before + b.after).trim().length >= 3);
+
+  // TRUST GUARD — drop any "removed" / "before" claims whose content is
+  // still present in afterText. Without this guard the diff can claim
+  // "Removed awards section" while the awards are still visible in the
+  // preview, which destroys the user's trust in every other change shown.
+  // Happens when the apply pipeline reports a deletion that wasn't fully
+  // executed (e.g. AI promised to strip a section but only stripped a
+  // line). Quietly hiding the false claim is the safer of the two
+  // failure modes here; the underlying apply prompt should still be
+  // hardened against this — flagged in the console for debugging.
+  const normAfter = (afterText || '').replace(/\s+/g, ' ').toLowerCase();
+  const normContains = (needle) => {
+    const n = (needle || '').replace(/\s+/g, ' ').toLowerCase().trim();
+    return n.length >= 8 && normAfter.includes(n);
+  };
+  const beforeFiltered = blocks.length;
+  blocks = blocks.filter(b => {
+    if (b.kind === 'del' && normContains(b.before)) {
+      console.warn('[trust-guard] dropped false "removed" diff — text still in resume:', (b.before || '').slice(0, 80));
+      return false;
+    }
+    // For change blocks: if before still appears in after AND after isn't a real replacement,
+    // it's likely a false claim too. Be conservative — only drop when there's no real "after."
+    if (b.kind === 'change' && !((b.after || '').trim()) && normContains(b.before)) {
+      console.warn('[trust-guard] dropped false "change" diff with no after-text:', (b.before || '').slice(0, 80));
+      return false;
+    }
+    return true;
+  });
+  if (blocks.length !== beforeFiltered) {
+    console.warn(`[trust-guard] suppressed ${beforeFiltered - blocks.length} false diff card(s)`);
+  }
   
   // First render with placeholder titles so user sees the panel immediately
   renderWhatHasChangedView(blocks, scoreBefore, scoreAfter);
@@ -10226,7 +10306,15 @@ function renderVersionPills() {
     if (typeof s !== 'number' && i === drafts.length - 1) {
       s = scores[scores.length - 1]?.overall;
     }
-    const scoreHtml = (typeof s === 'number') ? `<span class="version-pill-score">${Math.round(s)}%</span>` : '';
+    // Score chip uses the same red→yellow→green hue gradient as the main
+    // score pill (HSL hue 0–120 mapped to score 0–100). Inline-styled so the
+    // chip background carries the color without needing extra CSS classes.
+    let scoreHtml = '';
+    if (typeof s === 'number') {
+      const clamped = Math.max(0, Math.min(100, s));
+      const hue = clamped * 1.2;
+      scoreHtml = `<span class="version-pill-score" style="background:hsl(${hue},78%,92%);color:hsl(${hue},70%,28%);padding:1px 6px;border-radius:999px;margin-left:4px;">${Math.round(s)}%</span>`;
+    }
     const cls = i === activeIdx ? 'version-pill active' : 'version-pill';
     html += `<div class="${cls}" onclick="selectVersion(${i})" title="View V${i+1}">V${i+1}${scoreHtml ? ' ' + scoreHtml : ''}</div>`;
   }
