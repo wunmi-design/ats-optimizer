@@ -761,7 +761,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.14</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.15</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -1307,18 +1307,8 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
 
       <!-- ── CONTENT EDITOR ── -->
       <div class="panel-view" id="view-content">
-        <!-- Upload strip -->
-        <div id="upload-strip" style="margin-bottom:10px;">
-          <div class="upload-zone" id="upload-zone" style="padding:14px 16px;" onclick="document.getElementById(&#39;file-in&#39;).click()" ondragover="onDragOver(event)" ondrop="onDrop(event)" ondragleave="onDragLeave()">
-            <input type="file" id="file-in" accept=".pdf,.doc,.docx,.txt" onchange="onFileSelect(event)">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:1.2rem;">📎</span>
-              <div><div style="font-size:12px;font-weight:600;">Upload resume to auto-fill</div><div class="text-xs text-muted">PDF · Word · Plain text</div></div>
-            </div>
-          </div>
-          <div class="loading-row mt-1" id="upload-loading"><div class="spin"></div><span id="upload-msg">Parsing...</span></div>
-          <div id="parse-review" style="display:none;margin-top:8px;"></div>
-        </div>
+        <!-- Upload strip removed in 4.6.15 — the Projects tab is the
+             single upload entry point now. -->
 
         <!-- CONTACT INFORMATION -->
         <div class="ce-section open" id="ce-contact">
@@ -2208,19 +2198,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
 
           <div id="questions-list"></div>
 
-          <!-- Outcome questions: appears after the screening Q&A. One question per bullet,
-               eliciting business outcomes that can be folded back into the bullet at Optimize
-               time. Has its own Copy Prompt + paste-answers flow. Hidden until generated. -->
-          <div id="outcome-section" style="display:none;margin-top:24px;padding-top:20px;border-top:1px solid var(--border);">
-            <div class="flex-between mb-3">
-              <div>
-                <div class="bold" style="font-size:15px;">Bullet outcomes <span class="text-xs text-muted" style="font-weight:400;">(optional)</span></div>
-                <div class="text-xs text-muted mt-1">Add a measurable business outcome to each bullet. Answers fold into the next Optimize run without exceeding the 30-word bullet cap.</div>
-              </div>
-              <button class="btn btn-primary btn-sm" onclick="showOutcomeAnswerModal()" id="outcome-answer-btn">✦ Answer with AI</button>
-            </div>
-            <div id="outcome-questions-list"></div>
-          </div>
+          <!-- Bullet outcomes section removed in 4.6.15. -->
 
           <div class="flex-c gap-2 mt-3" style="padding-top:16px;border-top:1px solid var(--border);">
             <button class="btn btn-primary" onclick="optimizeFromJD()" id="optimize-from-jd-btn">⚡ Optimize Resume →</button>
@@ -4293,7 +4271,6 @@ function loadProject(id) {
   try { s('jd-title', proj.jdTitle||''); s('jd-company', proj.jdCompany||''); s('jd-text', proj.jdText||''); } catch(e) {}
   try { if (proj.jdAnalysis) renderJDAnalysis(proj.jdAnalysis); } catch(e) {}
   try { if (proj.questions?.length) renderQuestions(proj.questions); } catch(e) {}
-  try { if (proj.outcomeQuestions?.length) renderOutcomeQuestions(); } catch(e) {}
   // Reveal the inline qa-section if this project already has questions; hide it otherwise
   try {
     const qaSection = document.getElementById('qa-section');
@@ -5263,53 +5240,6 @@ function hideAnswerModal() {
   if (ta) ta.value = '';
   document.getElementById('answer-modal')?.classList.add('hidden');
   // Reset answer mode so the next showAnswerModal defaults back to screening questions.
-  if (proj) proj._answerMode = null;
-}
-
-// Parses pasted numbered answers and assigns them to outcome questions in order. Mirrors the
-// answer onto proj.ce.roles[].bullets[].outcomeNote so Optimize can fold the outcome back into
-// the matching bullet at apply time.
-async function applyPastedOutcomeAnswers(text) {
-  if (!proj?.outcomeQuestions?.length) { toast('No outcome questions to fill in'); return; }
-
-  // Strip trailing AI sign-offs / closers.
-  text = text
-    .replace(/\n\s*---+\s*\n[\s\S]*$/g, '')
-    .replace(/\n\s*(?:Let me know|Want me to|I can (?:also|further|happily)|Happy to|Would you like|Feel free to|If you'?d like)[\s\S]*$/gi, '')
-    .trim();
-
-  const btn = document.getElementById('apply-answers-btn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Applying...'; }
-
-  try {
-    const numberedPattern = /(?:^|\n)\s*(?:\*{0,2})\s*(\d+)[.):\-]\s*([\s\S]+?)(?=\n\s*\**\s*\d+[.):\-]|\s*$)/g;
-    const matches = [...text.matchAll(numberedPattern)];
-    let filled = 0;
-    if (matches.length) {
-      matches.forEach(m => {
-        const idx = parseInt(m[1], 10) - 1;
-        const answer = (m[2] || '').trim();
-        if (idx < 0 || idx >= proj.outcomeQuestions.length || !answer) return;
-        const q = proj.outcomeQuestions[idx];
-        q.answer = answer;
-        saveOutcomeNoteToBullet(q.bulletId, answer);
-        filled++;
-      });
-    }
-    if (filled === 0) {
-      toast("Couldn't parse numbered answers. Make sure they're formatted '1. answer / 2. answer / ...'");
-      return;
-    }
-    autoSave();
-    renderOutcomeQuestions();
-    hideAnswerModal();
-    toast(`Saved ${filled} outcome${filled === 1 ? '' : 's'} — they'll fold into the next Optimize run`);
-  } catch (e) {
-    console.error('applyPastedOutcomeAnswers:', e);
-    toast('Error applying answers — try again');
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Apply Answers'; }
-  }
 }
 
 // Computes a line-level diff between two text blocks using Myers' LCS-based algorithm.
@@ -5690,8 +5620,6 @@ function copyQuestionsPromptAndOpen() {
 async function applyPastedAnswers() {
   let text = (document.getElementById('ai-paste-answers')?.value || '').trim();
   if (!text) { toast('Paste your AI answers first'); return; }
-  const isOutcome = proj?._answerMode === 'outcome';
-  if (isOutcome) return applyPastedOutcomeAnswers(text);
   if (!proj?.questions?.length) { toast('No questions — analyze a job description first'); return; }
 
   // Scrub trailing meta-commentary that AI agents tend to append:
@@ -6046,8 +5974,6 @@ Return ONLY valid JSON:
 // ─────────────────────────────────────────────────────────
 function copyQuestionsPrompt() {
   if (!proj) { toast('Open a project first'); return; }
-  const isOutcome = proj._answerMode === 'outcome';
-  if (isOutcome) return copyOutcomePrompt();
   if (!proj.questions?.length) { toast('Analyze a job description first to generate questions'); return; }
 
   const ws = collectWorkspace();
@@ -6103,51 +6029,6 @@ function clearBrainDump() {
   if (el) { el.value = ''; autoSave(); toast('Brain Dump cleared'); }
 }
 
-// Builds a prompt that asks the user's external AI assistant to answer outcome questions for
-// each bullet. Each question quotes the bullet so the AI can produce a relevant outcome.
-function copyOutcomePrompt() {
-  if (!proj?.outcomeQuestions?.length) { toast('No outcome questions yet — re-run Analyze first'); return; }
-  const ws = collectWorkspace();
-  const jdText = g('jd-text') || proj.jdText || '';
-
-  const questionBlocks = proj.outcomeQuestions.map((q, i) =>
-    `${i + 1}. [${q.role}]\n   Bullet: "${q.currentBullet}"\n   Q: ${q.question}`
-  ).join('\n\n');
-
-  const prompt = `I am tightening my resume's bullet points by adding measurable business outcomes. For each bullet below, I'm asking you to suggest a concrete outcome based on what my work was likely to have produced. Use realistic-sounding metrics in the right ballpark for the work described — but never fabricate specific numbers I haven't confirmed. Phrase the answer so I can verify and edit it.
-
-MY BACKGROUND:
-Name: ${ws.name || '(not provided)'}
-Current title: ${ws.title || '(not provided)'}
-Years of experience: ${ws.years || '(not provided)'}
-Most recent role: ${ws['r1-title'] || '(not provided)'} at ${ws['r1-company'] || '(not provided)'} (${ws['r1-dates'] || ''})
-Key responsibilities: ${ws['r1-duties'] || '(not provided)'}
-Key results: ${ws['r1-results'] || '(not provided)'}
-Key metrics — Business: ${ws['m-biz'] || '(not provided)'}
-Key metrics — Operational: ${ws['m-ops'] || '(not provided)'}
-Key metrics — Product/customer: ${ws['m-prod'] || '(not provided)'}
-Career narrative: ${ws.thread || '(not provided)'}
-
-TARGET ROLE: ${ws['tgt-title'] || '(not provided)'} at ${ws['tgt-company'] || '(not provided)'}
-${jdText ? `\nJOB DESCRIPTION EXCERPT:\n${jdText.slice(0, 800)}` : ''}
-
-BULLETS AND OUTCOME QUESTIONS:
-${questionBlocks}
-
-OUTPUT INSTRUCTIONS — read carefully:
-1. Answer each numbered question in order. ONE sentence per answer, max 20 words. Lead with the metric or business outcome.
-2. Use realistic ranges from my background where possible. If you don't have a real metric, suggest a plausible category-of-outcome the user can verify (e.g. "completion rate lift in the 20–30% range", "App Store rating from 3.x to 4.x").
-3. Do NOT invent specific exact numbers. If you give a number, frame it as a range or as something the user should confirm.
-4. Format each answer exactly as "1. [your answer]" — numbered to match the question.
-5. No preamble. No headers. No closing remarks or follow-up offers. End immediately after the final answer.`;
-
-  navigator.clipboard.writeText(prompt).then(() => {
-    toast('Outcome prompt copied — paste it into Claude or ChatGPT');
-  }).catch(() => {
-    toast('Copy failed — check browser permissions');
-  });
-}
-
 async function generateQuestions(analysis) {
   if(!proj) return;
   const ws=collectWorkspace();
@@ -6183,139 +6064,7 @@ CANDIDATE HAS: ${ws.name}, ${ws.title}, ${ws.years}yrs, Skills: ${ws.hard?.slice
     if (proj.questions.length) {
       try { showAnswerModal(); } catch(e) {}
     }
-    // Generate outcome questions in the background — one per bullet — so the user can fill in
-    // business outcomes that bullets currently lack. These run as a separate pass with their own
-    // Copy Prompt button so the user can choose to do them or skip.
-    generateOutcomeQuestions().catch(e => console.warn('Outcome questions:', e));
   } catch(e){proj.questions=[];}
-}
-
-// Asks the AI to generate one outcome-elicitation question per bullet in the resume. Each
-// question quotes the bullet back to the user and asks about measurable business impact. Saved to
-// proj.outcomeQuestions[] with bulletId tagging so answers can be matched to bullets at apply time.
-async function generateOutcomeQuestions() {
-  if (!proj || !proj.ce?.roles?.length) return;
-  // Build a flat list of bullets with their role context. Bullets need IDs (existing CE schema
-  // already attaches r.bullets[].id) so we can match answers back later.
-  const bulletList = [];
-  for (const r of proj.ce.roles) {
-    if (!r.bullets?.length) continue;
-    for (const b of r.bullets) {
-      if (!b.text || !b.text.trim()) continue;
-      bulletList.push({
-        bulletId: b.id,
-        role: `${r.title || 'Role'} at ${r.company || 'Company'}`,
-        text: b.text.trim().slice(0, 280),
-      });
-    }
-  }
-  if (!bulletList.length) { proj.outcomeQuestions = []; renderOutcomeQuestions(); return; }
-
-  // Hydrate any existing answers so we don't lose them when regenerating.
-  const previousAnswers = {};
-  (proj.outcomeQuestions || []).forEach(q => {
-    if (q.bulletId && q.answer) previousAnswers[q.bulletId] = q.answer;
-  });
-
-  try {
-    const jdTitle = g('jd-title') || proj?.jdTitle || '';
-    const jdContext = jdTitle ? `Target role: ${jdTitle}.\n` : '';
-    const raw = await claudeFetch(
-      `For each resume bullet below, write ONE specific question that elicits the measurable business outcome. The user will answer in their own words; their answer will later be folded into a rewritten bullet that stays around 150 characters (180 hard ceiling).\n\n` +
-      `Question rules:\n` +
-      `- Quote the bullet back so the user remembers what work it describes.\n` +
-      `- Ask for a concrete metric, timeframe, or business outcome — engagement lift, revenue, cycle-time reduction, completion rate, NPS, retention, App Store rating, team size, scope, etc.\n` +
-      `- Pick the metric type that's most relevant to the bullet. For a launch bullet, ask about adoption or rating. For a process bullet, ask about cycle-time or efficiency. For a team bullet, ask about size or growth.\n` +
-      `- If the bullet already has a metric, ask whether there's an additional outcome worth adding (NEVER suggest replacing the existing metric).\n` +
-      `- Keep questions short (one sentence + the quoted bullet). No multi-part questions.\n\n` +
-      `Return ONLY a JSON array, in the same order as input bullets. Format:\n` +
-      `[{"bulletId":"...","question":"For your work on [paraphrase]: what was the [metric type]?"}, ...]\n\n` +
-      jdContext +
-      `BULLETS:\n${JSON.stringify(bulletList)}`,
-      3000
-    );
-    const cleaned = raw.replace(/^```[\w]*\s*/i, '').replace(/\s*```$/i, '').trim();
-    const parsed = JSON.parse(cleaned);
-    if (!Array.isArray(parsed)) throw new Error('expected array');
-
-    proj.outcomeQuestions = parsed.map(q => {
-      const orig = bulletList.find(b => b.bulletId === q.bulletId);
-      return {
-        id: q.bulletId, // reuse bullet id as question id
-        bulletId: q.bulletId,
-        role: orig?.role || '',
-        currentBullet: orig?.text || '',
-        question: q.question || '',
-        answer: previousAnswers[q.bulletId] || '',
-      };
-    }).filter(q => q.question);
-
-    autoSave();
-    renderOutcomeQuestions();
-  } catch (e) {
-    console.warn('generateOutcomeQuestions failed:', e);
-    proj.outcomeQuestions = [];
-    renderOutcomeQuestions();
-  }
-}
-
-// Renders the outcome questions list inside the #outcome-section. Shows the bullet (so the user
-// remembers what work it describes), the AI's outcome question, and a textarea for the answer.
-// Live-saves answers on blur. Hidden if no questions or no roles.
-function renderOutcomeQuestions() {
-  const sec = document.getElementById('outcome-section');
-  const list = document.getElementById('outcome-questions-list');
-  if (!sec || !list) return;
-  const qs = (proj?.outcomeQuestions) || [];
-  if (!qs.length) { sec.style.display = 'none'; return; }
-  sec.style.display = 'block';
-  const answered = qs.filter(q => (q.answer||'').trim()).length;
-  list.innerHTML = `
-    <div class="text-xs text-muted mb-2">${answered} of ${qs.length} answered</div>
-    ${qs.map(q => `
-      <div class="q-item" id="oq-${q.id}" style="border-left:3px solid var(--teal-lt);">
-        <div class="q-priority" style="color:var(--muted);">${esc(q.role || 'Bullet')}</div>
-        <div style="font-size:11px;color:var(--ink2);font-style:italic;margin:4px 0 6px 0;">"${esc(q.currentBullet||'')}"</div>
-        <div class="q-text">${esc(q.question)}</div>
-        <textarea id="oqa-${q.id}" style="min-height:60px;font-size:12px;" placeholder="e.g. Lifted MAU 26% in 6 months; rating moved from 3.7 → 4.5" oninput="markOutcomeAnswered('${q.id}')">${esc(q.answer||'')}</textarea>
-      </div>
-    `).join('')}`;
-}
-
-function markOutcomeAnswered(id) {
-  const ta = document.getElementById('oqa-' + id);
-  if (!ta || !proj?.outcomeQuestions) return;
-  const q = proj.outcomeQuestions.find(x => x.id === id);
-  if (!q) return;
-  q.answer = ta.value;
-  // Mirror onto the bullet itself so it's available at apply time even if outcomeQuestions
-  // is regenerated. Stored at proj.ce.roles[].bullets[].outcomeNote.
-  saveOutcomeNoteToBullet(q.bulletId, ta.value);
-  autoSave();
-}
-
-// Writes an answer into the matching bullet's outcomeNote field. Walks all roles to find the
-// bullet by id. No-op if not found (bullet may have been deleted since the question was generated).
-function saveOutcomeNoteToBullet(bulletId, note) {
-  if (!proj?.ce?.roles) return;
-  for (const r of proj.ce.roles) {
-    if (!r.bullets) continue;
-    for (const b of r.bullets) {
-      if (b.id === bulletId) { b.outcomeNote = (note || '').trim() || undefined; return; }
-    }
-  }
-}
-
-// Opens the existing Answer modal but populates it with the outcome questions instead of
-// screening questions. Reuses the same paste-answers UX so the user has one mental model.
-function showOutcomeAnswerModal() {
-  if (!proj?.outcomeQuestions?.length) {
-    toast('No outcome questions yet — re-run Analyze first');
-    return;
-  }
-  // Toggle a flag so the existing copy/paste flow targets outcomeQuestions instead of questions.
-  proj._answerMode = 'outcome';
-  showAnswerModal();
 }
 
 function renderQuestions(questions) {
@@ -8575,29 +8324,14 @@ VOICE RULES (apply to every rewrite):
 - En dashes (–) in date ranges (01/16 – 06/17) are correct and stay.
 `;
 
-// Builds the BULLET CONTEXT block injected into apply prompts. Lists every bullet that has a
-// user-confirmed outcomeNote so the AI can fold the outcome into the matching bullet without
-// exceeding the 30-word cap. Returns '' if no notes exist.
+// 4.6.15: Bullet-outcomes feature dropped (per Wunmi's spec). The
+// function is reduced to a no-op returning '' so the apply prompt
+// template's ${bulletContextBlock} interpolation continues to work
+// without breaking the surrounding string. If you ever need to bring
+// per-bullet outcomes back, restore the implementation from git
+// history (last present in 4.6.14).
 function buildBulletContextBlock() {
-  if (!proj?.ce?.roles) return '';
-  const notes = [];
-  for (const r of proj.ce.roles) {
-    if (!r.bullets) continue;
-    for (const b of r.bullets) {
-      if (b.outcomeNote && b.outcomeNote.trim()) {
-        notes.push({
-          role: `${r.title || ''} at ${r.company || ''}`.trim(),
-          bullet: (b.text || '').trim(),
-          outcome: b.outcomeNote.trim(),
-        });
-      }
-    }
-  }
-  if (!notes.length) return '';
-  const formatted = notes.map((n, i) =>
-    `${i + 1}. [${n.role}]\n   Original bullet: "${n.bullet}"\n   Outcome to fold in: ${n.outcome}`
-  ).join('\n\n');
-  return `\n\nBULLET CONTEXT — the user has provided outcomes for these specific bullets. Fold each outcome INTO its matching bullet so the bullet now leads with measurable impact. CRITICAL: each rewritten bullet MUST stay under 180 characters (target ~150). Trim setup language to make room for the outcome — do NOT just append. If the outcome contains a range or hedge ("around 25%", "in the 20-30% range"), keep it as the user wrote it; do NOT pretend it's a precise figure.\n\n${formatted}\n\n`;
+  return '';
 }
 
 // ── KEYWORD COVERAGE BLOCK (added 4.6.4) ─────────────────────────
