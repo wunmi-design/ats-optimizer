@@ -761,7 +761,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.1</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.2</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -2286,11 +2286,13 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
                 </div>
               </div>
               <div style="flex:1;">
-                <!-- Sub-score grid hidden in 4.5.9 — Wunmi wants the analyzer
-                     view to show only the overall score + Strengths +
-                     Weaknesses + the Optimize button. Score-summary stays
-                     hidden too. -->
-                <div class="score-grid" id="score-grid" style="display:none !important;"></div>
+                <!-- Sub-score grid restored in 4.6.2. (4.5.9 had hidden it
+                     via inline display:none!important and a CSS rule; 4.6.1
+                     removed the CSS rule but I forgot to clear the inline
+                     style — that's why the 6 sub-score tiles still weren't
+                     showing.) The grid populates from renderDashboard()
+                     when score data arrives. -->
+                <div class="score-grid" id="score-grid"></div>
                 <p class="text-xs text-muted mt-2" id="score-summary" style="display:none !important;">Strong alignment with role requirements. Candidate has 7+ years product design experience and 2+ years management experience leading distributed teams. Proven track record of driving measurable business impact (26% MAU growth, 90% card activation rate, 40% velocity improvement). Excellent leadership and mentoring skills with cross-functional collaboration experience. Has required Figma proficiency and design systems expertise. Missing specific healthcare/consumer product experience and some technical skills mentioned in job description.</p>
               </div>
             </div>
