@@ -761,7 +761,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.5</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.6</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -8970,6 +8970,20 @@ async function autoOptimize(opts) {
   // a recent Optimize wasn't an improvement.
   const resume = getActiveResumeText();
   const sourceVersionIdx = getActiveVersionIdx();
+
+  // 4.6.6: snapshot the source version's full score INTO versionScoreData
+  // BEFORE the re-score downstream overwrites proj._cachedScore. Without
+  // this, the source version loses its strengths/gaps/sub-scores after
+  // every Optimize run and clicking that pill later shows only the
+  // overall %. Only writes if the slot is empty (don't clobber existing
+  // good data, e.g. when re-running Optimize from a version we've already
+  // scored under 4.6.5+).
+  if (sourceVersionIdx >= 0 && proj?._cachedScore) {
+    proj.versionScoreData = proj.versionScoreData || [];
+    if (!proj.versionScoreData[sourceVersionIdx]) {
+      proj.versionScoreData[sourceVersionIdx] = JSON.parse(JSON.stringify(proj._cachedScore));
+    }
+  }
   const jdText = g('jd-text') || proj?.jdText || '';
   if (!resume) { toast('Add resume content first'); return; }
   if (!jdText) { toast('Paste a job description in the Job Description tab first'); return; }
@@ -10528,18 +10542,32 @@ function applyVersionToView(idx) {
     proj._cachedScore = JSON.parse(JSON.stringify(scoreData));
     try { renderDashboard(scoreData); } catch(e) { console.warn('renderDashboard(version):', e); }
   } else {
-    // Legacy version without stored full score data. Use the overall %
-    // from versionScores if available, otherwise leave it blank.
+    // Legacy version without stored full score data — only overall % is
+    // available from versionScores. Render JUST the overall ring; do NOT
+    // synthesize zeros for sub-scores (4.6.6 — earlier passing
+    // hard_skills:0, soft_skills:0 etc. displayed as misleading red
+    // "0%" tiles that looked like real failing scores).
     const overall = proj.versionScores?.[idx];
     if (typeof overall === 'number') {
       try {
-        renderDashboard({
-          overall: overall,
-          keyword_coverage: [], strengths: [], gaps: [],
-          hard_skills: 0, soft_skills: 0, summary_quality: 0,
-          bullet_quality: 0, title_alignment: 0, yoe_alignment: 0,
-        });
+        // renderDashboard filters out undefined sub-scores → grid stays empty.
+        renderDashboard({ overall: overall, keyword_coverage: [], strengths: [], gaps: [] });
       } catch(e) { console.warn('renderDashboard(legacy version):', e); }
+      // Replace the empty score grid with a helpful CTA explaining why
+      // the sub-scores aren't shown and how to populate them.
+      const grid = document.getElementById('score-grid');
+      if (grid) {
+        grid.innerHTML = `<div style="grid-column:1/-1;padding:14px 16px;background:var(--surface);border-radius:6px;border:1px dashed var(--border);font-size:12px;color:var(--ink2);line-height:1.5;">
+          <strong style="color:var(--ink);">No detailed breakdown for V${idx + 1}.</strong>
+          This version was scored before per-version data was stored.
+          Click <strong>🔍 Score Resume</strong> to populate the sub-scores, strengths, and gaps for this version.
+        </div>`;
+      }
+      // Clear strengths/gaps lists too so they don't show stale data from the previous active pill.
+      const strengthsEl = document.getElementById('score-strengths');
+      const gapsEl = document.getElementById('score-gaps');
+      if (strengthsEl) strengthsEl.innerHTML = '<div class="text-xs text-muted" style="padding:6px 0;">—</div>';
+      if (gapsEl) gapsEl.innerHTML = '<div class="text-xs text-muted" style="padding:6px 0;">—</div>';
     }
   }
 
