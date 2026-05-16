@@ -761,7 +761,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.22</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.23</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -2241,8 +2241,22 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         </div>
 
         <div id="analyzer-content" style="display: none;">
+          <!-- 4.6.23: Empty state shown when no fresh score exists for the
+               current resume + JD combination. applyVersionToView toggles
+               between this card and the score row depending on whether
+               versionAnalysisHash[idx] === simpleHash(resumeForVersion + currentJD).
+               Wunmi's spec: "if a resume was never scored, then when I go
+               to the optimize tab, there should not be a score. it should
+               be empty and dont show the what has changed tile." -->
+          <div class="card mb-3" id="analyzer-empty-card" style="display:none;padding:40px 24px;text-align:center;">
+            <div style="font-size:14px;color:var(--ink2);line-height:1.6;max-width:520px;margin:0 auto;">
+              <div style="font-size:15px;color:var(--ink);font-weight:600;margin-bottom:6px;">No score yet</div>
+              Click <strong>🔍 Score Resume</strong> above to analyze this resume against the job description.
+            </div>
+          </div>
+
           <!-- Score row -->
-          <div class="card mb-3">
+          <div class="card mb-3" id="score-row-card">
             <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
               <div class="score-ring-wrap">
                 <div class="score-ring">
@@ -3447,6 +3461,21 @@ function switchTab(name) {
   // if (name==='analyzer' && proj?.drafts?.length && !document.getElementById('analyzer-content').style.display.includes('block')) {
   //   setTimeout(rescan, 50);
   // }
+  // 4.6.23: When switching INTO the analyzer/optimizer tab, re-run
+  // applyVersionToView so the freshness check picks up any JD or resume
+  // changes that happened since the last render. Without this, a user
+  // who pastes a JD then clicks the Optimizer tab would see the stale
+  // cached score from a previous Score Resume run — exactly the bug
+  // Wunmi flagged ("I just entered the jd and then went to the Optimize
+  // tab" → 72% appeared from prior session's score).
+  if (name === 'analyzer' && proj && typeof applyVersionToView === 'function') {
+    const idx = (typeof getActiveVersionIdx === 'function' && getActiveVersionIdx() >= 0)
+      ? getActiveVersionIdx()
+      : 0;
+    // Small delay so the tab/panel toggle paints before we mutate the
+    // panel's internal cards. Prevents a one-frame flash of the old state.
+    setTimeout(() => { try { applyVersionToView(idx); } catch(e) { console.warn('applyVersionToView on tab switch:', e); } }, 30);
+  }
 }
 
 // wsTab replaced by CE accordion
@@ -6549,6 +6578,16 @@ JOB:\n${jdText.slice(0,2000)}\nRESUME:\n${resume.slice(0,2500)}`, 3500);
     if (activeIdx >= 0) {
       proj.versionScoreData[activeIdx] = JSON.parse(JSON.stringify(score));
     }
+    // 4.6.23: Per-version content hash. Lets applyVersionToView detect
+    // when a stored score is stale (resume or JD changed since scoring)
+    // and show the empty state instead of a misleading number. The hash
+    // is `simpleHash(resumeAtScoreTime + jdAtScoreTime)` — same shape as
+    // proj._analysisHash but indexed per version so older pills can be
+    // independently fresh/stale.
+    proj.versionAnalysisHash = proj.versionAnalysisHash || [];
+    if (activeIdx >= 0) {
+      proj.versionAnalysisHash[activeIdx] = contentHash;
+    }
     // 4.6.19: audit assignment removed (call deleted; #ats-audit-card is
     // force-hidden in CSS since 4.5.9). proj.atsAudit reads from older
     // project saves are still safe — the field just stops being updated.
@@ -6581,6 +6620,14 @@ JOB:\n${jdText.slice(0,2000)}\nRESUME:\n${resume.slice(0,2500)}`, 3500);
     // Now safe to reveal analyzer panel — it has real numbers
     const analyzerContent = document.getElementById('analyzer-content');
     if (analyzerContent) analyzerContent.style.display = 'block';
+    // 4.6.23: ensure the score row is visible and the empty-state card
+    // is hidden now that a fresh score has been computed. applyVersionToView
+    // normally handles this, but runFullAnalysis renders directly without
+    // going through it, so we toggle manually here.
+    const scoreRowCardEl = document.getElementById('score-row-card');
+    if (scoreRowCardEl) scoreRowCardEl.style.display = '';
+    const emptyCardEl = document.getElementById('analyzer-empty-card');
+    if (emptyCardEl) emptyCardEl.style.display = 'none';
 
     // Merge deep analysis items into the suggestions list
     renderDeepFixItems(deep);
@@ -10661,6 +10708,55 @@ function applyVersionToView(idx) {
   const dashLoading = document.getElementById('dash-loading');
   if (dashLoading) dashLoading.style.display = 'none';
 
+  // 4.6.23: FRESHNESS CHECK — per Wunmi's spec, the score on the
+  // Optimizer tab should only appear when it's actually for the current
+  // (resume + JD) state. If the user pasted a JD without scoring, or
+  // changed the JD since the last scoring, the cached score data is
+  // stale and we hide it entirely (no ring, no sub-tiles, no
+  // 'What Has Changed' card) — showing an empty-state card instead.
+  //
+  // Detection: each version's score is fingerprinted with the content
+  // hash at scoring time (proj.versionAnalysisHash[idx]). On display,
+  // we recompute hash(thisVersion'sResume + currentJD) and compare.
+  // Mismatch = stale.
+  //
+  // Backward compatibility: projects from before this build don't have
+  // versionAnalysisHash. We backfill it for the active version from
+  // proj._analysisHash so existing scored projects don't suddenly look
+  // empty. Older non-active versions (V1 from a V2-active project, etc.)
+  // still need re-scoring to display.
+  const drafts = proj.drafts || [];
+  const versionResume = drafts[idx] || (idx === 0 ? (proj.ce ? buildResumeTextFromCE(proj.ce) : '') : '');
+  const currentJD = g('jd-text') || proj.jdText || '';
+  const expectedHash = simpleHash(versionResume + currentJD);
+  if (!proj.versionAnalysisHash) proj.versionAnalysisHash = [];
+  // Backfill: active version with legacy _analysisHash but no per-version hash
+  const activeIdx = getActiveVersionIdx();
+  if (idx === activeIdx && !proj.versionAnalysisHash[idx] && proj._analysisHash) {
+    proj.versionAnalysisHash[idx] = proj._analysisHash;
+  }
+  const storedHash = proj.versionAnalysisHash[idx];
+  const scoreIsFresh = !!(storedHash && storedHash === expectedHash && scoreData);
+
+  // Cache element refs for toggling
+  const emptyCard = document.getElementById('analyzer-empty-card');
+  const scoreRowCard = document.getElementById('score-row-card');
+  const whatChangedCard = document.getElementById('what-changed-card');
+
+  if (!scoreIsFresh) {
+    // No fresh score for this version's current content. Hide the
+    // score row + what-changed card; show the empty-state card.
+    if (scoreRowCard) scoreRowCard.style.display = 'none';
+    if (whatChangedCard) whatChangedCard.style.display = 'none';
+    if (emptyCard) emptyCard.style.display = '';
+    return;
+  }
+
+  // Fresh score: make sure the score row card is visible and the
+  // empty-state card is hidden.
+  if (scoreRowCard) scoreRowCard.style.display = '';
+  if (emptyCard) emptyCard.style.display = 'none';
+
   // 4.6.10: "full data" means the score has at least one sub-score field
   // populated. If only `overall` is set (legacy partial), we render the
   // ring + show CTAs for the missing breakdown.
@@ -10703,23 +10799,22 @@ function applyVersionToView(idx) {
   }
 
   // 2. What Has Changed panel
-  const whatChangedCard = document.getElementById('what-changed-card');
-  const list = document.getElementById('what-changed-list');
-  const countEl = document.getElementById('what-changed-count');
-  const scoreLine = document.getElementById('what-changed-score-line');
-  if (diff && Array.isArray(diff.blocks) && diff.blocks.length) {
+  //
+  // 4.6.23: V1 (idx === 0) NEVER shows the what-changed card. The original
+  // version has no prior version to compare against — the "Original version —
+  // nothing changed yet." placeholder was useless noise on the Optimizer tab.
+  // Per Wunmi's spec, hide the card entirely for V1.
+  // V2+: show the diff when we have block data; otherwise hide (no useful
+  // empty state to display).
+  // (whatChangedCard ref already cached earlier in the function at the
+  // freshness-check stage — re-use it instead of redeclaring.)
+  if (idx === 0) {
+    if (whatChangedCard) whatChangedCard.style.display = 'none';
+  } else if (diff && Array.isArray(diff.blocks) && diff.blocks.length) {
     try { renderWhatHasChangedView(diff.blocks, diff.scoreBefore, diff.scoreAfter); }
     catch(e) { console.warn('renderWhatHasChangedView(version):', e); }
-  } else if (whatChangedCard && list) {
-    // V1 — original version, nothing to compare against. Per Wunmi's spec,
-    // show an explicit empty state instead of hiding the panel.
-    whatChangedCard.style.display = 'block';
-    const msg = idx === 0
-      ? 'Original version — nothing changed yet.'
-      : 'No change data stored for this version.';
-    list.innerHTML = `<div class="text-xs text-muted" style="padding:20px 0;text-align:center;">${msg}</div>`;
-    if (countEl) countEl.textContent = '';
-    if (scoreLine) scoreLine.innerHTML = '';
+  } else if (whatChangedCard) {
+    whatChangedCard.style.display = 'none';
   }
 }
 
