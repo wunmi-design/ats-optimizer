@@ -761,7 +761,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.27</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.29</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -2801,26 +2801,32 @@ NY Top Creative Winner · WIx and Vitamin T · 2014</div>
        3. Optimize without answering → straight to optimize, no answers
      -->
 <div class="ai-modal hidden" id="how-to-answer-modal" onclick="if(event.target===this)hideHowToAnswerModal()">
-  <div class="ai-modal-box" style="max-width:640px;padding:36px 40px;">
-    <h3 style="text-align:center;font-size:22px;font-weight:700;margin:0 0 28px 0;">Answer questions</h3>
+  <div class="ai-modal-box" style="max-width:640px;padding:40px 44px;">
+    <!-- 4.6.28: redesigned per Wunmi's mockup. Title is dynamic
+         ("You have N unanswered questions") — count is computed in
+         showHowToAnswerModal() before reveal. Two prominent buttons
+         (Auto fill / ✦ Answer with your AI). The third path
+         ("Optimize without answering") demoted to a bottom-left link
+         alongside Cancel — still functional, just no longer competes
+         visually with the recommended options. -->
+    <h3 id="how-to-answer-title" style="text-align:center;font-size:22px;font-weight:700;margin:0 0 12px 0;line-height:1.25;">You have unanswered questions</h3>
+    <p style="text-align:center;font-size:14px;color:#555;line-height:1.5;margin:0 auto 28px auto;max-width:520px;">Answering them gives the optimizer verified facts to work with and produces a stronger rewrite</p>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:24px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:28px;">
       <!-- Auto fill -->
-      <button onclick="chooseHowToAnswer('autofill')" style="background:var(--white);border:1px solid #ddd;border-radius:10px;padding:32px 16px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;color:#111;line-height:1.4;text-align:center;min-height:120px;display:flex;align-items:center;justify-content:center;transition:border-color .15s, background .15s;" onmouseover="this.style.borderColor='#111';" onmouseout="this.style.borderColor='#ddd';">
+      <button onclick="chooseHowToAnswer('autofill')" style="background:var(--white);border:1px solid #ddd;border-radius:10px;padding:32px 16px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;color:#111;line-height:1.4;text-align:center;min-height:120px;display:flex;align-items:center;justify-content:center;transition:border-color .15s, background .15s;" onmouseover="this.style.borderColor='#111';" onmouseout="this.style.borderColor='#ddd';">
         Auto fill<br>answers
       </button>
-      <!-- Answer with your AI (primary, black) -->
-      <button onclick="chooseHowToAnswer('byo-ai')" style="background:#111;border:1px solid #111;border-radius:10px;padding:32px 16px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;color:#fff;line-height:1.4;text-align:center;min-height:120px;display:flex;align-items:center;justify-content:center;transition:background .15s;" onmouseover="this.style.background='#222';" onmouseout="this.style.background='#111';">
-        ✦ Answer with<br>your AI
-      </button>
-      <!-- Optimize without answering -->
-      <button onclick="chooseHowToAnswer('skip')" style="background:var(--white);border:1px solid #ddd;border-radius:10px;padding:32px 16px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;color:#111;line-height:1.4;text-align:center;min-height:120px;display:flex;align-items:center;justify-content:center;transition:border-color .15s, background .15s;" onmouseover="this.style.borderColor='#111';" onmouseout="this.style.borderColor='#ddd';">
-        Optimize without<br>answering
+      <!-- Answer with your AI (primary, black, recommended) -->
+      <button onclick="chooseHowToAnswer('byo-ai')" style="background:#111;border:1px solid #111;border-radius:10px;padding:32px 16px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;color:#fff;line-height:1.4;text-align:center;min-height:120px;display:flex;align-items:center;justify-content:center;transition:background .15s;" onmouseover="this.style.background='#222';" onmouseout="this.style.background='#111';">
+        <span>✦ Answer with<br>your AI<br><span style="font-weight:500;font-size:13px;opacity:0.85;">(Recommended)</span></span>
       </button>
     </div>
 
-    <div style="display:flex;justify-content:flex-start;">
-      <button class="btn btn-ghost" onclick="hideHowToAnswerModal()" style="text-decoration:underline;font-size:14px;color:#555;padding:0;">Cancel</button>
+    <!-- Footer row: skip path on the left, Cancel on the right -->
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <button class="btn btn-ghost" onclick="chooseHowToAnswer('skip')" style="font-size:14px;font-weight:700;color:#111;padding:0;background:none;border:0;cursor:pointer;font-family:inherit;">Optimize without answering</button>
+      <button class="btn btn-ghost" onclick="hideHowToAnswerModal()" style="font-size:14px;font-weight:700;color:#111;padding:0;background:none;border:0;cursor:pointer;font-family:inherit;">Cancel</button>
     </div>
   </div>
 </div>
@@ -2886,7 +2892,7 @@ NY Top Creative Winner · WIx and Vitamin T · 2014</div>
 
     <!-- Footer: aligned with content column, not numbers -->
     <div style="display:flex;align-items:center;gap:18px;margin-left:50px;">
-      <button class="btn btn-primary" id="apply-answers-btn" onclick="applyPastedAnswers()" style="padding:11px 24px;font-size:14px;font-weight:600;">Apply answers</button>
+      <button id="apply-answers-btn" onclick="applyPastedAnswers()" style="background:var(--white);border:1.5px solid #111;border-radius:10px;padding:14px 32px;font-family:inherit;font-size:15px;font-weight:700;color:#111;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#f7f7f7';" onmouseout="this.style.background='var(--white)';">Apply answers</button>
       <button class="btn btn-ghost" onclick="hideAnswerModal()" style="text-decoration:underline;font-size:14px;color:#555;padding:0;">Cancel</button>
     </div>
   </div>
@@ -5982,6 +5988,20 @@ function optimizeWithQuestionCheck() {
 }
 
 function showHowToAnswerModal() {
+  // 4.6.28: dynamic title with the unanswered count. Falls back to a
+  // generic phrasing if we somehow can't compute it (shouldn't happen
+  // since optimizeWithQuestionCheck only shows this modal when there
+  // are questions, but defensive).
+  try {
+    const qs = proj?.questions || [];
+    const unanswered = qs.filter(q => !((q.answer || '').trim())).length;
+    const title = document.getElementById('how-to-answer-title');
+    if (title) {
+      title.textContent = unanswered > 0
+        ? `You have ${unanswered} unanswered question${unanswered === 1 ? '' : 's'}`
+        : 'You have unanswered questions';
+    }
+  } catch(e) { /* fall back to whatever's in the markup */ }
   document.getElementById('how-to-answer-modal')?.classList.remove('hidden');
 }
 
