@@ -761,7 +761,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.17</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.18</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -9550,7 +9550,27 @@ RESUME:\n${resume}`,1500);
 async function saveDocx(){
   const t=getResumeText();if(!t){toast('No resume');return;}
   toast('Generating .docx...');
-  if(!window.docx){await new Promise((r,j)=>{const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js';sc.onload=r;sc.onerror=j;document.head.appendChild(sc);});}
+  // 4.6.18: Robust library load. The previous version used a bare Promise
+  // with onload/onerror and no specific error; if the CDN load failed
+  // (network down, jsdelivr blocked, CSP violation, etc.) the rejection
+  // bubbled up as an undefined-property error from the destructure two
+  // lines below. Now we get a clear toast about what went wrong.
+  if(!window.docx){
+    try {
+      await new Promise((r,j)=>{
+        const sc=document.createElement('script');
+        sc.src='https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js';
+        sc.onload=r;
+        sc.onerror=()=>j(new Error('Failed to load .docx library from CDN'));
+        document.head.appendChild(sc);
+      });
+    } catch(e) {
+      throw new Error('Network: ' + e.message);
+    }
+  }
+  if (!window.docx) {
+    throw new Error('.docx library loaded but window.docx is undefined');
+  }
   const{Document,Packer,Paragraph,TextRun,AlignmentType,BorderStyle,LevelFormat}=window.docx;
   const FONT='Arial';
   
@@ -11252,7 +11272,20 @@ function fmtGetHtml(fp) {
   </style></head><body>${body}</body></html>`;
 }
 
-async function fmtSaveDocx(){trackEvent('resume_downloaded',{format:'docx',template:_fmt?.template||'standard'});await saveDocx();}
+async function fmtSaveDocx(){
+  trackEvent('resume_downloaded',{format:'docx',template:_fmt?.template||'standard'});
+  // 4.6.18: wrap in try/catch so failures inside saveDocx surface as a toast.
+  // The onclick handler ("fmtSaveDocx();closeDownloadMenu()") doesn't await
+  // the returned Promise, so any throw inside saveDocx was silently swallowed —
+  // matching Wunmi's report of "Download as .docx does not work on desktop":
+  // a click that visibly did nothing because the error never surfaced.
+  try {
+    await saveDocx();
+  } catch (e) {
+    console.error('saveDocx failed:', e);
+    toast('Could not save .docx — ' + (e.message || 'unknown error'));
+  }
+}
 
 // Print-to-PDF the resume by rendering it into a sandboxed iframe and printing only that.
 // Previous version (3.1.5 and earlier) tried to hide the rest of the app via @media print
@@ -11266,7 +11299,29 @@ async function fmtSavePdf() {
     return;
   }
   trackEvent('resume_downloaded', { format: 'pdf', template: _fmt?.template || 'standard' });
-  
+
+  // 4.6.18: iOS Safari has a long-standing bug where iframe.contentWindow.print()
+  // prints the PARENT document, not the iframe contents — even when the iframe
+  // has its own document with its own stylesheet. This matches Wunmi's report
+  // of "PDF on iPhone makes a PDF of the whole entire interface."
+  //
+  // Workaround: on iOS, render into a real popup window and call its print()
+  // method. Popups must be opened synchronously within the user gesture
+  // (before any `await`), or Safari blocks them. So we open the popup HERE,
+  // up front, with a placeholder document; we'll fill it in once the print
+  // HTML is built below. On desktop we skip this and fall through to the
+  // iframe path, which works correctly there.
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  let iosPopup = null;
+  if (isIOS) {
+    iosPopup = window.open('', '_blank');
+    if (!iosPopup) {
+      toast('Allow popups in Safari to save as PDF');
+      return;
+    }
+    iosPopup.document.write('<!doctype html><html><body style="font-family:-apple-system;padding:40px;color:#666;">Preparing PDF…</body></html>');
+  }
+
   updateLivePreview();
   await new Promise(r => setTimeout(r, 150));
   
@@ -11403,7 +11458,43 @@ ${googleFontsLink}
 <body>${fullHtml}</body>
 </html>`;
   
-  // Create a hidden iframe, write the doc, and print from inside it.
+  // 4.6.18: iOS branch — write the print HTML into the popup we opened
+  // synchronously up top, then call print() from inside that window.
+  // window.print() inside a top-level window prints the visible document,
+  // unlike iframe.contentWindow.print() which (on iOS) prints the parent.
+  if (isIOS && iosPopup) {
+    try {
+      iosPopup.document.open();
+      iosPopup.document.write(printHtml);
+      iosPopup.document.close();
+      // Wait for fonts + layout. iOS Safari is slower at applying
+      // Google Fonts than desktop Chrome, so we give it a longer
+      // window before the print dialog opens.
+      setTimeout(() => {
+        try {
+          if (iosPopup.document.fonts && iosPopup.document.fonts.ready) {
+            iosPopup.document.fonts.ready.then(() => {
+              try { iosPopup.focus(); iosPopup.print(); } catch(e) { console.warn('iOS print():', e); }
+            }).catch(() => {
+              try { iosPopup.focus(); iosPopup.print(); } catch(e) {}
+            });
+          } else {
+            try { iosPopup.focus(); iosPopup.print(); } catch(e) { console.warn('iOS print():', e); }
+          }
+        } catch(e) {
+          console.warn('iOS print outer:', e);
+        }
+      }, 1400);
+      toast('Tap Share → "Save to Files" or "Books" to save the PDF');
+    } catch(e) {
+      try { iosPopup.close(); } catch(_) {}
+      toast('Could not open PDF view: ' + (e.message || 'unknown'));
+    }
+    return;
+  }
+
+  // Desktop / non-iOS: keep the iframe approach. It works reliably here
+  // and has a smaller user-facing footprint (no popup window appearing).
   document.getElementById('pdf-print-iframe')?.remove();
   const iframe = document.createElement('iframe');
   iframe.id = 'pdf-print-iframe';
