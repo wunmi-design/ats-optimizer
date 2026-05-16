@@ -761,7 +761,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.26</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.27</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -5852,11 +5852,11 @@ Rules:
 - Be specific and concrete. Use real details from the resume.
 - Do NOT fabricate metrics, percentages, team sizes, or company affiliations.
 - Each answer should be 1-3 sentences, in first-person voice.
-- Return ONLY a valid JSON array. No prose, no commentary, no markdown fences.
+- Return ONLY valid JSON matching the exact schema below. No prose, no commentary, no markdown fences.
 - For each question, the "id" field in your response MUST exactly equal the id string given before the colon (e.g. if the question is 'id="q3": ...', your response object MUST use "id":"q3").
 
 Output schema (literal example):
-[{"id":"q1","answer":"I led a team of 6 designers..."},{"id":"q2","answer":"At Verizon I drove a 26% increase in MAU by..."}]
+{"answers":[{"id":"q1","answer":"I led a team of 6 designers..."},{"id":"q2","answer":"At Verizon I drove a 26% increase in MAU by..."}]}
 
 RESUME:
 ${resume.slice(0, 3000)}
@@ -5867,15 +5867,22 @@ ${jdText.slice(0, 2000)}
 QUESTIONS:
 ${questionList}`, 2500);
 
-    let matches;
+    // 4.6.27: shared parseJson() only handles JSON objects (its regex
+    // `/\{[\s\S]*\}$/` won't match a bare `[...]` array). 4.6.26
+    // asked Claude for an array directly, so parseJson threw 'No JSON
+    // object found' on every response — that's the 'Could not parse
+    // AI response' toast Wunmi hit. Wrapping the answers in an
+    // {"answers": [...]} object keeps the shared parser happy.
+    let parsed;
     try {
-      matches = parseJson(raw);
+      parsed = parseJson(raw);
     } catch (parseErr) {
-      console.error('autoAnswerQuestions parseJson failed:', parseErr, 'raw was:', raw?.slice(0, 200));
+      console.error('autoAnswerQuestions parseJson failed:', parseErr, 'raw was:', raw?.slice(0, 500));
       throw new Error('Could not parse AI response — try again');
     }
-    if (!Array.isArray(matches)) {
-      console.error('autoAnswerQuestions: parsed value is not array:', matches);
+    const matches = Array.isArray(parsed?.answers) ? parsed.answers : null;
+    if (!matches) {
+      console.error('autoAnswerQuestions: parsed.answers missing or not array:', parsed);
       throw new Error('AI returned an unexpected shape — try again');
     }
 
