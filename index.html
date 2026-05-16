@@ -761,7 +761,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.30</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.31</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -9452,9 +9452,6 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     // Re-score so the user sees the new number after this single pass
     overlayMsg.textContent = passLabel ? `${passLabel} — scoring updated resume` : 'Scoring updated resume...';
     overlaySub.textContent = '';
-    // Snapshot the pre-rescore cached score so we can restore it on regression.
-    const cachedScoreSnapshot = proj._cachedScore ? JSON.parse(JSON.stringify(proj._cachedScore)) : null;
-    const analysisHashSnapshot = proj._analysisHash;
     await runFullAnalysis(true);
     const scoreAfter = proj._cachedScore?.overall || 0;
 
@@ -9469,65 +9466,34 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
       proj.versionScoreData[newVersionIdx] = JSON.parse(JSON.stringify(proj._cachedScore));
     }
 
-    // SCORE REGRESSION GUARD (added 4.6.3, updated 4.6.5) — if Optimize
-    // made the score worse, revert the new draft.
-    if (scoreBefore > 0 && scoreAfter < scoreBefore - 3) {
-      console.warn(`[score-guard] regression detected: ${scoreBefore} → ${scoreAfter}. Reverting.`);
-      // Pop the worse draft + its parallel arrays
-      proj.drafts.pop();
-      if (proj.versionScores) proj.versionScores.pop();
-      if (proj.versionScoreData) proj.versionScoreData.pop();
-      if (proj.versionSources) proj.versionSources.pop();
-      // Restore the active version to whatever the user had been viewing
-      // before they hit Optimize.
-      proj._activeVersionIdx = sourceVersionIdx;
-      proj._aiApplied = false;
-      // Restore the pre-optimize cached score so the UI shows the source
-      // version's strengths/gaps + sub-scores, not the regressed data.
-      proj._cachedScore = cachedScoreSnapshot;
-      proj._analysisHash = analysisHashSnapshot;
-      proj.lastOptimize = null;
+    // 4.6.31: score-regression guard removed per Wunmi's request. The
+    // previous behavior rolled back to the source version whenever the
+    // new score was more than 3 points worse than the source. That
+    // sometimes hid useful work — phrasing improvements, restructured
+    // bullets — even when the overall score dipped on a single pass.
+    // Now the optimized resume is always shown, regardless of score
+    // direction. The user can manually click an older version pill to
+    // compare, or re-run Optimize on the new version.
+    toast(`${passLabel ? passLabel + ': ' : 'Optimize complete. '}Score: ${scoreBefore} → ${scoreAfter}`);
+    applyRecommendedTitleFromScore();
+    // Replace the suggestions panel with the post-Optimize view (score + AI-titled change list).
+    if (!suppressPostView) {
+      try { await showPostOptimizeView(beforeDraft, cleaned, scoreBefore, scoreAfter); }
+      catch(viewErr) { console.warn('Post-optimize view:', viewErr); }
+    }
+    // 4.6.5: persist the diff blocks per version so clicking V[newVersionIdx]
+    // pill later restores the "What Has Changed" view without recomputing.
+    if (proj.lastOptimize) {
+      proj.versionDiffs = proj.versionDiffs || [];
+      proj.versionDiffs[newVersionIdx] = {
+        beforeText: proj.lastOptimize.beforeText,
+        afterText: proj.lastOptimize.afterText,
+        scoreBefore: proj.lastOptimize.scoreBefore,
+        scoreAfter: proj.lastOptimize.scoreAfter,
+        blocks: proj.lastOptimize.blocks,
+        sourceIdx: sourceVersionIdx,
+      };
       autoSave();
-
-      // Re-render the source draft as active + restore the dashboard
-      try {
-        const restoredText = getActiveResumeText();
-        showResume(restoredText, proj.drafts.length);
-        if (typeof renderVersionPills === 'function') renderVersionPills();
-        if (cachedScoreSnapshot && typeof renderDashboard === 'function') {
-          renderDashboard(cachedScoreSnapshot);
-        }
-      } catch(e) { console.warn('Restore UI after regression:', e); }
-
-      toast(`Optimize couldn't improve this round (${scoreBefore}% → ${scoreAfter}%). Kept V${sourceVersionIdx + 1}.`);
-      // Skip the post-optimize diff view since we reverted
-    } else {
-      toast(`${passLabel ? passLabel + ': ' : 'Optimize complete. '}Score: ${scoreBefore} → ${scoreAfter}`);
-      // 4.6.24: NOW apply the recommended_resume_title. Only on the
-      // success path — if Optimize regressed and we rolled back above,
-      // we keep the source version's title (don't apply the bad-pass
-      // recommendation). Score Resume stays passive; only an explicit
-      // successful Optimize updates the header title.
-      applyRecommendedTitleFromScore();
-      // Replace the suggestions panel with the post-Optimize view (score + AI-titled change list).
-      if (!suppressPostView) {
-        try { await showPostOptimizeView(beforeDraft, cleaned, scoreBefore, scoreAfter); }
-        catch(viewErr) { console.warn('Post-optimize view:', viewErr); }
-      }
-      // 4.6.5: persist the diff blocks per version so clicking V[newVersionIdx]
-      // pill later restores the "What Has Changed" view without recomputing.
-      if (proj.lastOptimize) {
-        proj.versionDiffs = proj.versionDiffs || [];
-        proj.versionDiffs[newVersionIdx] = {
-          beforeText: proj.lastOptimize.beforeText,
-          afterText: proj.lastOptimize.afterText,
-          scoreBefore: proj.lastOptimize.scoreBefore,
-          scoreAfter: proj.lastOptimize.scoreAfter,
-          blocks: proj.lastOptimize.blocks,
-          sourceIdx: sourceVersionIdx,
-        };
-        autoSave();
-      }
     }
   } catch(e) {
     let msg;
