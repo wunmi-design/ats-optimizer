@@ -761,7 +761,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.19</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.20</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -8896,8 +8896,21 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
       const _currentTab = document.querySelector('.tab.active')?.id?.replace('tab-','');
       await parseToCE(cleaned, true);  // suppress tab switch — we'll restore the active tab below
       fillCE(proj.ce);
-      // Auto-fill Job Title from posting — always match exactly
+      // 4.6.20: Sync JD title into BOTH proj.ce.contact.title AND the
+      // input field. parseToCE wipes proj.ce.contact with whatever the
+      // AI extracted (line 12617: 'if (p1.contact) proj.ce.contact =
+      // p1.contact;'), and the AI's extraction typically picks up the
+      // resume's OLD title or no title at all. Setting only the input
+      // .value is invisible to anything that reads the data model —
+      // notably the live preview at fmtRenderSections (line 10889
+      // reads proj.ce.contact.title directly) and saveDocx (line 9590
+      // reads proj.ce.contact.title for the title-under-name line).
+      // Updating both keeps DOM and data in sync until the next
+      // collectCE call.
       if (proj.jdTitle) {
+        if (proj.ce && proj.ce.contact) {
+          proj.ce.contact.title = proj.jdTitle;
+        }
         document.getElementById('ce-title').value = proj.jdTitle;
       }
       autoSave();
@@ -9220,7 +9233,15 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
     try {
       await parseToCE(cleaned, true);  // suppress tab switch — autoOptimize ends on Analyzer
       fillCE(proj.ce);
-      if (proj.jdTitle) document.getElementById('ce-title').value = proj.jdTitle;
+      // 4.6.20: see applySelectedFixes block — same reason. Update the
+      // data model alongside the DOM input so the live preview and
+      // docx export read the JD title, not the stale parseToCE one.
+      if (proj.jdTitle) {
+        if (proj.ce && proj.ce.contact) {
+          proj.ce.contact.title = proj.jdTitle;
+        }
+        document.getElementById('ce-title').value = proj.jdTitle;
+      }
       autoSave();
     } catch(ceErr) { console.warn('CE sync:', ceErr); }
 
