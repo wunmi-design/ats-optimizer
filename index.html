@@ -761,7 +761,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.31</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.32</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -6534,18 +6534,16 @@ async function runFullAnalysis(skipOverlay) {
     const careerStage = CAREER_STAGE.detect(resume);
     const stageGuidance = CAREER_STAGE.guidance(careerStage);
 
-    // 4.6.22: capture jdTitle so the score prompt can use it as an
-    // explicit input when judging recommended_resume_title. The JD text
-    // contains the title too, but a single-line hint lets the AI lock
-    // onto the exact phrasing the user typed in the Job tab (e.g. when
-    // the JD has multiple title-like phrases scattered through).
-    const jdTitleForScore = (g('jd-title') || proj?.jdTitle || '').trim();
+    // 4.6.32: jdTitle no longer passed to the score prompt as a
+    // judgment input — the resume title now comes straight from
+    // proj.jdTitle (no AI judgment). Kept the local var unused since
+    // it's a one-line read and harmless; remove on next cleanup pass.
 
     // Score promise — same prompt as before.
     const scorePromise = useCachedScore
       ? Promise.resolve(JSON.stringify(cachedScore))
       : claudeFetch(`Score this resume against the job description. Return ONLY valid JSON:
-{"overall":78,"keyword_match":82,"hard_skills":88,"soft_skills":70,"title_alignment":75,"yoe_alignment":95,"summary_quality":70,"bullet_quality":75,"score_reason":"...","strengths":["..."],"gaps":["..."],"keyword_coverage":[{"keyword":"lean UX","found":true}],"recommended_resume_title":"Senior Product Designer","top_fixes":[{"rank":1,"title":"...","desc":"...","section":"summary|bullets|skills","before":"exact verbatim text to replace","after":"exact stronger replacement using only documented results — do not fabricate metrics"}]}
+{"overall":78,"keyword_match":82,"hard_skills":88,"soft_skills":70,"title_alignment":75,"yoe_alignment":95,"summary_quality":70,"bullet_quality":75,"score_reason":"...","strengths":["..."],"gaps":["..."],"keyword_coverage":[{"keyword":"lean UX","found":true}],"top_fixes":[{"rank":1,"title":"...","desc":"...","section":"summary|bullets|skills","before":"exact verbatim text to replace","after":"exact stronger replacement using only documented results — do not fabricate metrics"}]}
 SCORING RULES:
 - keyword_match: % of important JD keywords found in resume. Check CAREFULLY — if the word appears ANYWHERE, it counts.
 - title_alignment: 100 if resume title exactly matches JD title, lower if partial match.
@@ -6556,14 +6554,6 @@ SCORING RULES:
 - overall: weighted average of all sub-scores. Mostly 85+ sub-scores = 85+ overall.
 QUALITY RULES: NEVER invent metrics, percentages, or revenue figures not in the original resume. NEVER suggest competitor brand names ('Commercial Card', 'Capital One brand', etc.) — use generic terms like 'financial services products' or 'credit card products'. Only suggest fixes grounded in the candidate's actual documented work.
 
-RECOMMENDED_RESUME_TITLE: Output the single title line that should appear directly under the candidate's name on the resume. This is rendered by the app separately from the resume body — it is NOT a top_fix, NOT a bullet change, NOT a text insertion. Output ONE short title (2-6 words). Judgment rules:
-- HONESTY FIRST: Never overstate seniority. If candidate is "Senior Manager" do not recommend "VP" or "Director" just because the JD asks for it. If candidate is "Designer" do not recommend "Senior Designer".
-- JD ALIGNMENT WHEN HONEST: When candidate's actual level matches the JD level, use JD-aligned phrasing (e.g. candidate is "Lead Product Designer" and JD is "Senior Product Designer" → recommend "Senior Product Designer"; mid-level swap is acceptable).
-- LEVEL-DOWN OK, LEVEL-UP NOT: Better to suggest a slightly lower title than to overshoot. A Director going for a Manager role should recommend "Senior Manager, Product Design" not "Director" — present the candidate at the level the JD is hiring for, when their experience honestly supports it.
-- USE THE JD'S WORDING: When a function fits, match the JD's wording for it (e.g. "Product Design" vs "UX Design" — match what the JD uses).
-- ONE LINE ONLY: Never include a subtitle, tagline, "executive" header, or comma-separated multiple titles. Single role title only.
-- FALLBACK: If you genuinely can't make a confident recommendation, output the candidate's existing resume title verbatim.
-
 TOP_FIXES PRIORITY: Suggest fixes that target the LOWEST scoring dimensions first:
 1. Missing JD keywords (raises keyword_match)
 2. Summary too long/short — provide specific rewrite at 50-75 words (raises summary_quality)
@@ -6571,7 +6561,7 @@ TOP_FIXES PRIORITY: Suggest fixes that target the LOWEST scoring dimensions firs
 4. Skills over 25 or under 15 — specify items to add/remove (raises hard_skills/soft_skills)
 
 FORBIDDEN TOP_FIXES — DO NOT INCLUDE ANY OF THESE:
-- Title changes, executive title headers, or any header modifications. The resume title is delivered via recommended_resume_title above; it is rendered separately by the app and must NOT be inserted into the resume text.
+- Title changes, executive title headers, or any header modifications. The resume title is rendered separately by the app from a different data source and must NOT be inserted into the resume text.
 - Contact info changes (email, phone, location, LinkedIn, portfolio). Contact info is rendered separately and is not part of the editable body text.
 - Name changes.
 - Any fix whose "before" or "after" includes the candidate's name line or any header line.
@@ -6581,7 +6571,7 @@ CRITICAL RULES:
 2. Each "before" field must be an EXACT quote from the resume.
 3. ONLY suggest improvements for content that is genuinely MISSING or WEAK.
 4. Do NOT suggest adding keywords already present in the resume.
-${(proj.appliedFixes||[]).length ? 'ALREADY APPLIED (do NOT re-suggest these):\n' + (proj.appliedFixes||[]).filter(f=>f).map(f=>f.title||f.text||'').filter(Boolean).join('\n') + '\n' : ''}${jdTitleForScore ? `JD TITLE (user-provided, use this for recommended_resume_title judgment): ${jdTitleForScore}\n` : ''}JOB:\n${jdText.slice(0,2500)}\nRESUME:\n${resume.slice(0,2500)}`, 3000, undefined, 0, CONFIG.models.sonnet);
+${(proj.appliedFixes||[]).length ? 'ALREADY APPLIED (do NOT re-suggest these):\n' + (proj.appliedFixes||[]).filter(f=>f).map(f=>f.title||f.text||'').filter(Boolean).join('\n') + '\n' : ''}JOB:\n${jdText.slice(0,2500)}\nRESUME:\n${resume.slice(0,2500)}`, 3000, undefined, 0, CONFIG.models.sonnet);
 
     // Deep promise — runs in parallel with the score call. Score-derived
     // text replaced with generic guidance (see 4.6.19 comment above).
@@ -8721,27 +8711,28 @@ function buildBulletContextBlock() {
 // were driving the keyword/hard-skill sub-scores, so the rewrite
 // could freely paraphrase or replace them with synonyms, silently
 // tanking the score.
-// 4.6.24: Apply the score's recommended_resume_title to the resume header.
-// Called after the post-apply rescore in autoOptimize and applySelectedFixes
-// — never from Score Resume directly. Pure data sync, no Claude calls. The
-// score blob produced by runFullAnalysis carries the field; this helper
-// reads it from proj._cachedScore and writes to proj.ce.contact.title +
-// the #ce-title input. No-op if the score has no recommendation.
+// 4.6.32: Apply the user-typed JD title as the resume header title.
+// Called after a successful Optimize pass.
 //
-// Why this is split out from runFullAnalysis: clicking Score Resume must
-// be a passive read-only operation — it should never change the rendered
-// resume. By keeping the write in the apply paths instead of inside the
-// scoring function, the title only updates when the user explicitly
-// optimizes (which is when they expect changes).
+// History note: 4.6.22-4.6.24 used the score's AI-judged
+// recommended_resume_title here. That introduced unwanted
+// conservatism — the AI's "honesty first / never level-up" rule made
+// it refuse JD-aligned titles like "Executive Director" when the
+// user's existing resume had "Senior Director." Wunmi's spec is
+// simpler: trust the JD title the user typed on the Job tab. They
+// chose to apply to that role; the resume title should match.
+//
+// Function name kept (applyRecommendedTitleFromScore) so the two
+// existing call sites in autoOptimize and applySelectedFixes don't
+// need to change. The "from score" part of the name is historical.
 function applyRecommendedTitleFromScore() {
-  const recTitle = proj?._cachedScore?.recommended_resume_title;
-  if (typeof recTitle !== 'string' || !recTitle.trim()) return;
-  const t = recTitle.trim();
+  const jdTitle = (proj?.jdTitle || '').trim();
+  if (!jdTitle) return;
   if (!proj.ce) proj.ce = (typeof ceDefaultData === 'function' ? ceDefaultData() : {});
   if (!proj.ce.contact) proj.ce.contact = {};
-  proj.ce.contact.title = t;
+  proj.ce.contact.title = jdTitle;
   const titleInput = document.getElementById('ce-title');
-  if (titleInput) titleInput.value = t;
+  if (titleInput) titleInput.value = jdTitle;
 }
 
 function buildKeywordCoverageBlock() {
