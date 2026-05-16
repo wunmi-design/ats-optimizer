@@ -761,7 +761,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.18</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.19</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -6395,10 +6395,41 @@ async function runFullAnalysis(skipOverlay) {
   try {
     // analyzer-content stays hidden until data is rendered (set to block after renderDashboard).
 
-    // Run requests sequentially to avoid rate-limit bursts
-    const scoreRaw = useCachedScore
-      ? JSON.stringify(cachedScore)
-      : await claudeFetch(`Score this resume against the job description. Return ONLY valid JSON:
+    // 4.6.19: PARALLELIZE score + deep, KILL the audit call.
+    //
+    // Before:
+    //   - Score call (await ~12s)
+    //   - Deep call (await ~10s, used score context for prioritization)
+    //   - Audit call (await ~5-8s, wrote to #ats-audit-card which is
+    //     force-hidden in CSS since 4.5.9 — pure waste)
+    //   Total: ~27-30s sequential.
+    //
+    // After:
+    //   - Score + Deep run in parallel (Promise.all)
+    //   - Audit call removed entirely
+    //   Total: max(score, deep) ≈ ~15s.
+    //
+    // Tradeoff: the deep prompt previously referenced the score's
+    // sub-scores to prioritize ("focus on the lowest-scoring
+    // dimensions: keywords=70%, summary=68%"). With parallel execution
+    // the score isn't available yet, so the deep call gets generic
+    // priority guidance ("focus on all areas"). The structural JSON
+    // output is unchanged — the AI still identifies weak phrases,
+    // missing keywords, impact issues, gaps, quantification
+    // suggestions, and skill audits from resume+JD alone. Suggestion
+    // ordering is slightly less score-aware but still grounded in
+    // resume/JD content.
+
+    // Detect the candidate's career stage so every suggestion stays stage-appropriate.
+    // Entry-level users shouldn't get "drive strategy" suggestions; executives shouldn't get
+    // "demonstrate ability to learn" suggestions. PDF Prompt #16.
+    const careerStage = CAREER_STAGE.detect(resume);
+    const stageGuidance = CAREER_STAGE.guidance(careerStage);
+
+    // Score promise — same prompt as before.
+    const scorePromise = useCachedScore
+      ? Promise.resolve(JSON.stringify(cachedScore))
+      : claudeFetch(`Score this resume against the job description. Return ONLY valid JSON:
 {"overall":78,"keyword_match":82,"hard_skills":88,"soft_skills":70,"title_alignment":75,"yoe_alignment":95,"summary_quality":70,"bullet_quality":75,"score_reason":"...","strengths":["..."],"gaps":["..."],"keyword_coverage":[{"keyword":"lean UX","found":true}],"top_fixes":[{"rank":1,"title":"...","desc":"...","section":"summary|bullets|skills","before":"exact verbatim text to replace","after":"exact stronger replacement using only documented results — do not fabricate metrics"}]}
 SCORING RULES:
 - keyword_match: % of important JD keywords found in resume. Check CAREFULLY — if the word appears ANYWHERE, it counts.
@@ -6422,40 +6453,22 @@ CRITICAL RULES:
 4. Do NOT suggest adding keywords already present in the resume.
 ${(proj.appliedFixes||[]).length ? 'ALREADY APPLIED (do NOT re-suggest these):\n' + (proj.appliedFixes||[]).filter(f=>f).map(f=>f.title||f.text||'').filter(Boolean).join('\n') + '\n' : ''}JOB:\n${jdText.slice(0,2500)}\nRESUME:\n${resume.slice(0,2500)}`, 3000, undefined, 0, CONFIG.models.sonnet);
 
-    const score = useCachedScore ? cachedScore : parseJson(scoreRaw);
-
-    // Build score context for the deep analysis prompt
-    const scoreContext = `CURRENT SCORES: overall=${score.overall||0}%, keywords=${score.keyword_match||0}%, hard_skills=${score.hard_skills||0}%, soft_skills=${score.soft_skills||0}%, title=${score.title_alignment||0}%, yoe=${score.yoe_alignment||0}%, summary=${score.summary_quality||0}%, bullets=${score.bullet_quality||0}%`;
-    const lowScores = [
-      ['keyword_match', 'Keywords', score.keyword_match],
-      ['hard_skills', 'Hard Skills', score.hard_skills],
-      ['soft_skills', 'Soft Skills', score.soft_skills],
-      ['title_alignment', 'Title Match', score.title_alignment],
-      ['summary_quality', 'Summary', score.summary_quality],
-      ['bullet_quality', 'Bullets', score.bullet_quality],
-    ].filter(([,, v]) => v && v < 90).sort((a,b) => a[2]-b[2]).map(([,l,v]) => `${l}=${v}%`).join(', ');
-
-    // Detect the candidate's career stage so every suggestion stays stage-appropriate.
-    // Entry-level users shouldn't get "drive strategy" suggestions; executives shouldn't get
-    // "demonstrate ability to learn" suggestions. PDF Prompt #16.
-    const careerStage = CAREER_STAGE.detect(resume);
-    const stageGuidance = CAREER_STAGE.guidance(careerStage);
-
-    const deepRaw = await claudeFetch(`Analyze this resume against the job description. Return ONLY valid JSON:
+    // Deep promise — runs in parallel with the score call. Score-derived
+    // text replaced with generic guidance (see 4.6.19 comment above).
+    const deepPromise = claudeFetch(`Analyze this resume against the job description. Return ONLY valid JSON:
 {"missing_keywords":[{"keyword":"exact JD term","context":"where in JD"}],"weak_phrases":[{"original":"weak phrase","stronger":"better version","reason":"why"}],"impact_issues":[{"bullet":"bullet text up to 80 chars","suggestion":"add outcome"}],"gaps":[{"text":"gap description","suggestion":"how to address"}],"quantification_suggestions":[{"original":"unquantified bullet text up to 80 chars","suggested_metric":"defensible metric phrase","reasoning":"which existing resume fact supports this"}],"skill_audit":{"generic_skills":["Communication","Problem Solving"],"outdated_skills":["FrontPage"],"reorder_hint":"which category should move first based on JD relevance"}}
-${scoreContext}
 
 ${stageGuidance}
 
 ALL SUGGESTIONS BELOW MUST MATCH THE CAREER STAGE GUIDANCE ABOVE. Do not suggest executive-tier language for an entry-level candidate. Do not suggest entry-level "learning velocity" framing for an executive. Match the stage.
 
-TARGET: Generate suggestions that will raise the overall score from ${score.overall||0}% to 90%+. Focus on the lowest-scoring dimensions: ${lowScores||'all areas'}.
+TARGET: Generate suggestions that will raise the resume's match to 90%+. Focus on every area where the resume could better align with the JD.
 PRIORITY ORDER — address these in order:
-1. TITLE: If title_alignment < 100, the resume title MUST exactly match the JD title. Flag this first.
-2. KEYWORDS: List every important JD keyword missing from the resume. Each one added raises keyword_match.
-3. SUMMARY: If summary_quality < 90, count the words. If >75, provide a specific rewrite under 70 words. If <50, expand it. Rewrite must be in first-person, no filler, metric-led.
-4. BULLETS: If bullet_quality < 90, find every bullet over 180 characters and rewrite it to ~150 characters. If the original bullet has a real metric, lead with it. If it has no real metric, write the rewrite WITHOUT a percentage — do NOT invent metrics and do NOT use placeholders like "X%", "[number]%", "Y%", "TBD%", or "___%". A bullet with no metric is acceptable; a bullet with a placeholder metric is NOT.
-5. SKILLS: If hard_skills or soft_skills < 90, identify missing JD skills to add and non-skills to remove.
+1. TITLE: If the resume title doesn't exactly match the JD title, flag this first.
+2. KEYWORDS: List every important JD keyword missing from the resume. Each one added raises keyword match.
+3. SUMMARY: If summary is too long (>75 words) or too short (<50 words), provide a specific rewrite at 50-75 words. Rewrite must be in first-person, no filler, metric-led.
+4. BULLETS: Find every bullet over 180 characters and rewrite it to ~150 characters. If the original bullet has a real metric, lead with it. If it has no real metric, write the rewrite WITHOUT a percentage — do NOT invent metrics and do NOT use placeholders like "X%", "[number]%", "Y%", "TBD%", or "___%". A bullet with no metric is acceptable; a bullet with a placeholder metric is NOT.
+5. SKILLS: Identify missing JD skills to add and non-skills to remove.
 
 QUANTIFICATION_SUGGESTIONS (new): Scan every bullet. For each bullet WITHOUT a number, percentage, scale figure, or time savings, decide whether the rest of the resume contains a fact that would let you defensibly add ONE metric (team size from another role, scope/breadth count, audience scale, time period, before/after improvement). If yes, return the bullet, the suggested metric phrase, and the supporting fact. If no defensible basis exists, do NOT include that bullet in this list. Max 5 entries. NEVER invent. Skip bullets that already have a metric.
 
@@ -6464,7 +6477,7 @@ SKILL_AUDIT (new): Examine the SKILLS section only.
 - "outdated_skills": list any tech/tool from 10+ years ago no longer in active use: FrontPage, Flash, Silverlight, Lotus Notes, jQuery (as a primary skill), Dreamweaver, Adobe Fireworks, Internet Explorer, ColdFusion. Empty array if none found.
 - "reorder_hint": one short sentence recommending which skill category should appear FIRST based on what the JD emphasizes most heavily. Empty string if the current order already matches JD emphasis.
 
-BE EXHAUSTIVE: Do not stop at 3-4 suggestions. Flag EVERY issue that is holding the score below 90. The user will apply all suggestions at once.
+BE EXHAUSTIVE: Do not stop at 3-4 suggestions. Flag EVERY issue that's holding the match below 90. The user will apply all suggestions at once.
 
 GOAL: Find the strongest HONEST angle this candidate has on this JD, and amplify it. The goal is NOT to make the resume look like the JD. Bridges to gaps must come from real transferable strengths, never from invented experience.
 
@@ -6478,13 +6491,16 @@ TRUTH GROUNDING (highest-priority rule):
 
 Rules: only flag real issues. Never fabricate metrics, skills, brands, domains, team members, or accomplishments. NEVER output placeholder tokens (X%, Y%, [number], [percent], ___, TBD) in any "stronger" or "suggestion" or "suggested_metric" field — if you don't have a real metric from the resume, do not include the suggestion at all. NEVER use em dashes (—) in any rewrite. Use commas, periods, or restructure the sentence. Em dashes are an AI tell and don't sound human.
 JOB:\n${jdText.slice(0,2000)}\nRESUME:\n${resume.slice(0,2500)}`, 3500);
-    const auditRaw = await claudeFetch(`Audit this resume for ATS issues. Return ONLY valid JSON:
-{"checks":[{"id":"c1","label":"Check name","status":"pass|fail|warn","issue":"description if fail/warn"}],"overall":"pass|warn|fail","summary":"..."}
-RESUME:\n${resume.slice(0,1500)}`, 1000);
+
+    // Wait for both in parallel. Total wall time = max(score, deep)
+    // instead of sum(score, deep). The audit call from previous builds
+    // is gone — it populated a force-hidden card so the output never
+    // reached the user.
+    const [scoreRaw, deepRaw] = await Promise.all([scorePromise, deepPromise]);
+
+    const score = useCachedScore ? cachedScore : parseJson(scoreRaw);
 
     const deep = parseJson(deepRaw);
-    let audit = null;
-    try { audit = parseJson(auditRaw); } catch(e) {}
 
     proj.scores.push(score);
     // Per-version score map. proj.scores gets wiped on every apply (so cached
@@ -6511,7 +6527,9 @@ RESUME:\n${resume.slice(0,1500)}`, 1000);
     if (activeIdx >= 0) {
       proj.versionScoreData[activeIdx] = JSON.parse(JSON.stringify(score));
     }
-    if (audit) proj.atsAudit = audit;
+    // 4.6.19: audit assignment removed (call deleted; #ats-audit-card is
+    // force-hidden in CSS since 4.5.9). proj.atsAudit reads from older
+    // project saves are still safe — the field just stops being updated.
     proj._lastDeep = deep; // persist deep analysis
     autoSave();
 
@@ -6525,15 +6543,9 @@ RESUME:\n${resume.slice(0,1500)}`, 1000);
     // Merge deep analysis items into the suggestions list
     renderDeepFixItems(deep);
 
-    // Show ATS audit if issues found
-    if (audit?.checks) {
-      const container = document.getElementById('ats-checks');
-      const card = document.getElementById('ats-audit-card');
-      if (container) container.innerHTML = audit.checks.map(c =>
-        `<div class="ats-row"><div class="ats-icon">${c.status==='pass'?'✅':c.status==='warn'?'⚠️':'❌'}</div><div><div class="ats-title">${esc(c.label)}</div><div class="ats-desc">${esc(c.issue||'')}</div></div></div>`
-      ).join('');
-      if (card) card.style.display = audit.checks.some(c => c.status !== 'pass') ? 'block' : 'none';
-    }
+    // 4.6.19: ATS audit render block removed — the card was force-hidden
+    // since 4.5.9 so populating its DOM was wasted work, and the Claude
+    // call that produced the data is gone now too.
 
     // Render keyword coverage
     const kwCov = document.getElementById('keyword-coverage');
