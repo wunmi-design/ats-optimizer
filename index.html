@@ -761,7 +761,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.24</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.25</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -2329,15 +2329,22 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
                 <div id="keyword-coverage"></div>
               </div>
             </div>
-            <!-- Unified apply bar -->
-            <div class="apply-bar" id="fix-apply-bar" style="margin-top:12px;">
-              <span class="text-xs"><strong id="fix-sel-count">0</strong> selected</span>
-              <div class="flex-c gap-2">
-                <div class="loading-row" id="apply-loading"><div class="spin"></div><span id="apply-msg">Applying 5 changes...</span></div>
-                <button class="btn btn-secondary btn-sm" onclick="clearAllSelections()">Clear</button>
-                <button class="btn btn-primary btn-sm" id="apply-btn" onclick="applySelectedFixes()">Apply Selected →</button>
-              </div>
-            </div>
+            <!-- 4.6.25: Apply Selected bar removed. It lived here as dead
+                 UI inside this already-hidden suggestions card — the
+                 #apply-btn / Clear button / fix-sel-count / apply-loading
+                 elements weren't reachable from any user flow since
+                 2.4.82 when Optimize started applying all suggestions
+                 automatically. The DOM elements above (#top-fixes,
+                 #deep-fix-items, #fix-cb checkboxes) still need to stay
+                 because autoOptimize iterates them programmatically as
+                 part of its internal apply pipeline.
+
+                 updateFixBar() and clearAllSelections() are now no-ops
+                 (they getElementById these gone IDs and the existing
+                 'if (bar)' null-guards handle that gracefully). They're
+                 still defined and still called — the calls just produce
+                 no visible effect, which is the same as the prior state
+                 since the bar was hidden anyway. -->
           </div>
 
           <!-- Applied Fixes Inventory — hidden permanently in 4.6.1 per
