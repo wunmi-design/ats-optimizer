@@ -761,7 +761,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.23</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.24</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -6593,24 +6593,16 @@ JOB:\n${jdText.slice(0,2000)}\nRESUME:\n${resume.slice(0,2500)}`, 3500);
     // project saves are still safe — the field just stops being updated.
     proj._lastDeep = deep; // persist deep analysis
 
-    // 4.6.22: AI-judged resume title. Score now returns
-    // `recommended_resume_title` — the title that should appear under
-    // the candidate's name. Replaces the literal `proj.jdTitle` copy
-    // that used to happen at the end of autoOptimize / applySelectedFixes
-    // (Wunmi's spec: "the optimizer is supposed to analyze the Job
-    // title and the JD and then make a judgment for what the Resume's
-    // Job Title is"). Falls back to keeping whatever's already in
-    // proj.ce.contact.title if the AI doesn't return one. Updates the
-    // visible #ce-title input simultaneously so the Content Editor
-    // field matches.
-    if (typeof score.recommended_resume_title === 'string' && score.recommended_resume_title.trim()) {
-      const recTitle = score.recommended_resume_title.trim();
-      if (!proj.ce) proj.ce = (typeof ceDefaultData === 'function' ? ceDefaultData() : {});
-      if (!proj.ce.contact) proj.ce.contact = {};
-      proj.ce.contact.title = recTitle;
-      const titleInput = document.getElementById('ce-title');
-      if (titleInput) titleInput.value = recTitle;
-    }
+    // 4.6.24: The score still produces `recommended_resume_title` and
+    // we store the full score blob (so the field is available in
+    // proj._cachedScore for downstream code), but we NO LONGER write
+    // it to proj.ce.contact.title here. Wunmi's spec: Score Resume
+    // must be a passive, read-only operation — clicking it should
+    // never change the rendered resume. The title write moved into
+    // the post-apply flows of autoOptimize and applySelectedFixes,
+    // which is where the user expects the title to update.
+    // (Previously 4.6.22 auto-applied here, which fired on every
+    // Score Resume click and surprised the user.)
 
     autoSave();
 
@@ -8650,6 +8642,29 @@ function buildBulletContextBlock() {
 // were driving the keyword/hard-skill sub-scores, so the rewrite
 // could freely paraphrase or replace them with synonyms, silently
 // tanking the score.
+// 4.6.24: Apply the score's recommended_resume_title to the resume header.
+// Called after the post-apply rescore in autoOptimize and applySelectedFixes
+// — never from Score Resume directly. Pure data sync, no Claude calls. The
+// score blob produced by runFullAnalysis carries the field; this helper
+// reads it from proj._cachedScore and writes to proj.ce.contact.title +
+// the #ce-title input. No-op if the score has no recommendation.
+//
+// Why this is split out from runFullAnalysis: clicking Score Resume must
+// be a passive read-only operation — it should never change the rendered
+// resume. By keeping the write in the apply paths instead of inside the
+// scoring function, the title only updates when the user explicitly
+// optimizes (which is when they expect changes).
+function applyRecommendedTitleFromScore() {
+  const recTitle = proj?._cachedScore?.recommended_resume_title;
+  if (typeof recTitle !== 'string' || !recTitle.trim()) return;
+  const t = recTitle.trim();
+  if (!proj.ce) proj.ce = (typeof ceDefaultData === 'function' ? ceDefaultData() : {});
+  if (!proj.ce.contact) proj.ce.contact = {};
+  proj.ce.contact.title = t;
+  const titleInput = document.getElementById('ce-title');
+  if (titleInput) titleInput.value = t;
+}
+
 function buildKeywordCoverageBlock() {
   const coverage = proj?._cachedScore?.keyword_coverage || [];
   // keyword_coverage entries can be either {keyword, found} OR just
@@ -9036,14 +9051,11 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
       const _currentTab = document.querySelector('.tab.active')?.id?.replace('tab-','');
       await parseToCE(cleaned, true);  // suppress tab switch — we'll restore the active tab below
       fillCE(proj.ce);
-      // 4.6.22 (revised): no per-apply title judgment here. The resume
-      // title is decided by runFullAnalysis via score.recommended_resume_title
-      // (Haiku judgment merged into the score call — zero extra Claude calls).
-      // applySelectedFixes does not auto-rescore, so the title stays at
-      // whatever the most recent Score Resume set it to. If the user wants
-      // the title re-judged after a manual Apply Selected, hitting Score
-      // Resume will refresh it. This removes the redundant standalone
-      // judgeResumeTitle call (~2-3s + ~$0.001 saved per apply).
+      // 4.6.24: NOW apply the recommended_resume_title from the
+      // post-apply score. Runs AFTER parseToCE+fillCE so parseToCE's
+      // wholesale ce.contact reset doesn't clobber it. Stays out of
+      // runFullAnalysis itself so Score Resume remains passive.
+      applyRecommendedTitleFromScore();
       autoSave();
       if (_currentTab) switchTab(_currentTab);
     } catch(ceErr) { console.warn('CE sync after apply:', ceErr); }
@@ -9429,6 +9441,12 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
       // Skip the post-optimize diff view since we reverted
     } else {
       toast(`${passLabel ? passLabel + ': ' : 'Optimize complete. '}Score: ${scoreBefore} → ${scoreAfter}`);
+      // 4.6.24: NOW apply the recommended_resume_title. Only on the
+      // success path — if Optimize regressed and we rolled back above,
+      // we keep the source version's title (don't apply the bad-pass
+      // recommendation). Score Resume stays passive; only an explicit
+      // successful Optimize updates the header title.
+      applyRecommendedTitleFromScore();
       // Replace the suggestions panel with the post-Optimize view (score + AI-titled change list).
       if (!suppressPostView) {
         try { await showPostOptimizeView(beforeDraft, cleaned, scoreBefore, scoreAfter); }
