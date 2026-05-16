@@ -761,7 +761,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.27</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.28</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -2203,7 +2203,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
                  Optimize (primary black) right. Behavior: Evaluate scores
                  the resume; Optimize optimizes + scores. -->
             <button class="btn btn-secondary" onclick="runFullAnalysis()" id="evaluate-btn">🔍 Score Resume</button>
-            <button class="btn btn-primary" onclick="optimizeWithQuestionCheck()" id="auto-opt-btn" title="Apply all suggestions from one analysis pass">⚡ Optimize</button>
+            <button class="btn btn-primary" onclick="autoOptimize()" id="auto-opt-btn" title="Apply all suggestions from one analysis pass">⚡ Optimize</button>
           </div>
         </div>
 
@@ -2800,30 +2800,14 @@ NY Top Creative Winner · WIx and Vitamin T · 2014</div>
                                     "Apply answers" is clicked
        3. Optimize without answering → straight to optimize, no answers
      -->
-<div class="ai-modal hidden" id="how-to-answer-modal" onclick="if(event.target===this)hideHowToAnswerModal()">
-  <div class="ai-modal-box" style="max-width:640px;padding:36px 40px;">
-    <h3 style="text-align:center;font-size:22px;font-weight:700;margin:0 0 28px 0;">Answer questions</h3>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:24px;">
-      <!-- Auto fill -->
-      <button onclick="chooseHowToAnswer('autofill')" style="background:var(--white);border:1px solid #ddd;border-radius:10px;padding:32px 16px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;color:#111;line-height:1.4;text-align:center;min-height:120px;display:flex;align-items:center;justify-content:center;transition:border-color .15s, background .15s;" onmouseover="this.style.borderColor='#111';" onmouseout="this.style.borderColor='#ddd';">
-        Auto fill<br>answers
-      </button>
-      <!-- Answer with your AI (primary, black) -->
-      <button onclick="chooseHowToAnswer('byo-ai')" style="background:#111;border:1px solid #111;border-radius:10px;padding:32px 16px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;color:#fff;line-height:1.4;text-align:center;min-height:120px;display:flex;align-items:center;justify-content:center;transition:background .15s;" onmouseover="this.style.background='#222';" onmouseout="this.style.background='#111';">
-        ✦ Answer with<br>your AI
-      </button>
-      <!-- Optimize without answering -->
-      <button onclick="chooseHowToAnswer('skip')" style="background:var(--white);border:1px solid #ddd;border-radius:10px;padding:32px 16px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;color:#111;line-height:1.4;text-align:center;min-height:120px;display:flex;align-items:center;justify-content:center;transition:border-color .15s, background .15s;" onmouseover="this.style.borderColor='#111';" onmouseout="this.style.borderColor='#ddd';">
-        Optimize without<br>answering
-      </button>
-    </div>
-
-    <div style="display:flex;justify-content:flex-start;">
-      <button class="btn btn-ghost" onclick="hideHowToAnswerModal()" style="text-decoration:underline;font-size:14px;color:#555;padding:0;">Cancel</button>
-    </div>
-  </div>
-</div>
+<!-- 4.6.28: how-to-answer pre-Optimize modal removed. Optimize now
+     proceeds directly whether or not the user has answered questions.
+     The modal added friction without protecting against anything —
+     unanswered questions just don't influence the apply pass, which
+     is fine. Three associated functions (optimizeWithQuestionCheck,
+     showHowToAnswerModal, hideHowToAnswerModal, chooseHowToAnswer)
+     are no longer called from anywhere. Their definitions are
+     removed below. -->
 
 <div class="ai-modal hidden" id="answer-modal" onclick="if(event.target===this)hideAnswerModal()">
   <div class="ai-modal-box" style="max-width:560px;padding:32px 36px;">
@@ -2886,7 +2870,7 @@ NY Top Creative Winner · WIx and Vitamin T · 2014</div>
 
     <!-- Footer: aligned with content column, not numbers -->
     <div style="display:flex;align-items:center;gap:18px;margin-left:50px;">
-      <button class="btn btn-primary" id="apply-answers-btn" onclick="applyPastedAnswers()" style="padding:11px 24px;font-size:14px;font-weight:600;">Apply answers</button>
+      <button id="apply-answers-btn" onclick="applyPastedAnswers()" style="background:var(--white);border:1.5px solid #111;border-radius:10px;padding:14px 32px;font-family:inherit;font-size:15px;font-weight:700;color:#111;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#f7f7f7';" onmouseout="this.style.background='var(--white)';">Apply answers</button>
       <button class="btn btn-ghost" onclick="hideAnswerModal()" style="text-decoration:underline;font-size:14px;color:#555;padding:0;">Cancel</button>
     </div>
   </div>
@@ -5951,66 +5935,18 @@ async function autoFillAnswers() {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────
-// 4.6.16: pre-Optimize "How to answer" modal routing.
-// optimizeWithQuestionCheck() is now what the Optimize button calls
-// (instead of autoOptimize() directly). If the user has questions
-// but hasn't answered any, we show them three explicit paths instead
-// of silently optimizing against an un-personalized resume. If there
-// are no questions, or at least one is answered, we go straight to
-// autoOptimize() — no extra friction.
-// ─────────────────────────────────────────────────────────────────
-function optimizeWithQuestionCheck() {
-  if (!proj) { toast('Open a project first'); return; }
-  const questions = proj.questions || [];
-  // If no questions exist (no JD analyzed yet, or none generated),
-  // just go straight to autoOptimize — it will validate the JD itself
-  // and toast appropriately if there's nothing to optimize against.
-  if (!questions.length) {
-    autoOptimize();
-    return;
-  }
-  // Has any question been answered? "Answered" = non-empty trimmed answer.
-  // We treat one answer as enough — partial intent is still intent.
-  const anyAnswered = questions.some(q => (q.answer || '').trim().length > 0);
-  if (anyAnswered) {
-    autoOptimize();
-    return;
-  }
-  // Unanswered — show the modal so the user picks a path.
-  showHowToAnswerModal();
-}
-
-function showHowToAnswerModal() {
-  document.getElementById('how-to-answer-modal')?.classList.remove('hidden');
-}
-
-function hideHowToAnswerModal() {
-  document.getElementById('how-to-answer-modal')?.classList.add('hidden');
-}
-
-// Routes the three buttons in the How-to-answer modal. Each path ends
-// in autoOptimize being called — either immediately (skip), after a
-// generated fill (autofill), or after the user pastes AI answers
-// (byo-ai sets the post-apply flag).
-async function chooseHowToAnswer(path) {
-  hideHowToAnswerModal();
-  if (path === 'autofill') {
-    // Flag tells autoFillAnswers to trigger autoOptimize when the
-    // generated answers land.
-    if (proj) proj._postApplyAction = 'optimize';
-    await autoFillAnswers();
-  } else if (path === 'byo-ai') {
-    // Open the existing 4-step Answer-with-your-AI modal. The flag
-    // tells applyPastedAnswers to trigger autoOptimize after the
-    // user clicks "Apply answers".
-    if (proj) proj._postApplyAction = 'optimize';
-    try { showAnswerModal(); } catch(e) { console.warn('showAnswerModal:', e); }
-  } else if (path === 'skip') {
-    // No answers, straight to optimize.
-    autoOptimize();
-  }
-}
+// 4.6.28: optimizeWithQuestionCheck, showHowToAnswerModal,
+// hideHowToAnswerModal, and chooseHowToAnswer removed. The Optimize
+// button now calls autoOptimize() directly. Whether or not the user
+// has answered questions, Optimize proceeds — unanswered questions
+// just don't influence the apply pass, which is fine. Removing the
+// modal eliminates a forced interruption that didn't protect against
+// anything.
+//
+// _postApplyAction is still set/read by the Answer-with-your-AI flow
+// (showAnswerModal → applyPastedAnswers) to chain into autoOptimize
+// after the user pastes answers back. That part of the flow is
+// useful and stays.
 
 
 // Blocking modal helpers — full-screen overlay that prevents all interaction
@@ -9135,7 +9071,7 @@ Apply these changes to the resume. CRITICAL FORMATTING RULES:\n- Keep the EXACT 
 // 4.6.16: optimizeFromJD removed. The button that called it lived at the
 // bottom of the Job & Questions tab and was removed when the questions
 // flow moved to the Optimizer tab. Optimize is now reached exclusively
-// via the ⚡ Optimize button on the Optimizer tab → optimizeWithQuestionCheck.
+// via the ⚡ Optimize button on the Optimizer tab → autoOptimize.
 
 // (Optimize Extreme removed in 4.5.8 — it ran autoOptimize 3 times in a row
 // for ~3x cost. Wunmi removed it to simplify the UI and prevent runaway
