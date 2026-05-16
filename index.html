@@ -761,7 +761,7 @@ hr.dim{border:none;border-top:1px solid var(--border);margin:12px 0;}
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="14" height="14" rx="2"></rect><path d="M7 7h6M7 10h6M7 13h4"></path></svg>
         Resume Optimizer
       </div>
-      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.16</span>
+      <span style="color:var(--muted);font-size:11px;flex-shrink:0;">Build 4.6.17</span>
       <span style="color:var(--border);font-size:11px;flex-shrink:0;">|</span>
       <div class="topbar-project" onclick="promptRenameProject()" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:1;min-width:0;">
         <span class="topbar-project-name" id="proj-name-display" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">Project</span>
@@ -9007,9 +9007,27 @@ async function autoOptimize(opts) {
     // issues are missed. runDeepAnalysis now calls renderDeepFixItems on
     // its results so deep items land in _currentFixes alongside the top
     // fixes already seeded by the prior Analyze.
+    //
+    // 4.6.17: skip runDeepAnalysis if _lastDeep is already fresh.
+    // runFullAnalysis (called by Score Resume) makes TWO Claude calls
+    // internally — score + deep — and the deep portion populates
+    // proj._lastDeep + proj._currentFixes with the same data shape
+    // runDeepAnalysis returns. Re-running runDeepAnalysis here when
+    // resume + JD haven't changed is a wasted ~10-15s Claude call. We
+    // detect freshness by comparing proj._analysisHash against the
+    // current content hash. If the user changed the resume or JD
+    // between Score Resume and Optimize, the hash won't match and we
+    // fall through to a fresh runDeepAnalysis as before.
     overlayMsg.textContent = 'Analyzing resume...';
     overlaySub.textContent = 'Looking for content improvements and missing keywords';
-    try { await runDeepAnalysis(); } catch(e) { console.warn('Deep analysis during Optimize failed:', e); }
+    const _deepFreshHash = simpleHash(getResumeText() + jdText);
+    const _deepCacheFresh = proj?._lastDeep && proj._analysisHash === _deepFreshHash;
+    if (_deepCacheFresh) {
+      console.log('[Optimize] reusing fresh _lastDeep — skipping runDeepAnalysis (saves ~10-15s)');
+      try { renderDeepFixItems(proj._lastDeep); } catch(e) { console.warn('renderDeepFixItems (cached):', e); }
+    } else {
+      try { await runDeepAnalysis(); } catch(e) { console.warn('Deep analysis during Optimize failed:', e); }
+    }
 
     const scoreBefore = proj._cachedScore?.overall || 0;
     // Snapshot the draft going INTO optimize so we can show a before/after diff at the end.
